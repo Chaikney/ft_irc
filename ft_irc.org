@@ -1,0 +1,9 @@
+#+title:     ft_irc working notes
+#+author:    Chris Haikney
+#+email:
+
+* Form team
+
+* Read specification
+
+* Design classes
