@@ -4,6 +4,119 @@
 
 * Form team
 
-* Read specification
+** DONE Make GH repo
 
-* Design classes
+** TODO Look for 3rd person
+
+* Specification and other resources
+"IRC client-server connections work over TCP/IP. The standard ports for client-server connections are TCP/6667 for plaintext, and TCP/6697 for TLS connections."
+The most useful documents seem to be:
+- [[https://modern.ircdocs.horse/][IRC Client Protocol Specification]]
+  This is very clear, but goes too far / modern
+- https://tools.ietf.org/html/rfc1459
+  This is the official RFC. Old, possibly harder to understand (I haven't read it yet) but probably the last word in evaluations.
+- [[http:https://github.com/ircdocs/parser-tests][Parser tools]]
+  Checkers for parsing, possibly useful but require some setup.
+
+* Classes and key concepts
+Users send messages to channels on a server
+** Server
+- listens on port 6667 (plaintext) and 6697 (TLS)
+- allows users to register
+  In addition to the nickname, all servers must have the following information about all clients: the real name/address of the host that the client is connecting from, the username of the client on that host, and the server to which the client is connected.
+- receives messages from authorised users
+- acts on those messages
+- keeps track of known channels / rooms
+- "Servers SHOULD pick a name which contains a dot character (".", 0x2E). This can help clients disambiguate between server names and nicknames in a message source."
+** User (also known as client)
+Note that clients will be sending out server things, so we only have send things back to them, not worry about *how* they (clients) behave...
+" anything connecting to a server that is not another server. Each client is distinguished from other clients by a unique nickname. "
+- registers a nickname on a server
+ #+begin_quote
+  "Nicknames are non-empty strings with the following restrictions:
+
+    They MUST NOT contain any of the following characters: space (' ', 0x20), comma (',', 0x2C), asterisk ('*', 0x2A), question mark ('?', 0x3F), exclamation mark ('!', 0x21), at sign ('@', 0x40).
+    They MUST NOT start with any of the following characters: dollar ('$', 0x24), colon (':', 0x3A).
+    They MUST NOT start with a character listed as a channel type, channel membership prefix, or prefix listed in the IRCv3 multi-prefix Extension.
+    They SHOULD NOT contain any dot character ('.', 0x2E).
+
+  Servers MAY have additional implementation-specific nickname restrictions and SHOULD avoid the use of nicknames which are ambiguous with commands or command parameters where this could lead to confusion or error."
+ #+end_quote
+- joins or creates channels
+- has various levels of abilities, which differ according to the channel
+- what is a **client mask**?
+  It is referred to a lot in relation, e.g. to channel modes. Sounds like something we need to have defined as a struct or subclass of client.
+** Channel (also known as room)
+https://modern.ircdocs.horse/#channels
+"a named group of one or more clients. The channel is created implicitly when the first client joins it, and the channel ceases to exist when the last client leaves it. While the channel exists, any client can reference the channel using the name of the channel. Networks that support the concept of ‘channel ownership’ may persist specific channels in some way while no clients are connected to them."
+Sort of implies that the simplest representation of this would be a [container] of clients, plus some shared info of the channel (e.g. those modes below)
+- Types of channel
+  - The first standard type of channel is a regular channel, which is known to all servers that are connected to the network. The prefix character for this type of channel is ('#', 0x23).
+  - The second type are server-specific or local channels, where the clients connected can only see and talk to other clients on the same server. The prefix character for this type of channel is ('&', 0x26). Other types of channels are described in the Channel Types section."
+- Channel modes
+  https://modern.ircdocs.horse/#channel-modes
+  "Along with various channel types, there are also channel modes that can alter the characteristics and behaviour of individual channels. See the Channel Modes section for more information on these."
+  This includes things like ban; some of these are set by default so we should set them up on channel creation.
+
+- has some rules for its name
+  "Channel names are strings (beginning with specified prefix characters). Apart from the requirement of the first character being a valid channel type prefix character; the only restriction on a channel name is that it may not contain any spaces (' ', 0x20), a control G / BELL ('^G', 0x07), or a comma (',', 0x2C) (which is used as a list item separator by the protocol)."
+- also has a subject line
+- is used to direct messages to users
+  All clients in the channel will receive all messages addressed to that channel.
+** Messages (for sending or for commands)
+https://modern.ircdocs.horse/#message-format
+#+begin_quote
+An IRC message is a single line, delimited by a pair of CR ('\r', 0x0D) and LF ('\n', 0x0A) characters.
+
+    When reading messages from a stream, read the incoming data into a buffer. Only parse and process a message once you encounter the \r\n at the end of it. If you encounter an empty message, silently ignore it.
+    When sending messages, ensure that a pair of \r\n characters follows every single message your software sends out.
+#+end_quote
+So read until we reach the end pair *or* some safety limit that we set. ("Most IRC servers limit messages to 512 bytes in length, including the trailing CR-LF characters.")
+The parts of messages (each separated by one more more space 0x20) are then:
+- tags (" optional, and MUST NOT be sent unless explicitly enabled by a capability.")
+  So ignore this for now
+- source  (or prefix)
+  Indicated by : aka 0x3A
+  Assuming no tags this *must* be the first char of the message
+- command
+  "The command must either be a valid IRC command or a numeric (a three-digit number represented as text)."
+- parameters
+Seems pretty fundamental that we have strong parsing of messages. What format do they have? And what do we have to extract, store and process from them?
+** Services -- no longer used, can be ignored
+
+* Important processes / methods
+
+** User registration -- probably lives within the server
+https://modern.ircdocs.horse/#connection-registration
+Assuming we put aside for now Capability Negotiation, then only *the first 3* of these are needed, and the 3 commands should be part of the connection request that we receive / process.
+#+begin_quote
+Immediately upon establishing a connection the client must attempt registration, without waiting for any banner message from the server.
+
+Until registration is complete, only a limited subset of commands SHOULD be accepted by the server. This is because it makes sense to require a registered (fully connected) client connection before allowing commands such as JOIN, PRIVMSG and others.
+
+The recommended order of commands during registration is as follows:
+
+    CAP LS 302
+    PASS
+    NICK and USER
+    Capability Negotiation
+    SASL (if negotiated)
+    CAP END
+
+The commands specified in steps 1-3 should be sent on connection. I
+#+end_quote
+
+** Message parsing -- almost certainly a Server method
+
+*** Validate and direct the command after parsing
+
+*** Execute the command with parsing
+
+** Message sending -- almost certainly a Server method
+
+* Tasks to be done for IRC project
+
+** Make a diagram of the classes
+
+** Get a list of *all* the commands that the server should be able to handle
+...and then we can think about how to implement them. (What are the most important?)
