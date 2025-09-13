@@ -9,7 +9,7 @@
 // - port
 // - password (passed in on command line)
 // TODO Which attributes should be marked as const?
-// TODO Add assignment overload, copy constructor, default destructor
+// DONE Add assignment overload, copy constructor, default destructor
 // TODO Add getters for any relevant attribute
 class	Server
 {
@@ -18,8 +18,11 @@ class	Server
     std::string	_password;
 
     Server(void);	// private so not called
+	Server(const Server &irc);	// No good reason to allow copy construction of the server
+	Server	operator=(const Server &irc);	// No assignment should be possible either
 
     public:
         Server(int port, std::string password);
+		~Server(void);	// NOTE Destructor will have to cleanly close connections and whatever partial / pending messages we have
 };
 #endif

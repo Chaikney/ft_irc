@@ -35,3 +35,9 @@ Server::Server(int port, std::string password) :  _socketFD(0), _serverAddress()
 	std::cout << "Asked for a connection and got " << clientSocket << std::endl;
 
 }
+
+// NOTE This needs to be expanded as we add more things to the Server class
+Server::~Server(void)
+{
+	std::cout << "Server being taken down! Make sure all memory is properly deallocated" << std::endl;
+}
