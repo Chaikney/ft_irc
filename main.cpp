@@ -12,24 +12,24 @@
 // TODO Add signal handlers to cleanly exit on SIGINT and SIGTERM
 // TODO Add error handling for invalid arguments
 // TODO Add error handling for Server constructor problems
-int	main(int ac, char **av)
+int	main(int argc, char **argv)
 {
 	int port;
 	std::string password;
 
 	port = -1;
-	if(ac < 3)
+	if (argc < 3)
 	{
-		std::cerr << "Usage: " << av[0] << " <port> <password>" << std::endl;
+		std::cerr << "Usage: " << argv[0] << " <port> <password>" << std::endl;
 		return (1);
 	}
-	port = atoi(av[1]);
+	port = atoi(argv[1]);
 	if (port <= 0 || port > 65535)
 	{
 		std::cerr << "Invalid port number" << std::endl;
 		return (1);
 	}
-	password = av[2];
+	password = argv[2];
 
 	std::cout << "calling server constructor" << std::endl;
 	Server	ircServer(port, password);
