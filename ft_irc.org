@@ -177,6 +177,7 @@ take a connection on that socket / port / whatever
 ** IDEA IS it possible to use cat or >> to pass messages to a server?
 there is a file descriptor, so maybe yes?
 Would be useful for testing.
+The subject document says use `nc` to test partial and malformed message handling.
 * Tasks to be done for IRC project
 
 ** Make a diagram of the classes
@@ -184,3 +185,6 @@ Would be useful for testing.
 ** Get a list of *all* the commands that the server should be able to handle
 ...and then we can think about how to implement them. (What are the most important?)
 
+* [2025-09-11 jue] Have to understand how poll() works
+https://thelinuxcode.com/use-poll-system-call-c/
+It looks like we would store all our "clients", open connections whatever and "poll" them to find events (messages) to process...?
