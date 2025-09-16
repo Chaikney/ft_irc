@@ -188,3 +188,29 @@ The subject document says use `nc` to test partial and malformed message handlin
 * [2025-09-11 jue] Have to understand how poll() works
 https://thelinuxcode.com/use-poll-system-call-c/
 It looks like we would store all our "clients", open connections whatever and "poll" them to find events (messages) to process...?
+* TODO Understand epoll() semantics
+According ot the man page there are 2 versions: level-triggered (default, like poll) and edge-triggered (which I don't understand the point of). There's something relating to the EPOLLET flag somewhere here.
+
+[[file:~/Documents/00_WorkInProgress/2023_04_42UrdulizCurso/ft_irc/main.cpp::// - epoll_wait for an event BUT NOTE this blocks the thread, is it forbidden?]]
+** [2025-09-16 mar] An epoll() tutorial to read
+https://www.oddmeta.net/archives/375.html
+** An article on the how and why of epoll https://darkcoding.net/software/epoll-the-api-that-powers-the-modern-internet/
+** The important enums of events
+These get ||'d together to make the set of what is being polled for
+- EINTR
+- EAGAIN
+- EWOULDBLOCK
+- EPOLLIN
+  input available to read
+- EPOLLOUT
+  output available to write?
+** What is the epoll_event struct?
+- events: what is being listened for (per above)
+- data.fd: the file descriptor that the event refers to or occurs on
+** epoll_ctl()
+Parameters this takes:
+- the fd returned by the epoll_create call
+- enum of a command, e.g. EPOLL_CTL_ADD
+- fd of the thing (socket?) to be listening to.
+- pointer to an epoll_event struct
+  ...I don't know what that is used for -- the event we are adding?
