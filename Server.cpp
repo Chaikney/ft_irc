@@ -41,3 +41,9 @@ Server::~Server(void)
 {
 	std::cout << "Server being taken down! Make sure all memory is properly deallocated" << std::endl;
 }
+
+// Simple gettter for the Server socket's file descriptor.
+int	Server::get_fd(void) const
+{
+	return (this->_socketFD);
+}

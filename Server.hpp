@@ -21,8 +21,10 @@ class	Server
 	Server(const Server &irc);	// No good reason to allow copy construction of the server
 	Server	operator=(const Server &irc);	// No assignment should be possible either
 
-    public:
-        Server(int port, std::string password);
+	public:
+		Server(int port, std::string password);
 		~Server(void);	// NOTE Destructor will have to cleanly close connections and whatever partial / pending messages we have
+
+		int get_fd(void) const;
 };
 #endif
