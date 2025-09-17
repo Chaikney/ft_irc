@@ -1,3 +1,4 @@
+
 #ifndef SERVER_HPP
 # define SERVER_HPP
 
@@ -13,9 +14,12 @@
 // TODO Add getters for any relevant attribute
 class	Server
 {
-    int			_socketFD;
-	sockaddr_in	_serverAddress;
-    std::string	_password;
+	
+	int         acceptClient();
+	int         _socketFD;
+	int         _epollFD;
+	sockaddr_in _serverAddress;
+	std::string _password;
 
     Server(void);	// private so not called
 	Server(const Server &irc);	// No good reason to allow copy construction of the server
@@ -26,5 +30,6 @@ class	Server
 		~Server(void);	// NOTE Destructor will have to cleanly close connections and whatever partial / pending messages we have
 
 		int get_fd(void) const;
+		void run(void);
 };
 #endif

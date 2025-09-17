@@ -47,5 +47,6 @@ int	main(int argc, char **argv)
 	}
 	std::cout << "calling server constructor" << std::endl;
 	Server	ircServer(port_num, password);
+	ircServer.run();
     return (0);
 }
