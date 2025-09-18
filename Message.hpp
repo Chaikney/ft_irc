@@ -4,6 +4,9 @@
 #include <string>
 #include <list>
 
+// Static member variable. All messages of the same max length bytes
+const int	MSG_LEN = 512;
+
 // TODO Add getters for any relevant attribute
 // TODO Decide if any other information is useful to us here
 class	Message

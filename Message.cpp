@@ -14,7 +14,7 @@ Message::Message(std::string text_recvd) : _tags(""), _source(""), _command(""),
 
     if (text_recvd.empty())
         throw std::invalid_argument("Tried to create message with empty string");
-    if ((text_recvd.length() > 512) || (text_recvd.length() < 3))
+    if ((text_recvd.length() > MSG_LEN) || (text_recvd.length() < 3))
         throw std::invalid_argument("Message too short or too long");
     std::istringstream	strm(text_recvd);
     std::cout << "Message constructor called using:" << text_recvd << std::endl;
@@ -52,9 +52,6 @@ Message::Message(std::string text_recvd) : _tags(""), _source(""), _command(""),
 Message::Message(const Message &original): _tags(original._tags), _source(original._source),
 										   _command(original._command), _params()
 {
-	// this->_tags(original._tags);
-	// this->_source(original._source);
-	// this->_command(original._command);
 	this->_params = original._params;
 }
 
