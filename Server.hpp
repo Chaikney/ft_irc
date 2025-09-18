@@ -9,27 +9,29 @@
 // What should this hold?
 // - port
 // - password (passed in on command line)
+// TODO Add storage for Registered Users
+// TODO Add storage for Channels (and members?)
 // TODO Which attributes should be marked as const?
-// DONE Add assignment overload, copy constructor, default destructor
 // TODO Add getters for any relevant attribute
 class	Server
 {
-	
-	int         acceptClient();
-	int         _socketFD;
-	int         _epollFD;
-	sockaddr_in _serverAddress;
-	std::string _password;
+	private:
+		int         _socketFD;
+		int         _epollFD;
+		sockaddr_in _serverAddress;
+		std::string _password;
 
-    Server(void);	// private so not called
-	Server(const Server &irc);	// No good reason to allow copy construction of the server
-	Server	operator=(const Server &irc);	// No assignment should be possible either
+					Server(void);	// private so not called
+					Server(const Server &irc);	// No good reason to allow copy construction of the server
+		Server		operator=(const Server &irc);	// No assignment should be possible either
+
+		int			acceptClient();
 
 	public:
-		Server(int port, std::string password);
-		~Server(void);	// NOTE Destructor will have to cleanly close connections and whatever partial / pending messages we have
+					Server(int port, std::string password);
+					~Server(void);	// NOTE Destructor will have to cleanly close connections and whatever partial / pending messages we have
 
-		int get_fd(void) const;
-		void run(void);
+		int			get_fd(void) const;
+		void		run(void);
 };
 #endif

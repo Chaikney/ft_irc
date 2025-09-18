@@ -2,12 +2,17 @@
 #include <iostream>
 #include <unistd.h>
 #include <sys/epoll.h>
-#include <fcntl.h>
+#include <fcntl.h>	// NOTE IS there a C++ equivalent we should prefer?
 
-// How to set this up carefully?
-// What parts should be done inthe constructor, and which are for afterwards?
-// NOTE That the accept()  call is likely to have be outside
-// FIXED How do I set up the _serverAddress sockaddr_in struct in the init list?
+// Set up the Server:
+// - create fd for socket
+// - set as non-blocking
+// - set to listen on IP4, user-supplied port and any incoming IP
+// - bind socket to the fd
+// - listen on fd
+// - Create epoll fd
+// - Add socket fd to epoll's listening set
+// FIXME There are no try/catch blocks for the thrown exceptions
 Server::Server(int port, std::string password) : _socketFD(0), _epollFD(0), _serverAddress(), _password(password)
 {
 	std::cout << "Server constructor with parameters called" << std::endl;
@@ -19,8 +24,10 @@ Server::Server(int port, std::string password) : _socketFD(0), _epollFD(0), _ser
 	}
 	std::cout << "Created a socket listening at fd " << _socketFD << std::endl;
 
-	// Set socket to non-blocking
+	// Set socket to non-blocking by:
+	// Get the existing flags for the newly-created Socket
 	int flags = fcntl(_socketFD, F_GETFL, 0);
+	// Add non-blocking to those existing client flags
 	fcntl(_socketFD, F_SETFL, flags | O_NONBLOCK);
 
 	_serverAddress.sin_family = AF_INET;
@@ -67,6 +74,7 @@ Server::Server(int port, std::string password) : _socketFD(0), _epollFD(0), _ser
 }
 
 // Método para aceptar clientes (bloqueante)
+// NOTE This is unused right now
 int Server::acceptClient()
 {
 	int clientSocket = accept(_socketFD, 0, 0);
@@ -77,6 +85,16 @@ int Server::acceptClient()
 	return clientSocket;
 }
 
+// Activates the Server's epoll loop
+// - Waits for an event
+// -- if the event is on the Server fd, we treat it as a new connection
+// --- i.e. we add it to the set of Things Listened For
+// --- first setting it as nonblocking
+// -- if it is *not* on the server fd then it is from a client
+// --- TODO Do more useful things with the client input - build command, register users
+// --- (Currently we just echo the input to stdout)
+// TODO Some parts of this should be made more C++ like,
+// e.g. stringstream insteaad of manually terminating a character buffer
 void Server::run()
 {
 	std::cout << "Servidor en ejecución. Esperando conexiones (epoll)..." << std::endl;
@@ -103,7 +121,9 @@ void Server::run()
 				}
 				std::cout << "Nuevo cliente conectado, fd: " << clientSocket << std::endl;
 				// Hacer el socket del cliente no bloqueante
+				// Get the existing flags for the newly-accepted clientSocket
 				int flags = fcntl(clientSocket, F_GETFL, 0);
+				// Add non-blocking to those existing client flags
 				fcntl(clientSocket, F_SETFL, flags | O_NONBLOCK);
 				// Añadir el cliente a epoll
 				struct epoll_event ev;
@@ -119,6 +139,7 @@ void Server::run()
 			{
 				// Hay datos para leer de un cliente
 				char buf[512];
+				// We read one less than buffer size so we can add the null char later
 				int count = read(events[i].data.fd, buf, sizeof(buf) - 1);
 				if (count <= 0)
 				{
