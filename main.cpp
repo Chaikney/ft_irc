@@ -46,7 +46,15 @@ int	main(int argc, char **argv)
     	}
 	}
 	std::cout << "calling server constructor" << std::endl;
-	Server	ircServer(port_num, password);
-	ircServer.run();
+	try
+	{
+		Server	ircServer(port_num, password);
+		ircServer.run();
+	}
+	catch (std::runtime_error &e)
+	{
+		std::cerr << "Unable to start up Server: " << e.what() << std::endl;
+		exit (EXIT_FAILURE);
+	}
     return (0);
 }

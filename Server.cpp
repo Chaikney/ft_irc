@@ -12,14 +12,13 @@
 // - listen on fd
 // - Create epoll fd
 // - Add socket fd to epoll's listening set
-// FIXME There are no try/catch blocks for the thrown exceptions
+// FIXED There are no try/catch blocks for the thrown exceptions
 Server::Server(int port, std::string password) : _socketFD(0), _epollFD(0), _serverAddress(), _password(password)
 {
 	std::cout << "Server constructor with parameters called" << std::endl;
 	_socketFD = socket(AF_INET, SOCK_STREAM, 0);
 	if (_socketFD == -1)
 	{
-		std::cerr << "Socket creation failed!" << std::endl;
 		throw std::runtime_error("Socket creation failed");
 	}
 	std::cout << "Created a socket listening at fd " << _socketFD << std::endl;
@@ -37,7 +36,6 @@ Server::Server(int port, std::string password) : _socketFD(0), _epollFD(0), _ser
 	std::cout << "Binding...";
 	if (bind(_socketFD, (struct sockaddr *)&_serverAddress, sizeof(_serverAddress)) == -1) 
 	{
-		std::cerr << "Binding failed!" << std::endl;
 		close(_socketFD);
 		throw std::runtime_error("Binding failed");
 	}
@@ -46,19 +44,17 @@ Server::Server(int port, std::string password) : _socketFD(0), _epollFD(0), _ser
 	std::cout << "Listening..." << std::endl;
 	if (listen(_socketFD, 5) == -1) 
 	{
-		std::cerr << "Listening failed!" << std::endl;
 		close(_socketFD);
-		throw std::runtime_error("Listening failed");
+		throw std::runtime_error("Listening set up failed");
 	}
 	std::cout << "Server ready to accept connections." << std::endl;
 
 	// Crear epoll
 	_epollFD = epoll_create1(0);
-	if (_epollFD == -1) 
+	if (_epollFD == -1)
 	{
-		std::cerr << "epoll_create1 failed!" << std::endl;
 		close(_socketFD);
-		throw std::runtime_error("epoll_create1 failed");
+		throw std::runtime_error("Could not create epoll");
 	}
 
 	struct epoll_event ev;
@@ -66,10 +62,9 @@ Server::Server(int port, std::string password) : _socketFD(0), _epollFD(0), _ser
 	ev.data.fd = _socketFD;
 	if (epoll_ctl(_epollFD, EPOLL_CTL_ADD, _socketFD, &ev) == -1) 
 	{
-		std::cerr << "epoll_ctl failed!" << std::endl;
 		close(_socketFD);
 		close(_epollFD);
-		throw std::runtime_error("epoll_ctl failed");
+		throw std::runtime_error("Could not add server input to epoll set.");
 	}
 }
 
