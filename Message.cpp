@@ -47,3 +47,23 @@ Message::Message(std::string text_recvd) : _tags(""), _source(""), _command(""),
         this->_params.push_back(tmp);
     }
 }
+
+// NOTE Must be a DEEP COPY of _params
+Message::Message(const Message &original): _tags(original._tags), _source(original._source),
+										   _command(original._command), _params()
+{
+	// this->_tags(original._tags);
+	// this->_source(original._source);
+	// this->_command(original._command);
+	this->_params = original._params;
+}
+
+std::string	Message::getCommand() const
+{
+	return(this->_command);
+}
+
+std::list<std::string>	Message::getParams() const
+{
+	return(this->_params);
+}
