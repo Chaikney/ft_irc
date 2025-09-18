@@ -41,13 +41,20 @@ int	main(int argc, char **argv)
 	}
 	catch (std::invalid_argument &e)
 	{
-		std::cerr << "Problem with statrting parameters: " << e.what() << std::endl;
+		std::stringstream ss;
+		ss << "Problem with starting parameters: " << e.what();
+		std::cerr << ss.str() << std::endl;
+		// Si tuvieras un log, podrías reutilizar el mensaje:
+		// logFile << ss.str() << std::endl;
 		std::cerr << "Usage: " << argv[0] << " <port> <password>" << std::endl;
 		exit (EXIT_FAILURE);
 	}
 	catch (std::runtime_error &e)
 	{
-		std::cerr << "Unable to start up Server: " << e.what() << std::endl;
+		std::stringstream ss;
+		ss << "Unable to start up Server: " << e.what();
+		std::cerr << ss.str() << std::endl;
+		// logFile << ss.str() << std::endl;
 		exit (EXIT_FAILURE);
 	}
     return (0);

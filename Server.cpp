@@ -1,9 +1,12 @@
+#include <set>
 #include "Server.hpp"
 #include <iostream>
 #include <unistd.h>
+#include <sstream>
 #include <sys/epoll.h>
-#include <fcntl.h>	// NOTE IS there a C++ equivalent we should prefer?
-
+#include <fcntl.h>	// NOTE IS there a C++ equivalent we should prefer? 
+					// RESPONSE No, fcntl is what we need to use because we cant use external libraries and stl has nothing better or equal.
+// _clients debe ser miembro de la clase Server, no global
 // Set up the Server:
 // - create fd for socket
 // - set as non-blocking
@@ -13,7 +16,16 @@
 // - Create epoll fd
 // - Add socket fd to epoll's listening set
 // FIXED There are no try/catch blocks for the thrown exceptions
-Server::Server(int port, std::string password) : _socketFD(0), _epollFD(0), _serverAddress(), _password(password)
+
+// Helper para poner un socket en modo no bloqueante
+bool setNonBlocking(int fd)
+{
+	int flags = fcntl(fd, F_GETFL, 0);
+	if (flags == -1) return false;
+	return (fcntl(fd, F_SETFL, flags | O_NONBLOCK) != -1);
+}
+
+Server::Server(int port, std::string password) : _socketFD(0), _epollFD(0), _serverAddress(), _password(password), _clients()
 {
 	std::cout << "Server constructor with parameters called" << std::endl;
 	_socketFD = socket(AF_INET, SOCK_STREAM, 0);
@@ -92,7 +104,10 @@ int Server::acceptClient()
 // e.g. stringstream insteaad of manually terminating a character buffer
 void Server::run()
 {
-	std::cout << "Servidor en ejecución. Esperando conexiones (epoll)..." << std::endl;
+	std::stringstream ss;
+	ss << "server on, waiting for conections (epoll)...";
+	std::string msg = ss.str();
+	std::cout << msg << std::endl;
 	const int MAX_EVENTS = 10;
 	struct epoll_event events[MAX_EVENTS];
 	while (true)
@@ -114,13 +129,16 @@ void Server::run()
 					std::cerr << "Accept failed!" << std::endl;
 					continue;
 				}
-				std::cout << "Nuevo cliente conectado, fd: " << clientSocket << std::endl;
-				// Hacer el socket del cliente no bloqueante
-				// Get the existing flags for the newly-accepted clientSocket
-				int flags = fcntl(clientSocket, F_GETFL, 0);
-				// Add non-blocking to those existing client flags
-				fcntl(clientSocket, F_SETFL, flags | O_NONBLOCK);
-				// Añadir el cliente a epoll
+				std::stringstream ss;
+				ss << "New client connected, fd: " << clientSocket;
+				std::string msg = ss.str();
+				std::cout << msg << std::endl;
+				if (!setNonBlocking(clientSocket))
+				{
+					std::cerr << "Failed to set client socket non-blocking!" << std::endl;
+					close(clientSocket);
+					continue;
+				}
 				struct epoll_event ev;
 				ev.events = EPOLLIN | EPOLLET;
 				ev.data.fd = clientSocket;
@@ -129,43 +147,45 @@ void Server::run()
 					std::cerr << "epoll_ctl add client failed!" << std::endl;
 					close(clientSocket);
 				}
+				else
+				{
+					_clients.insert(clientSocket);
+				}
 			}
 			else
 			{
 				// Hay datos para leer de un cliente
 				char buf[512];
-				// We read one less than buffer size so we can add the null char later
 				int count = read(events[i].data.fd, buf, sizeof(buf) - 1);
 				if (count <= 0)
 				{
-					std::cout << "Cliente desconectado, fd: " << events[i].data.fd << std::endl;
+					std::stringstream ss;
+					ss << "Client disconected, fd: " << events[i].data.fd;
+					std::string msg = ss.str();
+					std::cout << msg << std::endl;
 					close(events[i].data.fd);
 					epoll_ctl(_epollFD, EPOLL_CTL_DEL, events[i].data.fd, NULL);
+					_clients.erase(events[i].data.fd);
 				}
 				else
 				{
 					buf[count] = '\0';
-					std::cout << "Mensaje recibido de fd " << events[i].data.fd << ": " << buf << std::endl;
-					// Aquí puedes procesar el mensaje recibido
+					std::string msg(buf);
+					std::stringstream ss;
+					ss << "message received from fd " << events[i].data.fd << ": " << msg;
+					std::string out = ss.str();
+					std::cout << out << std::endl;
+					// Reenviar el mensaje a todos los demás clientes
+					for (std::set<int>::iterator it = _clients.begin(); it != _clients.end(); ++it)
+					{
+						if (*it != events[i].data.fd)
+						{
+							write(*it, msg.c_str(), msg.size());
+						}
+					}
 				}
 			}
 		}
-	}
-}
-
-// NOTE This needs to be expanded as we add more things to the Server class
-Server::~Server(void)
-{
-	std::cout << "Server being taken down! Make sure all memory is properly deallocated" << std::endl;
-	if (_socketFD > 0)
-	{
-		close(_socketFD);
-		std::cout << "Server socket closed." << std::endl;
-	}
-	if (_epollFD > 0)
-	{
-		close(_epollFD);
-		std::cout << "epoll fd closed." << std::endl;
 	}
 }
 
@@ -173,4 +193,10 @@ Server::~Server(void)
 int	Server::get_fd(void) const
 {
 	return (this->_socketFD);
+}
+
+Server::~Server(void)
+{
+	// Libera recursos si es necesario
+	std::cout << "Server destructor called." << std::endl;
 }

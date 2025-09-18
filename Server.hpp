@@ -20,13 +20,14 @@ class	Server
 		int         _epollFD;
 		sockaddr_in _serverAddress;
 		std::string _password;
+		std::set<int> _clients;
 
 					Server(void);	// private so not called
 					Server(const Server &irc);	// No good reason to allow copy construction of the server
 		Server		operator=(const Server &irc);	// No assignment should be possible either
 
 		int			acceptClient();
-
+		
 	public:
 					Server(int port, std::string password);
 					~Server(void);	// NOTE Destructor will have to cleanly close connections and whatever partial / pending messages we have
