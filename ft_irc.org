@@ -73,7 +73,7 @@ An IRC message is a single line, delimited by a pair of CR ('\r', 0x0D) and LF (
 #+end_quote
 So read until we reach the end pair *or* some safety limit that we set. ("Most IRC servers limit messages to 512 bytes in length, including the trailing CR-LF characters.")
 The parts of messages (each separated by one more more space 0x20) are then:
-- tags (" optional, and MUST NOT be sent unless explicitly enabled by a capability.")
+- tags ("optional, and MUST NOT be sent unless explicitly enabled by a capability.")
   So ignore this for now
 - source  (or prefix)
   Indicated by : aka 0x3A
@@ -174,16 +174,79 @@ If it fails you get -1 and a value for ERRNO to handle (I assume we would set up
 is this socket free?
 *** accept()
 take a connection on that socket / port / whatever
-** IDEA IS it possible to use cat or >> to pass messages to a server?
+** How to pass messages to a server?
 there is a file descriptor, so maybe yes?
 Would be useful for testing.
 The subject document says use `nc` to test partial and malformed message handling.
+src_shell[:exports code]{nc localhost 6667}
 * Tasks to be done for IRC project
 
 ** Make a diagram of the classes
 
 ** Get a list of *all* the commands that the server should be able to handle
 ...and then we can think about how to implement them. (What are the most important?)
+
+*** Connection messages
+
+**** CAP
+
+**** PASS
+
+**** NICK
+
+**** USER
+
+**** ERROR
+
+**** QUIT
+
+*** Channel operations
+
+**** JOIN
+
+**** PART
+
+**** TOPIC
+
+**** NAMES
+
+**** LIST
+
+**** INVITE
+
+**** KICK
+
+**** MODE
+
+*** Sending messages
+
+**** PRIVMSG
+
+**** NOTICE
+Ignorable?
+
+** Parse a command string into a struct / class
+Read buffer until reaching crlf, i.e. \r\n, 0x0D 0x0A
+(stringstream getline?)
+- if the first char is @ process as tags
+  i.e. ignore it, should not have been sent
+- if the first char is : process as source
+ NOTE clients should not send this. So we can / should add it ourself based on the client it came from. Docs site gives option for source, nick, user. I don't really understand it.
+ So for now all we need to do is make sure it can be safely skipped.
+- the next part is a command
+  The command must either be a valid IRC command or a numeric (a three-digit number represented as text).
+  store a string
+
+- from the next space until the end are the parameters
+  There can be any number of them, though no more than 15.
+  What storage container to use for that? list? map?
+
+** Error messages / enums to be sent
+Put in a header file? Or what other option?
+
+** Numeric equivalents of the commands
+Three digits represented as text
+https://modern.ircdocs.horse/#numerics
 
 * [2025-09-11 jue] Have to understand how poll() works
 https://thelinuxcode.com/use-poll-system-call-c/

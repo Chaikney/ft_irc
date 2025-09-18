@@ -11,7 +11,7 @@
 // Check that password is non-empty
 // Create a Server instance with those arguments
 // TODO Add signal handlers to cleanly exit on SIGINT and SIGTERM
-// TODO Add error handling for invalid arguments
+// DONE Add error handling for invalid arguments
 // DONE Add error handling for Server constructor problems
 int	main(int argc, char **argv)
 {
