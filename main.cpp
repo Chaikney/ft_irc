@@ -1,3 +1,4 @@
+#include "Message.hpp"
 #include "Server.hpp"
 #include <iostream>
 #include <sys/socket.h>	// socket() function
@@ -17,6 +18,20 @@ int	main(int argc, char **argv)
 {
 	std::string password;
 	int port_num;
+	Message	*test_msg;
+	std::string	test_str;
+
+	// HACK temp test for Message creation
+	test_str = "NICK pants and socks";
+	test_msg = Message::makeMessage(test_str);
+	std::cout << *test_msg << std::endl;
+	// test_str = "";
+	// test_msg = Message::makeMessage(test_str);
+	// std::cout << test_msg << std::endl;
+	test_str = (":not valid is it");
+	test_msg = Message::makeMessage(test_str);
+	std::cout << *test_msg << std::endl;
+	exit (EXIT_SUCCESS);
 	try
 	{
 		if (argc < 3)

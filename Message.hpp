@@ -3,6 +3,7 @@
 
 #include <string>
 #include <list>
+#include <iostream>
 
 // Static member variable. All messages of the same max length bytes
 const int	MSG_LEN = 512;
@@ -30,4 +31,13 @@ class	Message
 		std::string				getCommand() const;
 		std::list<std::string>	getParams() const;
 };
+
+inline std::ostream&	operator<<(std::ostream &out, const Message &msg)
+{
+	// out << "Tags: " << msg._tags << std::endl;
+	// out << "Source: " << msg._tags << std::endl;
+	out << "Command: " << msg.getCommand() << std::endl;
+//	out << "Parameters: " << msg.getParams() << std::endl;
+	return (out);
+}
 #endif
