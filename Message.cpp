@@ -31,7 +31,7 @@ Message::Message(std::string text_recvd) : _tags(""), _source(""), _command(""),
     // After this, we have a command
     std::getline(strm, this->_command, ' ');
     // And the parameters, finally
-    std::string	tmp(0);
+    std::string	tmp;
     while (strm)
     {
         c = strm.peek();
