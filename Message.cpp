@@ -9,6 +9,7 @@
 // TODO Check that we have not received illegal characters
 // TODO Check validity of the command parsed out
 // TODO Is parsing command OK in case of no parameters? i.e. message ends?
+// NOTE The four spaces "    " call gives weird output, not sure what it should give
 Message::Message(std::string text_recvd) : _tags(""), _source(""), _command(""), _params()
 {
     char	c;
@@ -42,6 +43,7 @@ Message::Message(std::string text_recvd) : _tags(""), _source(""), _command(""),
 			break ;
         else if (c == ':')
         {
+			strm.ignore(1, ':');
             std::getline(strm, tmp, '\n');
             // last parameter, read everything else as one and break
         }
@@ -54,7 +56,14 @@ Message::Message(std::string text_recvd) : _tags(""), _source(""), _command(""),
     }
 }
 
+// Message Destructor should handle itself unless we add more things
+Message::~Message(void)
+{
+//	this->_params.clear();
+}
+
 // Give any string, get back a Message object to use wherever
+// TODO This has to handle failure to make a message somehow. Throw to next level?
 Message	*Message::makeMessage(std::string &str)
 {
 	Message	*msg = new Message(str);

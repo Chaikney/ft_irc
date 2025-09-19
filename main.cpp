@@ -5,6 +5,37 @@
 #include <netinet/in.h>	// provides the sockaddr_in struct
 #include <cstdlib>
 #include <sstream>
+
+
+// HACK temp test "suite" for Message creation
+void	runMessageParsingTests(void)
+{
+	Message	*test_msg;
+	std::string	test_str;
+
+	test_str = "NICK pants and socks";
+	test_msg = Message::makeMessage(test_str);
+	std::cout << *test_msg << std::endl;
+	delete test_msg;
+	test_str = "    ";
+	test_msg = Message::makeMessage(test_str);
+	std::cout << test_msg << std::endl;
+	delete test_msg;
+	test_str = (":not valid is it");
+	test_msg = Message::makeMessage(test_str);
+	std::cout << *test_msg << std::endl;
+	delete test_msg;
+	test_str = ("@tag :source command and then a long list of parameters");
+	test_msg = Message::makeMessage(test_str);
+	std::cout << *test_msg << std::endl;
+	delete test_msg;
+	test_str = ("@tag :source command :and then a long list of parameters treated as one");
+	test_msg = Message::makeMessage(test_str);
+	std::cout << *test_msg << std::endl;
+	delete test_msg;
+}
+
+
 // TO DO parse command line arguments
 // - port number
 // - password
@@ -18,23 +49,8 @@ int	main(int argc, char **argv)
 {
 	std::string password;
 	int port_num;
-	Message	*test_msg;
-	std::string	test_str;
-
-	// HACK temp test for Message creation
-	test_str = "NICK pants and socks";
-	test_msg = Message::makeMessage(test_str);
-	std::cout << *test_msg << std::endl;
-	// test_str = "";
-	// test_msg = Message::makeMessage(test_str);
-	// std::cout << test_msg << std::endl;
-	test_str = (":not valid is it");
-	test_msg = Message::makeMessage(test_str);
-	std::cout << *test_msg << std::endl;
-	test_str = ("@tag :source command and then a long list of parameters");
-	test_msg = Message::makeMessage(test_str);
-	std::cout << *test_msg << std::endl;
-	exit (EXIT_SUCCESS);
+	runMessageParsingTests();	// HACK for debugging remove later
+	exit(EXIT_SUCCESS);
 	try
 	{
 		if (argc < 3)
