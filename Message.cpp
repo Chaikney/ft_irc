@@ -68,6 +68,16 @@ Message::Message(const Message &original): _tags(original._tags), _source(origin
 	this->_params = original._params;
 }
 
+std::string	Message::getTags() const
+{
+	return(this->_tags);
+}
+
+std::string	Message::getSource() const
+{
+	return(this->_source);
+}
+
 std::string	Message::getCommand() const
 {
 	return(this->_command);

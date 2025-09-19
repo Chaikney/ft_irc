@@ -31,6 +31,9 @@ int	main(int argc, char **argv)
 	test_str = (":not valid is it");
 	test_msg = Message::makeMessage(test_str);
 	std::cout << *test_msg << std::endl;
+	test_str = ("@tag :source command and then a long list of parameters");
+	test_msg = Message::makeMessage(test_str);
+	std::cout << *test_msg << std::endl;
 	exit (EXIT_SUCCESS);
 	try
 	{

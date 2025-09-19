@@ -28,15 +28,29 @@ class	Message
 					~Message(void);
 
 		static Message*				makeMessage(std::string &str);
+		std::string				getTags() const;
+		std::string				getSource() const;
 		std::string				getCommand() const;
 		std::list<std::string>	getParams() const;
 };
 
 inline std::ostream&	operator<<(std::ostream &out, const Message &msg)
 {
-	// out << "Tags: " << msg._tags << std::endl;
-	// out << "Source: " << msg._tags << std::endl;
+	std::list<std::string>	params;
+
+	out << "Tags: " << msg.getTags() << std::endl;
+	out << "Source: " << msg.getSource() << std::endl;
 	out << "Command: " << msg.getCommand() << std::endl;
+	params = msg.getParams();
+
+	std::list<std::string>::const_iterator  it = params.begin();
+	out << "Parameters: ";
+	while (it != params.end())
+	{
+		out << *it << ", ";
+		it++;
+	}
+	out << std::endl;
 //	out << "Parameters: " << msg.getParams() << std::endl;
 	return (out);
 }
