@@ -48,6 +48,13 @@ Message::Message(std::string text_recvd) : _tags(""), _source(""), _command(""),
     }
 }
 
+// Give any string, get back a Message object to use wherever
+Message	*Message::makeMessage(std::string &str)
+{
+	Message	*msg = new Message(str);
+	return (msg);
+}
+
 // NOTE Must be a DEEP COPY of _params
 Message::Message(const Message &original): _tags(original._tags), _source(original._source),
 										   _command(original._command), _params()

@@ -26,6 +26,7 @@ class	Message
 					Message(const Message &irc);	// Copying a Message seems reasonable to allow
 					~Message(void);
 
+		static Message*				makeMessage(std::string &str);
 		std::string				getCommand() const;
 		std::list<std::string>	getParams() const;
 };
