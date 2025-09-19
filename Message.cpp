@@ -2,6 +2,7 @@
 #include <string>
 #include <iostream>
 #include <sstream>
+#include <cstdio>	// EOF marker in stringstream
 
 // Make sure that the string is not empty and it ends in crlf
 // TODO Check the final two chars are cr and lf
@@ -28,6 +29,8 @@ Message::Message(std::string text_recvd) : _tags(""), _source(""), _command(""),
     if (c == ':')
         // we have been sent a source which clients should not do
         std::getline(strm, this->_source, ' ');
+	else
+		strm.unget();
     // After this, we have a command
     std::getline(strm, this->_command, ' ');
     // And the parameters, finally
@@ -35,15 +38,18 @@ Message::Message(std::string text_recvd) : _tags(""), _source(""), _command(""),
     while (strm)
     {
         c = strm.peek();
-        if (c == ':')
+		if (c == EOF)
+			break ;
+        else if (c == ':')
         {
             std::getline(strm, tmp, '\n');
             // last parameter, read everything else as one and break
         }
         else
         {
-            strm >> tmp;
+            std::getline(strm, tmp, ' ');
         }
+//		std::cout << "Adding param:" << tmp << std::endl;	// HACK to debug
         this->_params.push_back(tmp);
     }
 }
