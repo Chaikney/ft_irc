@@ -5,6 +5,9 @@
 #include <sys/socket.h>	// socket() function
 #include <netinet/in.h>	// provides the sockaddr_in struct
 #include <string>
+#include <queue>
+
+class	Message;
 
 // What should this hold?
 // - port
@@ -20,12 +23,14 @@ class	Server
 		int         _epollFD;
 		sockaddr_in _serverAddress;
 		std::string _password;
+		std::queue<Message *>	_toProcess;
 
 					Server(void);	// private so not called
 					Server(const Server &irc);	// No good reason to allow copy construction of the server
 		Server		operator=(const Server &irc);	// No assignment should be possible either
 
 		int			acceptClient();
+		void		_printMessageQueue(std::queue<Message *> toPrint);
 
 	public:
 					Server(int port, std::string password);

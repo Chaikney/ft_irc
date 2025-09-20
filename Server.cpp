@@ -1,8 +1,10 @@
 #include "Server.hpp"
+#include "Message.hpp"
 #include <iostream>
 #include <unistd.h>
 #include <sys/epoll.h>
 #include <fcntl.h>	// NOTE IS there a C++ equivalent we should prefer?
+#include <queue>
 
 // Set up the Server:
 // - create fd for socket
@@ -13,7 +15,9 @@
 // - Create epoll fd
 // - Add socket fd to epoll's listening set
 // FIXED There are no try/catch blocks for the thrown exceptions
-Server::Server(int port, std::string password) : _socketFD(0), _epollFD(0), _serverAddress(), _password(password)
+Server::Server(int port, std::string password) : _socketFD(0), _epollFD(0),
+												 _serverAddress(), _password(password),
+												 _toProcess()
 {
 	std::cout << "Server constructor with parameters called" << std::endl;
 	_socketFD = socket(AF_INET, SOCK_STREAM, 0);
@@ -173,4 +177,23 @@ Server::~Server(void)
 int	Server::get_fd(void) const
 {
 	return (this->_socketFD);
+}
+
+// Debug function to view a message queue.
+// Uses a copy not a reference so that we don't lose item
+// (Yes that is probably *very* inefficient)
+void	Server::_printMessageQueue(std::queue<Message *> toPrint)
+{
+	Message	*this_one;
+	int	n;
+
+	n = toPrint.size();
+	std::cout << "Printing message queue with " << n << " items" << std::endl;
+	while (toPrint.empty() != true)
+	{
+		this_one = toPrint.front();
+		std::cout << this_one;
+		toPrint.pop();
+	}
+	std::cout << n << "Messages printed" << std::endl;
 }
