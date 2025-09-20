@@ -4,7 +4,10 @@
 #include <unistd.h>
 #include <sys/epoll.h>
 #include <fcntl.h>	// NOTE IS there a C++ equivalent we should prefer?
+#include <sstream>
 #include <queue>
+#include <cstdlib>	// for the EXIT code
+#include <cstring>	// for memset. Too many includes!
 
 // Set up the Server:
 // - create fd for socket
@@ -146,11 +149,51 @@ void Server::run()
 					close(events[i].data.fd);
 					epoll_ctl(_epollFD, EPOLL_CTL_DEL, events[i].data.fd, NULL);
 				}
-				else
+				else	// There is input to manage
 				{
-					buf[count] = '\0';
+					// NOTE There is apparently no sensible way to do this
+					// We have to go char buf-string-stringstream :|
+					// We need to see whether we have enough for a complete message
+					// And then put it in the queue
+//					std::string	tmp;
+					// FIXME Make sure that buf is not NULL before passing to the string constructor
+					std::string	str_buf(buf);
+					if (str_buf.empty() == false)	// HACK this codde is disgusting
+						std::cout << "Our string is: " << str_buf << std::endl;
+					std::stringstream	strm_msg(str_buf);
+//					buf[count] = '\0';
+//					NOTE This check does not work.
+					// std::getline(strm_msg, tmp, '\r');
+					// if (strm_msg.peek() == '\n')
+					// this is a complete messsage we can do something with it
+					// TODO Also add the  \n, OR remnove the \r as we don't need it now
+					try
+					{
+						// NOTE This *should* be the cut-till crlf tmp string though
+						Message	*nxtMessage = Message::makeMessage(str_buf);
+						std::cout << nxtMessage << std::endl;
+						this->_toProcess.push(nxtMessage);
+					}
+					catch (std::exception &e)
+					{
+						std::cerr << "Something wrong in message queuing. " << std::endl;
+						std::cerr << e.what() <<std::endl;
+						exit (EXIT_FAILURE);
+					}
+					// Need to clear the buffer BUT really should be storing / running until crlf
+					memset(buf, ' ', 511);
+					buf[512] = '\0';
+// 					else
+// 					{
+// 						std::cout << "Partial message discarded because not there yet" << std::endl;
+// 						// TODO store the partial message for later?
+// 					}
 					std::cout << "Mensaje recibido de fd " << events[i].data.fd << ": " << buf << std::endl;
-					// Aquí puedes procesar el mensaje recibido
+					std::cout << "Printing queued messages" << std::endl;
+					// TODO We need something to check that the message is complete
+					this->_printMessageQueue(this->_toProcess);
+					// ...or a place to store it if it is not.
+					// Move the Message to a processing queue
 				}
 			}
 		}
