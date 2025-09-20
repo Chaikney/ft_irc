@@ -277,3 +277,21 @@ Parameters this takes:
 - fd of the thing (socket?) to be listening to.
 - pointer to an epoll_event struct
   ...I don't know what that is used for -- the event we are adding?
+* [2025-09-20 sáb] If the program crashes, we cannot bind the next time we run it
+
+Something needs to be released or cleared?
+
+[[file:~/Documents/00_WorkInProgress/2023_04_42UrdulizCurso/ft_irc/Server.cpp::std::cout << "Mensaje recibido de fd " << events\[i\].data.fd << ": " << buf << std::endl;]]
+* [2025-09-20 sáb] if we neeed to forecefully unbind a crashed socket
+lsof -n -i
+
+Find the process you're looking for and kill it.
+
+From lsof manual:
+
+    -n This option inhibits the conversion of network numbers to host names for network files. Inhibiting conversion may make lsof run faster. It is also useful when host name lookup is not working properly.
+
+    -i [i] This option selects the listing of files any of whose Internet address matches the address specified in i. If no address is specified, this option selects the listing of all Internet and x.25 (HP-UX) network files.
+
+
+[[file:~/Documents/00_WorkInProgress/2023_04_42UrdulizCurso/ft_irc/Server.cpp::// ...or a place to store it if it is not.]]

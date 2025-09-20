@@ -10,6 +10,8 @@
 // TODO Check validity of the command parsed out
 // TODO Is parsing command OK in case of no parameters? i.e. message ends?
 // NOTE The four spaces "    " call gives weird output, not sure what it should give
+// FIXME Ignore final spaces -- at the moment the parameter list ends as ~500 spaces
+// ...something to do with null termination?
 Message::Message(std::string text_recvd) : _tags(""), _source(""), _command(""), _params()
 {
     char	c;

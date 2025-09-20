@@ -97,6 +97,7 @@ int Server::acceptClient()
 // --- (Currently we just echo the input to stdout)
 // TODO Some parts of this should be made more C++ like,
 // e.g. stringstream insteaad of manually terminating a character buffer
+// TODO The errors should throw exception of some kind
 void Server::run()
 {
 	std::cout << "Servidor en ejecución. Esperando conexiones (epoll)..." << std::endl;
@@ -104,6 +105,7 @@ void Server::run()
 	struct epoll_event events[MAX_EVENTS];
 	while (true)
 	{
+		// n is the number of fds ready for action
 		int n = epoll_wait(_epollFD, events, MAX_EVENTS, -1);
 		if (n == -1)
 		{
