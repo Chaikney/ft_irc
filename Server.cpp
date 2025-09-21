@@ -116,6 +116,18 @@ void	Server::_addNewClient()
 	}
 }
 
+// Small wrapper for dealing with a client that has disconnected.
+// - close its fd
+// - remove that fd from the epoll listening set
+// NOTE Should the events array we pass in be stored as part of the class instead?
+// NOTE This could work on an int fd only, but this allows other actions if needed.
+void	Server::_removeClient(struct epoll_event &goodbye)
+{
+	std::cout << "Cliente desconectado, fd: " << goodbye.data.fd << std::endl;
+	close(goodbye.data.fd);
+	epoll_ctl(_epollFD, EPOLL_CTL_DEL, goodbye.data.fd, NULL);
+}
+
 // Activates the Server's epoll loop
 // - Waits for an event
 // -- if the event is on the Server fd, we treat it as a new connection
@@ -162,9 +174,7 @@ void Server::run()
 				int count = read(events[i].data.fd, buf, sizeof(buf) - 1);
 				if (count <= 0)
 				{
-					std::cout << "Cliente desconectado, fd: " << events[i].data.fd << std::endl;
-					close(events[i].data.fd);
-					epoll_ctl(_epollFD, EPOLL_CTL_DEL, events[i].data.fd, NULL);
+					_removeClient(events[i]);
 				}
 				else	// There is input to manage
 				{

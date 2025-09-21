@@ -32,6 +32,7 @@ class	Server
 		int			acceptClient();
 		void		_printMessageQueue(std::queue<Message *> toPrint);
 		void		_addNewClient();
+		void		_removeClient(struct epoll_event &bye);
 
 	public:
 					Server(int port, std::string password);
