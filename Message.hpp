@@ -10,6 +10,7 @@ const int	MSG_LEN = 512;
 
 // TODO Add getters for any relevant attribute
 // TODO Decide if any other information is useful to us here
+// TODO We need something to check that the message is complete and logical
 class	Message
 {
 	private:

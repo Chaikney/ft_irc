@@ -50,7 +50,7 @@ int	main(int argc, char **argv)
 	std::string password;
 	int port_num;
 	runMessageParsingTests();	// HACK for debugging remove later
-	exit(EXIT_SUCCESS);
+//	exit(EXIT_SUCCESS);
 	try
 	{
 		if (argc < 3)
