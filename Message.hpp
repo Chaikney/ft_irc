@@ -22,6 +22,8 @@ class	Message
 					Message(void);	// private so not called - no blank messages please
 		Message		operator=(const Message &irc);	// NOTE Not sure about assignment to a Message, this could be public
 
+		void		_stepOver(std::istringstream &strm) const;
+
 	public:
 					Message(std::string raw_text);
 					Message(const Message &irc);	// Copying a Message seems reasonable to allow
