@@ -31,6 +31,7 @@ class	Server
 
 		int			acceptClient();
 		void		_printMessageQueue(std::queue<Message *> toPrint);
+		void		_addNewClient();
 
 	public:
 					Server(int port, std::string password);

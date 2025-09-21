@@ -12,6 +12,7 @@
 // NOTE The four spaces "    " call gives weird output, not sure what it should give
 // FIXME Ignore final spaces -- at the moment the parameter list ends as ~500 spaces
 // ...something to do with null termination?
+// // FIXME Now the parameters are ignoring every second word :|
 Message::Message(std::string text_recvd) : _tags(""), _source(""), _command(""), _params()
 {
     char	c;

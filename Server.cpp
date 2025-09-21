@@ -87,6 +87,35 @@ int Server::acceptClient()
 	return clientSocket;
 }
 
+// Whaat needs to be done when we get the first contact from a new client
+// - Accept
+// - set the socket as non-blocking
+// - make an event struct for its input
+// - add that to the epollFD that we monitor.
+// NOTE If something goes wrong, throws a runtime_error exception to be caught outside
+void	Server::_addNewClient()
+{
+	int clientSocket = accept(this->_socketFD, NULL, NULL);
+
+	if (clientSocket == -1)
+		throw std::runtime_error("Could not get client socket");
+	std::cout << "Nuevo cliente conectado, fd: " << clientSocket << std::endl;
+	// Hacer el socket del cliente no bloqueante
+	// Get the existing flags for the newly-accepted clientSocket
+	int flags = fcntl(clientSocket, F_GETFL, 0);
+	// Add non-blocking to those existing client flags
+	fcntl(clientSocket, F_SETFL, flags | O_NONBLOCK);
+	// Añadir el cliente a epoll
+	struct epoll_event ev;
+	ev.events = EPOLLIN | EPOLLET;
+	ev.data.fd = clientSocket;
+	if (epoll_ctl(_epollFD, EPOLL_CTL_ADD, clientSocket, &ev) == -1)
+	{
+		close(clientSocket);
+		throw std::runtime_error("Could not add client socket to epoll");
+	}
+}
+
 // Activates the Server's epoll loop
 // - Waits for an event
 // -- if the event is on the Server fd, we treat it as a new connection
@@ -116,27 +145,13 @@ void Server::run()
 		{
 			if (events[i].data.fd == _socketFD)
 			{
-				// Nueva conexión entrante
-				int clientSocket = accept(_socketFD, NULL, NULL);
-				if (clientSocket == -1)
+				try
 				{
-					std::cerr << "Accept failed!" << std::endl;
-					continue;
+					_addNewClient();
 				}
-				std::cout << "Nuevo cliente conectado, fd: " << clientSocket << std::endl;
-				// Hacer el socket del cliente no bloqueante
-				// Get the existing flags for the newly-accepted clientSocket
-				int flags = fcntl(clientSocket, F_GETFL, 0);
-				// Add non-blocking to those existing client flags
-				fcntl(clientSocket, F_SETFL, flags | O_NONBLOCK);
-				// Añadir el cliente a epoll
-				struct epoll_event ev;
-				ev.events = EPOLLIN | EPOLLET;
-				ev.data.fd = clientSocket;
-				if (epoll_ctl(_epollFD, EPOLL_CTL_ADD, clientSocket, &ev) == -1)
+				catch (std::exception &e)
 				{
-					std::cerr << "epoll_ctl add client failed!" << std::endl;
-					close(clientSocket);
+					std::cerr << "Failed to add new client: " << e.what() << std::endl;
 				}
 			}
 			else
