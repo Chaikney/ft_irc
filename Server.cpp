@@ -231,14 +231,15 @@ void	Server::_printMessageQueue(std::queue<Message *> toPrint)
 {
 	Message	*this_one;
 	int	n;
+	int	i = 1;
 
 	n = toPrint.size();
 	std::cout << "Printing message queue with " << n << " items" << std::endl;
 	while (toPrint.empty() != true)
 	{
 		this_one = toPrint.front();
-		std::cout << this_one;
+		std::cout << "MSG: " << i++ <<std::endl << *this_one;
 		toPrint.pop();
 	}
-	std::cout << n << "Messages printed" << std::endl;
+	std::cout << n << " Messages printed" << std::endl;
 }
