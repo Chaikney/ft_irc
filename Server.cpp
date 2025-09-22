@@ -147,6 +147,7 @@ void	Server::_removeClient(struct epoll_event &goodbye)
 	close(goodbye.data.fd);
 	epoll_ctl(_epollFD, EPOLL_CTL_DEL, goodbye.data.fd, NULL);
 	_clients.erase(goodbye.data.fd);
+	this->_partial_msgs.erase(goodbye.data.fd);
 }
 
 // Activates the Server's epoll loop
@@ -196,64 +197,77 @@ void Server::run()
 				// Hay datos para leer de un cliente
 				// Make an empty message buffer to read into
 				char buf[512];
+				char	*old_part;
+				int	chars_already = 0;
 				memset(buf, '\0', 512);
-				// We read one less than buffer size so we can add the null char later
-				int count = read(events[i].data.fd, buf, sizeof(buf) - 1);
-				if (count <= 0)
+				if (this->_partial_msgs.count(events[i].data.fd) != 0)
 				{
-					_removeClient(events[i]);
-				}
-				else	// There is input to manage
-				{
-					if (this->_isFullMsg(buf, count))
-					{
-						std::cout << "Can be parsed" << std::endl;
-					}
+					old_part = _addToPartial(events[i].data.fd);
+					if (!old_part)
+						_removeClient(events[i]);
 					else
+						strlcpy(buf, old_part, 512);
+				}
+				else
+				{
+					int count = read(events[i].data.fd, buf, (sizeof(buf) - 1 - chars_already));
+					if (count <= 0)
+						_removeClient(events[i]);
+				// We read one less than buffer size so we can add the null char later
+				// We subtract the number of characters from the partial msgs map
+				// FIXME this way I am just overwriting things
+					// FIXME I think this warning will not work
+					// if (strlcat(old_part, buf, 512) < (strlen(buf) + strlen(old_part)))
+					// {
+					// 	std::cerr << "Warning! Message truncated!" << std::endl;
+					// }
+
+					//     handled by strlcat i think
+					// buf[count + chars_already] = '\0';
+					if (!this->_isFullMsg(buf, count))
 					{
 						std::cout << "Can NOT be parsed, store partial" << std::endl;
 						this->_storePartial(events[i].data.fd, buf);
 						std::cout << "Done. Stored:" << _partial_msgs[events[i].data.fd] << std::endl;
 					}
-					// NOTE There is apparently no sensible way to do this
-					// We have to go char buf-string-stringstream :|
-					// FIXME Make sure that buf is not NULL before passing to the string constructor
-					std::string	str_buf(buf);
-					// FIXME This does not prevent a textless \n or similar string being passed through
-					if (str_buf.empty() == false)	// HACK this code is disgusting
-						std::cout << "Our string is: " << str_buf << std::endl;
-					std::stringstream	strm_msg(str_buf);
-//					NOTE This check does not work.
-					// std::getline(strm_msg, tmp, '\r');
-					// if (strm_msg.peek() == '\n')
-					// this is a complete messsage we can do something with it
-					// TODO Also add the  \n, OR remove the \r as we don't need it now
-					try		// Parse string into Message object in Queue
+					else
 					{
-						// NOTE This *should* be the cut-till crlf tmp string though
-						Message	*nxtMessage = Message::makeMessage(str_buf);
-						std::cout << nxtMessage << std::endl;
-						this->_toProcess.push(nxtMessage);
-					}
-					catch (std::exception &e)
-					{
-						std::cerr << "Something wrong with message: ignore and continue." << std::endl;
-						std::cerr << e.what() <<std::endl;
-					}
-					// Clear the buffer BUT really should be storing / running until crlf
-					// TODO store the partial message for later?
-					memset(buf, '\0', 512);
-					// FIXME Unitialised value here sometimes
-					std::cout << "Mensaje recibido de fd " << events[i].data.fd << ": " << buf << std::endl;
-					// HACK debugging print statement below
-					//std::cout << "Printing queued messages" << std::endl;
-					//this->_printMessageQueue(this->_toProcess);
-					// Reenviar el mensaje a todos los demás clientes
-					for (std::set<int>::iterator it = _clients.begin(); it != _clients.end(); ++it)
-					{
-						if (*it != events[i].data.fd)
+						std::cout << "Can be parsed" << std::endl;
+						// NOTE There is apparently no sensible way to do this
+						// We have to go char buf-string-stringstream :|
+						// FIXME Make sure that buf is not NULL before passing to the string constructor
+						std::string	str_buf(buf);
+						// FIXME This does not prevent a textless \n or similar string being passed through
+						if (str_buf.empty() == false)	// HACK this code is disgusting
+							std::cout << "Our string is: " << str_buf << std::endl;
+						// TODO Also add the  \n, OR remove the \r as we don't need it now
+						try		// Parse string into Message object in Queue
 						{
-							write(*it, str_buf.c_str(), str_buf.size());
+							// NOTE This *should* be the cut-till crlf tmp string though
+							Message	*nxtMessage = Message::makeMessage(str_buf);
+							std::cout << nxtMessage << std::endl;
+							this->_toProcess.push(nxtMessage);
+						}
+						catch (std::exception &e)
+						{
+							std::cerr << "Something wrong with message: ignore and continue." << std::endl;
+							std::cerr << e.what() <<std::endl;
+						}
+						// Clear the buffer BUT really should be storing / running until crlf
+						// TODO store the partial message for later?
+						memset(buf, '\0', 512);
+						// FIXME Unitialised value here sometimes
+						std::cout << "Mensaje recibido de fd " << events[i].data.fd << ": " << buf << std::endl;
+						// HACK debugging print statement below
+						//std::cout << "Printing queued messages" << std::endl;
+						//this->_printMessageQueue(this->_toProcess);
+						// Reenviar el mensaje a todos los demás clientes
+						for (std::set<int>::iterator it = _clients.begin(); it != _clients.end(); ++it)
+						{
+							if (*it != events[i].data.fd)
+							{
+								write(*it, str_buf.c_str(), str_buf.size());
+							}
 						}
 					}
 				}
@@ -313,8 +327,34 @@ bool	Server::_isFullMsg(char *msg, int to_chk) const
 	return (false);
 }
 
-// TODO This must check for existing text there!
+// TODO This should first check for existing text there!
 void	Server::_storePartial(int fd_source, char* msg)
 {
 	this->_partial_msgs[fd_source] = msg;
+}
+
+char*	Server::_addToPartial(int fd)
+{
+	char	*part_msg;
+	int		part_size;
+	int		from_buf;
+	char	buf[512];
+	char	*ret_val;
+
+	memset(buf, '\0', 512);
+	ret_val = (char *) malloc(sizeof(char) * 512);
+	memset(ret_val, '\0', 512);
+	std::cout << "We have a partial message stored for fd " << fd << std::endl;
+	part_msg = this->_partial_msgs[fd];
+	this->_partial_msgs.erase(fd);	// Get rid of the stored value
+	part_size = strlen(part_msg);
+	from_buf = read(fd, buf, (sizeof(buf) - 1 - part_size));
+	if (from_buf <= 0)
+		return (0);
+	else
+	{
+		strlcat(ret_val, part_msg,512);
+		strlcat(ret_val, buf ,512);
+	}
+	return (ret_val);
 }

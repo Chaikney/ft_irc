@@ -40,6 +40,7 @@ class	Server
 		bool 		_setNonBlocking(int fd);
 		bool		_isFullMsg(char* msg, int src_fd) const;	// TODO Logically this is a Message check, though?
 		void		_storePartial(int fd_source, char *msg);
+		char*		_addToPartial(int fd);
 
 	public:
 					Server(int port, std::string password);
