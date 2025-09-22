@@ -7,6 +7,7 @@
 #include <string>
 #include <queue>
 #include <set>	// FDs of clients to be sent to
+#include <map>	// dictionary of partial messages
 
 class	Message;
 
@@ -26,6 +27,7 @@ class	Server
 		std::string _password;
 		std::queue<Message *>	_toProcess;
 		std::set<int> _clients;		// NOTE This is the fds to be sent to; may duplicate other info
+		std::map<int, char*>	_partial_msgs;
 
 					Server(void);	// private so not called
 					Server(const Server &irc);	// No good reason to allow copy construction of the server
@@ -36,6 +38,8 @@ class	Server
 		void		_addNewClient();
 		void		_removeClient(struct epoll_event &bye);
 		bool 		_setNonBlocking(int fd);
+		bool		_isFullMsg(char* msg, int src_fd) const;	// TODO Logically this is a Message check, though?
+		void		_storePartial(int fd_source, char *msg);
 
 	public:
 					Server(int port, std::string password);

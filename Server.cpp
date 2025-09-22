@@ -35,7 +35,7 @@ bool Server::_setNonBlocking(int fd)
 // FIXED There are no try/catch blocks for the thrown exceptions
 Server::Server(int port, std::string password) : _socketFD(0), _epollFD(0),
 												 _serverAddress(), _password(password),
-												 _toProcess(), _clients()
+												 _toProcess(), _clients(), _partial_msgs()
 {
 	std::cout << "Server constructor with parameters called" << std::endl;
 	_socketFD = socket(AF_INET, SOCK_STREAM, 0);
@@ -205,6 +205,16 @@ void Server::run()
 				}
 				else	// There is input to manage
 				{
+					if (this->_isFullMsg(buf, count))
+					{
+						std::cout << "Can be parsed" << std::endl;
+					}
+					else
+					{
+						std::cout << "Can NOT be parsed, store partial" << std::endl;
+						this->_storePartial(events[i].data.fd, buf);
+						std::cout << "Done. Stored:" << _partial_msgs[events[i].data.fd] << std::endl;
+					}
 					// NOTE There is apparently no sensible way to do this
 					// We have to go char buf-string-stringstream :|
 					// FIXME Make sure that buf is not NULL before passing to the string constructor
@@ -282,4 +292,29 @@ Server::~Server(void)
 {
 	// Libera recursos si es necesario
 	std::cout << "Server destructor called." << std::endl;
+}
+
+// Scan across the bytes read and return True if they end in (or contain!) CRLF
+// NOTE Playing with C strings here - is it null-terminated?
+// takes a char array (unchanged) and the number of bytes to check (from read call)
+bool	Server::_isFullMsg(char *msg, int to_chk) const
+{
+	int	i;
+
+	i = 0;
+	while (i < to_chk)
+	{
+		if (msg[i] == '\r')
+			if (((i + 1) != to_chk) && (msg[i+1] == '\n'))
+				return true;
+		i++;
+	}
+
+	return (false);
+}
+
+// TODO This must check for existing text there!
+void	Server::_storePartial(int fd_source, char* msg)
+{
+	this->_partial_msgs[fd_source] = msg;
 }
