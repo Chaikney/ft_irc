@@ -36,6 +36,7 @@ class	Server
 		void		_addNewClient();
 		void		_removeClient(struct epoll_event &bye);
 		bool 		_setNonBlocking(int fd);
+		bool		_checkPass(Message &msg) const;
 
 	public:
 					Server(int port, std::string password);

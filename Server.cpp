@@ -222,6 +222,9 @@ void Server::run()
 					{
 						// NOTE This *should* be the cut-till crlf tmp string though
 						Message	*nxtMessage = Message::makeMessage(str_buf);
+						// HACK PoC for PASS checking
+						if (_checkPass(*nxtMessage))
+							std::cout << "We could register this client, password matches" << std::endl;
 						std::cout << nxtMessage << std::endl;
 						this->_toProcess.push(nxtMessage);
 					}
@@ -236,16 +239,16 @@ void Server::run()
 					// FIXME Unitialised value here sometimes
 					std::cout << "Mensaje recibido de fd " << events[i].data.fd << ": " << buf << std::endl;
 					// HACK debugging print statement below
-					//std::cout << "Printing queued messages" << std::endl;
-					//this->_printMessageQueue(this->_toProcess);
+					std::cout << "Printing queued messages" << std::endl;
+					this->_printMessageQueue(this->_toProcess);
 					// Reenviar el mensaje a todos los demás clientes
-					for (std::set<int>::iterator it = _clients.begin(); it != _clients.end(); ++it)
-					{
-						if (*it != events[i].data.fd)
-						{
-							write(*it, str_buf.c_str(), str_buf.size());
-						}
-					}
+					// for (std::set<int>::iterator it = _clients.begin(); it != _clients.end(); ++it)
+					// {
+					// 	if (*it != events[i].data.fd)
+					// 	{
+					// 		write(*it, str_buf.c_str(), str_buf.size());
+					// 	}
+					// }
 				}
 			}
 		}
@@ -282,4 +285,20 @@ Server::~Server(void)
 {
 	// Libera recursos si es necesario
 	std::cout << "Server destructor called." << std::endl;
+}
+
+// Return TRUE if the message contains the correct password
+// The message should only have 1 parameter, how to get that?
+// NOTE This works provided there is no \n at the end of the parameters
+bool	Server::_checkPass(Message &msg) const
+{
+	std::string	_sPass = this->_password;
+	std::list<std::string>	_cPass = msg.getParams();
+	std::string	_cmd = msg.getCommand();	// HACK This comparison shoulfd be done elsewhere
+	if (_cmd.compare("PASS") == 0)
+	{
+		if (_sPass.compare(_cPass.front()) == 0)
+		 	return (true);
+	}
+	return (false);
 }
