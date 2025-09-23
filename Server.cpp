@@ -193,67 +193,28 @@ void Server::run()
 			}
 			else	// Input from a client
 			{
-				// Make an empty message buffer to read into
-				char buf[512];
-				char	*old_part;
-				int	chars_already = 0;
-				memset(buf, '\0', 512);
-				// Do we already have a partial message from this FD?
-				// FIXME Confusing function name and bad separation of what it does
-				if (this->_partial_msgs.count(events[i].data.fd) != 0)
+				try
 				{
-					old_part = _addToPartial(events[i].data.fd);
-					if (!old_part)
-						_removeClient(events[i]);
-					else
-						strlcpy(buf, old_part, 512);
-				}
-				else	// read directly into buf
-				{
-					int count = read(events[i].data.fd, buf, (sizeof(buf) - 1 - chars_already));
-					if (count <= 0)
-						_removeClient(events[i]);
-				}
-				// NOTE Switching from raw buffer to stroiing here. Might still be inconsistent things!
-				std::string	str_buf(buf);
-				if (!this->_isFullMsg(str_buf, str_buf.length()))	// buffer does not form a complete message
-				{
-					std::cout << "Can NOT be parsed, store partial" << std::endl;
-					// FIXME buf here is not the str_buf that we checked above!
-					this->_storePartial(events[i].data.fd, buf);
-					std::cout << "Done. Stored:" << _partial_msgs[events[i].data.fd] << std::endl;
-					// TODO Clear char buf at this point?
-				}
-				else	// Parse into Message and queue for further action
-				{
-					std::cout << "Can be parsed" << std::endl;
-					// NOTE There is apparently no sensible way to do this
-					// We have to go char buf-string-stringstream :|
-					// NOTE Make sure that buf is not NULL before passing to the string constructor
-					//std::string	str_buf(buf);
-					// NOTE This does not prevent a textless \n or similar string being passed through
-					if (str_buf.empty() == false)	// HACK this code is disgusting
-						std::cout << "Our string is: " << str_buf << std::endl;
-					// TODO Somewhere we must remove the \n
-					try		// Parse string into Message object in Queue
+					std::string	str_buf = _getClientInput(events[i].data.fd);
+					if (!this->_isFullMsg(str_buf, str_buf.length()))	// buffer does not form a complete message
 					{
+						std::cout << "Can NOT be parsed, store partial" << std::endl;
+						// FIXME buf here is not the str_buf that we checked above!
+						this->_storePartial(events[i].data.fd, str_buf);
+						std::cout << "Done. Stored:" << _partial_msgs[events[i].data.fd] << std::endl;
+						// TODO Clear char buf at this point?
+					}
+					else	// Parse into Message and queue for further action
+					{
+						std::cout << "Can be parsed" << std::endl;
+						if (str_buf.empty() == false)	// HACK this code is disgusting
+							std::cout << "Our string is: " << str_buf << std::endl;
+						// TODO Somewhere we must remove the \n
 						Message	*nxtMessage = Message::makeMessage(str_buf);
 						std::cout << nxtMessage << std::endl;
 						this->_toProcess.push(nxtMessage);
 					}
-					catch (std::exception &e)
-					{
-						std::cerr << "Something wrong with message: ignore and continue." << std::endl;
-						std::cerr << e.what() <<std::endl;
-					}
-					// Clear the buffer NOTE this might be a repetition of the top of the loop
-					memset(buf, '\0', 512);
-					// FIXME Unitialised value here sometimes
-					std::cout << "Mensaje recibido de fd " << events[i].data.fd << ": " << buf << std::endl;
-					// HACK debugging print statement below
-					//std::cout << "Printing queued messages" << std::endl;
-					//this->_printMessageQueue(this->_toProcess);
-					// Reenviar el mensaje a todos los demás clientes
+					std::cout << "Mensaje recibido de fd " << events[i].data.fd << ": " << str_buf << std::endl;
 					for (std::set<int>::iterator it = _clients.begin(); it != _clients.end(); ++it)
 					{
 						if (*it != events[i].data.fd)
@@ -262,6 +223,22 @@ void Server::run()
 						}
 					}
 				}
+				// TODO Work out how to handle / merge the 2 different exceptions.
+				catch (std::exception &e)
+				{
+					std::cerr << e.what() <<std::endl;
+					_removeClient(events[i]);
+				}
+				// catch (std::exception &e)
+				// {
+				// 	std::cerr << "Something wrong with message: ignore and continue." << std::endl;
+				// 	std::cerr << e.what() <<std::endl;
+				// }
+				// FIXME Unitialised value here sometimes
+				// HACK debugging print statement below
+				//std::cout << "Printing queued messages" << std::endl;
+				//this->_printMessageQueue(this->_toProcess);
+				// Reenviar el mensaje a todos los demás clientes
 			}
 		}
 	}
@@ -331,33 +308,31 @@ bool	Server::_isFullMsg(std::string msg, int to_chk) const
 }
 
 // TODO This should first check for existing text there!
-void	Server::_storePartial(int fd_source, char* msg)
+void	Server::_storePartial(int fd_source, std::string msg)
 {
 	this->_partial_msgs[fd_source] = msg;
 }
 
-char*	Server::_addToPartial(int fd)
+// return a string that can be used as a possible Message
+// Read the input fd and combine with any existing partial data
+std::string	Server::_getClientInput(int fd)
 {
-	char	*part_msg;
-	int		part_size;
-	int		from_buf;
-	char	buf[512];
-	char	*ret_val;
+	char		buf[512];
+	std::string	ret_val;
+	int			chars_already = 0;
+	int			new_chars = 0;
 
 	memset(buf, '\0', 512);
-	ret_val = (char *) malloc(sizeof(char) * 512);
-	memset(ret_val, '\0', 512);
-	std::cout << "We have a partial message stored for fd " << fd << std::endl;
-	part_msg = this->_partial_msgs[fd];
-	this->_partial_msgs.erase(fd);	// Get rid of the stored value
-	part_size = strlen(part_msg);
-	from_buf = read(fd, buf, (sizeof(buf) - 1 - part_size));
-	if (from_buf <= 0)
-		return (0);
-	else
+	if (this->_partial_msgs.count(fd) != 0)
 	{
-		strlcat(ret_val, part_msg,512);
-		strlcat(ret_val, buf ,512);
+		ret_val = this->_partial_msgs[fd];
+		chars_already = ret_val.length();
 	}
+	new_chars = read(fd, buf, (sizeof(buf) - 1 - chars_already));
+	if (new_chars <= 0)
+		throw std::runtime_error("failed to read new input");
+//		_removeClient(events[i]);
+	else
+		ret_val.append(buf);
 	return (ret_val);
 }
