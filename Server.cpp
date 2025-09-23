@@ -194,14 +194,16 @@ void Server::run()
 						// TODO Somewhere we must remove the \n
 						Message	*nxtMessage = Message::makeMessage(str_buf);
 						this->_toProcess.push(nxtMessage);
+						// HACK PoC for PASS checking
+						if (_checkPass(*nxtMessage))
+							std::cout << "We could register this client, password matches" << std::endl;
 					}
 					std::cout << "Mensaje recibido de fd " << events[i].data.fd << ": " << str_buf << std::endl;
+					// HACK Loop to send to all other clients connected
 					for (std::set<int>::iterator it = _clients.begin(); it != _clients.end(); ++it)
 					{
 						if (*it != events[i].data.fd)
-						{
 							write(*it, str_buf.c_str(), str_buf.size());
-						}
 					}
 					// HACK debugging print statement below
 					//this->_printMessageQueue(this->_toProcess);
@@ -294,4 +296,20 @@ std::string	Server::_getClientInput(int fd)
 	else
 		ret_val.append(buf);
 	return (ret_val);
+}
+
+// Return TRUE if the message contains the correct password
+// The message should only have 1 parameter, how to get that?
+// NOTE This works provided there is no \n at the end of the parameters
+bool	Server::_checkPass(Message &msg) const
+{
+	std::string	_sPass = this->_password;
+	std::list<std::string>	_cPass = msg.getParams();
+	std::string	_cmd = msg.getCommand();	// HACK This comparison shoulfd be done elsewhere
+	if (_cmd.compare("PASS") == 0)
+	{
+		if (_sPass.compare(_cPass.front()) == 0)
+		 	return (true);
+	}
+	return (false);
 }

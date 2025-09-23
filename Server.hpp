@@ -39,6 +39,7 @@ class	Server
 		bool		_isFullMsg(std::string msg, int to_chk) const;
 		void		_storePartial(int fd_source, std::string msg);
 		std::string	_getClientInput(int fd);
+		bool		_checkPass(Message &msg) const;
 
 	public:
 					Server(int port, std::string password);
