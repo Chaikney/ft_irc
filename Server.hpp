@@ -1,11 +1,10 @@
-
 #ifndef SERVER_HPP
 # define SERVER_HPP
 
 #include <sys/socket.h>	// socket() function
 #include <netinet/in.h>	// provides the sockaddr_in struct
 #include <string>
-#include <queue>
+#include <queue>// Messages to be processed
 #include <set>	// FDs of clients to be sent to
 #include <map>	// dictionary of partial messages
 
@@ -33,13 +32,11 @@ class	Server
 					Server(const Server &irc);	// No good reason to allow copy construction of the server
 		Server		operator=(const Server &irc);	// No assignment should be possible either
 
-		int			acceptClient();
-		void		_printMessageQueue(std::queue<Message *> toPrint);
+		void		_printMessageQueue(std::queue<Message *> toPrint) const;
 		void		_addNewClient();
 		void		_removeClient(struct epoll_event &bye);
 		bool 		_setNonBlocking(int fd);
-		bool		_isFullMsg(char* msg, int src_fd) const;	// TODO Logically this is a Message check, though?
-		bool		_isFullMsg(std::string msg, int to_chk) const; // NOTE Can I polymorph this?
+		bool		_isFullMsg(std::string msg, int to_chk) const;
 		void		_storePartial(int fd_source, std::string msg);
 		std::string	_getClientInput(int fd);
 

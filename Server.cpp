@@ -1,11 +1,9 @@
-#include <set>
 #include "Server.hpp"
 #include "Message.hpp"
 #include <iostream>
-#include <unistd.h>
+#include <unistd.h>	// for close()
 #include <sstream>
 #include <sys/epoll.h>
-#include <queue>
 #include <cstdlib>	// for the EXIT code
 #include <cstring>	// for memset. Too many includes!
 #include <fcntl.h>	// NOTE IS there a C++ equivalent we should prefer?
@@ -90,19 +88,7 @@ Server::Server(int port, std::string password) : _socketFD(0), _epollFD(0),
 	}
 }
 
-// Método para aceptar clientes (bloqueante)
-// NOTE This is unused right now
-int Server::acceptClient()
-{
-	int clientSocket = accept(_socketFD, 0, 0);
-	if (clientSocket == -1)
-		std::cerr << "Accept failed!" << std::endl;
-	else
-		std::cout << "Accepted a connection, client fd: " << clientSocket << std::endl;
-	return clientSocket;
-}
-
-// Whaat needs to be done when we get the first contact from a new client
+// What needs to be done when we get the first contact from a new client
 // - Accept
 // - set the socket as non-blocking
 // - make an event struct for its input
@@ -162,7 +148,7 @@ void	Server::_removeClient(struct epoll_event &goodbye)
 // e.g. stringstream insteaad of manually terminating a character buffer
 // TODO The errors should throw exception of some kind
 // TODO Refactor this into separate functions; it is unreadable now
-// FIXME Loop logic problem: client disconnections are hitting "can not be parsed, store partial"
+// TODO Handle client disconnnections better: currently cause "failed to read new input"
 void Server::run()
 {
 	std::cout << "server on, waiting for conections (epoll)..." << std::endl;
@@ -199,19 +185,14 @@ void Server::run()
 					if (!this->_isFullMsg(str_buf, str_buf.length()))	// buffer does not form a complete message
 					{
 						std::cout << "Can NOT be parsed, store partial" << std::endl;
-						// FIXME buf here is not the str_buf that we checked above!
 						this->_storePartial(events[i].data.fd, str_buf);
 						std::cout << "Done. Stored:" << _partial_msgs[events[i].data.fd] << std::endl;
-						// TODO Clear char buf at this point?
 					}
 					else	// Parse into Message and queue for further action
 					{
 						std::cout << "Can be parsed" << std::endl;
-						if (str_buf.empty() == false)	// HACK this code is disgusting
-							std::cout << "Our string is: " << str_buf << std::endl;
 						// TODO Somewhere we must remove the \n
 						Message	*nxtMessage = Message::makeMessage(str_buf);
-						std::cout << nxtMessage << std::endl;
 						this->_toProcess.push(nxtMessage);
 					}
 					std::cout << "Mensaje recibido de fd " << events[i].data.fd << ": " << str_buf << std::endl;
@@ -222,6 +203,8 @@ void Server::run()
 							write(*it, str_buf.c_str(), str_buf.size());
 						}
 					}
+					// HACK debugging print statement below
+					//this->_printMessageQueue(this->_toProcess);
 				}
 				// TODO Work out how to handle / merge the 2 different exceptions.
 				catch (std::exception &e)
@@ -235,10 +218,6 @@ void Server::run()
 				// 	std::cerr << e.what() <<std::endl;
 				// }
 				// FIXME Unitialised value here sometimes
-				// HACK debugging print statement below
-				//std::cout << "Printing queued messages" << std::endl;
-				//this->_printMessageQueue(this->_toProcess);
-				// Reenviar el mensaje a todos los demás clientes
 			}
 		}
 	}
@@ -253,7 +232,7 @@ int	Server::get_fd(void) const
 // Debug function to view a message queue.
 // Uses a copy not a reference so that we don't lose item
 // (Yes that is probably *very* inefficient)
-void	Server::_printMessageQueue(std::queue<Message *> toPrint)
+void	Server::_printMessageQueue(std::queue<Message *> toPrint) const
 {
 	Message	*this_one;
 	int	n;
@@ -274,26 +253,6 @@ Server::~Server(void)
 {
 	// Libera recursos si es necesario
 	std::cout << "Server destructor called." << std::endl;
-}
-
-// Scan across the bytes read and return True if they end in (or contain!) CRLF
-// NOTE Playing with C strings here - is it null-terminated?
-// takes a char array (unchanged) and the number of bytes to check (from read call)
-// TODO Perhaps this should be more permissive? i.e. also allow \n (or \r) only termination?
-bool	Server::_isFullMsg(char *msg, int to_chk) const
-{
-	int	i;
-
-	i = 0;
-	while (i < to_chk)
-	{
-		if (msg[i] == '\r')
-			if (((i + 1) != to_chk) && (msg[i+1] == '\n'))
-				return true;
-		i++;
-	}
-
-	return (false);
 }
 
 bool	Server::_isFullMsg(std::string msg, int to_chk) const
