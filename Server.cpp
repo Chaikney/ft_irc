@@ -222,6 +222,7 @@ void Server::run()
 				// FIXME Unitialised value here sometimes
 			}
 		}
+		_processQueue();
 	}
 }
 
@@ -312,4 +313,21 @@ bool	Server::_checkPass(Message &msg) const
 		 	return (true);
 	}
 	return (false);
+}
+
+// Run through the Messages in the _toProcess queue
+// Act on them, delete them.
+// TODO Make this spin off thread(s) to process the command efficiently
+// NOTE How do we make sure that this is non-blocking?
+// TODO Need some kind of matching / switch-case logic here (I guess)
+void	Server::_processQueue(void)
+{
+	Message	*do_next;
+
+	while (this->_toProcess.empty() == false)
+	{
+		do_next = this->_toProcess.front();
+		this->_toProcess.pop();
+		std::cout << "Pretending to process:" << *do_next << std::endl;
+	}
 }

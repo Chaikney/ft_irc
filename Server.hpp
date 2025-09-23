@@ -40,6 +40,7 @@ class	Server
 		void		_storePartial(int fd_source, std::string msg);
 		std::string	_getClientInput(int fd);
 		bool		_checkPass(Message &msg) const;
+		void		_processQueue(void);
 
 	public:
 					Server(int port, std::string password);
