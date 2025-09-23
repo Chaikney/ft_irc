@@ -42,6 +42,10 @@ class	Server
 		bool		_checkPass(Message &msg) const;
 		void		_processQueue(void);
 
+		// --- Manejo de comandos IRC ---
+		void        handleKick(Message *msg, int sender_fd);
+		void        handlePrivmsg(Message *msg, int sender_fd);
+
 	public:
 					Server(int port, std::string password);
 					~Server(void);	// NOTE Destructor will have to cleanly close connections and whatever partial / pending messages we have

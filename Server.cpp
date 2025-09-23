@@ -194,9 +194,6 @@ void Server::run()
 						// TODO Somewhere we must remove the \n
 						Message	*nxtMessage = Message::makeMessage(str_buf);
 						this->_toProcess.push(nxtMessage);
-						// HACK PoC for PASS checking
-						if (_checkPass(*nxtMessage))
-							std::cout << "We could register this client, password matches" << std::endl;
 					}
 					std::cout << "Mensaje recibido de fd " << events[i].data.fd << ": " << str_buf << std::endl;
 					// HACK Loop to send to all other clients connected
@@ -250,6 +247,24 @@ void	Server::_printMessageQueue(std::queue<Message *> toPrint) const
 		toPrint.pop();
 	}
 	std::cout << n << " Messages printed" << std::endl;
+}
+
+// Manejo de comandos IRC ---
+// Esqueleto para el comando KICK
+void Server::handleKick(Message *msg, int sender_fd)
+{
+	// Aquí va la lógica para expulsar a un usuario de un canal
+	// Ejemplo: obtener parámetros, buscar usuario, eliminarlo del canal, notificar, etc.
+	(void) msg;
+	std::cout << "[KICK] Comando recibido de fd " << sender_fd << std::endl;
+	// Puedes acceder a los parámetros con msg->getParams()
+}
+
+// Esqueleto para el comando PRIVMSG (opcional, puedes completarlo luego)
+void Server::handlePrivmsg(Message *msg, int sender_fd)
+{
+	// Aquí va la lógica para enviar mensajes privados o a canales
+	std::cout << "[PRIVMSG] Comando recibido de fd " << sender_fd << " " << msg << std::endl;
 }
 
 Server::~Server(void)
@@ -329,5 +344,17 @@ void	Server::_processQueue(void)
 		do_next = this->_toProcess.front();
 		this->_toProcess.pop();
 		std::cout << "Pretending to process:" << *do_next << std::endl;
-	}
+		std::string command = do_next->getCommand();
+		std::cout << "Comando parseado: [" << command << "]" << std::endl;
+		// HACK PoC for PASS checking
+		if (_checkPass(*do_next))
+			std::cout << "We could register this client, password matches" << std::endl;
+		// HACK fd replaced by 999 until that info is held in the Message object (source)
+		if (command == "KICK")
+			handleKick(do_next, 999);
+			//handleKick(do_next, events[i].data.fd);
+		else if (command == "PRIVMSG")
+			handlePrivmsg(do_next, 999);
+			//handlePrivmsg(do_next, events[i].data.fd);
+ 	}
 }
