@@ -39,6 +39,7 @@ class	Server
 		void		_removeClient(struct epoll_event &bye);
 		bool 		_setNonBlocking(int fd);
 		bool		_isFullMsg(char* msg, int src_fd) const;	// TODO Logically this is a Message check, though?
+		bool		_isFullMsg(std::string msg, int to_chk) const; // NOTE Can I polymorph this?
 		void		_storePartial(int fd_source, char *msg);
 		char*		_addToPartial(int fd);
 

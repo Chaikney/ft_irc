@@ -162,12 +162,10 @@ void	Server::_removeClient(struct epoll_event &goodbye)
 // e.g. stringstream insteaad of manually terminating a character buffer
 // TODO The errors should throw exception of some kind
 // TODO Refactor this into separate functions; it is unreadable now
+// FIXME Loop logic problem: client disconnections are hitting "can not be parsed, store partial"
 void Server::run()
 {
-	std::stringstream ss;
-	ss << "server on, waiting for conections (epoll)...";
-	std::string msg = ss.str();
-	std::cout << msg << std::endl;
+	std::cout << "server on, waiting for conections (epoll)..." << std::endl;
 	const int MAX_EVENTS = 10;
 	struct epoll_event events[MAX_EVENTS];
 	while (true)
@@ -181,6 +179,7 @@ void Server::run()
 		}
 		for (int i = 0; i < n; ++i)
 		{
+			// Input on Server, i.e. a new connection
 			if (events[i].data.fd == _socketFD)
 			{
 				try
@@ -192,14 +191,15 @@ void Server::run()
 					std::cerr << "Failed to add new client: " << e.what() << std::endl;
 				}
 			}
-			else
+			else	// Input from a client
 			{
-				// Hay datos para leer de un cliente
 				// Make an empty message buffer to read into
 				char buf[512];
 				char	*old_part;
 				int	chars_already = 0;
 				memset(buf, '\0', 512);
+				// Do we already have a partial message from this FD?
+				// FIXME Confusing function name and bad separation of what it does
 				if (this->_partial_msgs.count(events[i].data.fd) != 0)
 				{
 					old_part = _addToPartial(events[i].data.fd);
@@ -208,66 +208,57 @@ void Server::run()
 					else
 						strlcpy(buf, old_part, 512);
 				}
-				else
+				else	// read directly into buf
 				{
 					int count = read(events[i].data.fd, buf, (sizeof(buf) - 1 - chars_already));
 					if (count <= 0)
 						_removeClient(events[i]);
-				// We read one less than buffer size so we can add the null char later
-				// We subtract the number of characters from the partial msgs map
-				// FIXME this way I am just overwriting things
-					// FIXME I think this warning will not work
-					// if (strlcat(old_part, buf, 512) < (strlen(buf) + strlen(old_part)))
-					// {
-					// 	std::cerr << "Warning! Message truncated!" << std::endl;
-					// }
-
-					//     handled by strlcat i think
-					// buf[count + chars_already] = '\0';
-					if (!this->_isFullMsg(buf, count))
+				}
+				// NOTE Switching from raw buffer to stroiing here. Might still be inconsistent things!
+				std::string	str_buf(buf);
+				if (!this->_isFullMsg(str_buf, str_buf.length()))	// buffer does not form a complete message
+				{
+					std::cout << "Can NOT be parsed, store partial" << std::endl;
+					// FIXME buf here is not the str_buf that we checked above!
+					this->_storePartial(events[i].data.fd, buf);
+					std::cout << "Done. Stored:" << _partial_msgs[events[i].data.fd] << std::endl;
+					// TODO Clear char buf at this point?
+				}
+				else	// Parse into Message and queue for further action
+				{
+					std::cout << "Can be parsed" << std::endl;
+					// NOTE There is apparently no sensible way to do this
+					// We have to go char buf-string-stringstream :|
+					// NOTE Make sure that buf is not NULL before passing to the string constructor
+					//std::string	str_buf(buf);
+					// NOTE This does not prevent a textless \n or similar string being passed through
+					if (str_buf.empty() == false)	// HACK this code is disgusting
+						std::cout << "Our string is: " << str_buf << std::endl;
+					// TODO Somewhere we must remove the \n
+					try		// Parse string into Message object in Queue
 					{
-						std::cout << "Can NOT be parsed, store partial" << std::endl;
-						this->_storePartial(events[i].data.fd, buf);
-						std::cout << "Done. Stored:" << _partial_msgs[events[i].data.fd] << std::endl;
+						Message	*nxtMessage = Message::makeMessage(str_buf);
+						std::cout << nxtMessage << std::endl;
+						this->_toProcess.push(nxtMessage);
 					}
-					else
+					catch (std::exception &e)
 					{
-						std::cout << "Can be parsed" << std::endl;
-						// NOTE There is apparently no sensible way to do this
-						// We have to go char buf-string-stringstream :|
-						// FIXME Make sure that buf is not NULL before passing to the string constructor
-						std::string	str_buf(buf);
-						// FIXME This does not prevent a textless \n or similar string being passed through
-						if (str_buf.empty() == false)	// HACK this code is disgusting
-							std::cout << "Our string is: " << str_buf << std::endl;
-						// TODO Also add the  \n, OR remove the \r as we don't need it now
-						try		// Parse string into Message object in Queue
+						std::cerr << "Something wrong with message: ignore and continue." << std::endl;
+						std::cerr << e.what() <<std::endl;
+					}
+					// Clear the buffer NOTE this might be a repetition of the top of the loop
+					memset(buf, '\0', 512);
+					// FIXME Unitialised value here sometimes
+					std::cout << "Mensaje recibido de fd " << events[i].data.fd << ": " << buf << std::endl;
+					// HACK debugging print statement below
+					//std::cout << "Printing queued messages" << std::endl;
+					//this->_printMessageQueue(this->_toProcess);
+					// Reenviar el mensaje a todos los demás clientes
+					for (std::set<int>::iterator it = _clients.begin(); it != _clients.end(); ++it)
+					{
+						if (*it != events[i].data.fd)
 						{
-							// NOTE This *should* be the cut-till crlf tmp string though
-							Message	*nxtMessage = Message::makeMessage(str_buf);
-							std::cout << nxtMessage << std::endl;
-							this->_toProcess.push(nxtMessage);
-						}
-						catch (std::exception &e)
-						{
-							std::cerr << "Something wrong with message: ignore and continue." << std::endl;
-							std::cerr << e.what() <<std::endl;
-						}
-						// Clear the buffer BUT really should be storing / running until crlf
-						// TODO store the partial message for later?
-						memset(buf, '\0', 512);
-						// FIXME Unitialised value here sometimes
-						std::cout << "Mensaje recibido de fd " << events[i].data.fd << ": " << buf << std::endl;
-						// HACK debugging print statement below
-						//std::cout << "Printing queued messages" << std::endl;
-						//this->_printMessageQueue(this->_toProcess);
-						// Reenviar el mensaje a todos los demás clientes
-						for (std::set<int>::iterator it = _clients.begin(); it != _clients.end(); ++it)
-						{
-							if (*it != events[i].data.fd)
-							{
-								write(*it, str_buf.c_str(), str_buf.size());
-							}
+							write(*it, str_buf.c_str(), str_buf.size());
 						}
 					}
 				}
@@ -311,6 +302,7 @@ Server::~Server(void)
 // Scan across the bytes read and return True if they end in (or contain!) CRLF
 // NOTE Playing with C strings here - is it null-terminated?
 // takes a char array (unchanged) and the number of bytes to check (from read call)
+// TODO Perhaps this should be more permissive? i.e. also allow \n (or \r) only termination?
 bool	Server::_isFullMsg(char *msg, int to_chk) const
 {
 	int	i;
@@ -325,6 +317,17 @@ bool	Server::_isFullMsg(char *msg, int to_chk) const
 	}
 
 	return (false);
+}
+
+bool	Server::_isFullMsg(std::string msg, int to_chk) const
+{
+	size_t	pos;
+	(void) to_chk;	// TODO remove this from function signature altogether?
+	pos = msg.find('\n');
+	if (pos == std::string::npos)
+		return (false);
+	else
+		return (true);
 }
 
 // TODO This should first check for existing text there!
