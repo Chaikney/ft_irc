@@ -40,20 +40,30 @@ class	Message
 inline std::ostream&	operator<<(std::ostream &out, const Message &msg)
 {
 	std::list<std::string>	params;
+	std::string				tmp;
 
-	out << "Tags: " << msg.getTags() << std::endl;
-	out << "Source: " << msg.getSource() << std::endl;
-	out << "Command: " << msg.getCommand() << std::endl;
+	tmp = msg.getTags();
+	if (!tmp.empty())
+		out << "Tags: " << msg.getTags() << std::endl;
+	tmp = msg.getSource();
+	if (!tmp.empty())
+		out << "Source: " << msg.getSource() << std::endl;
+	tmp = msg.getCommand();
+	if (!tmp.empty())
+		out << "Command: " << msg.getCommand() << std::endl;
 	params = msg.getParams();
 
-	std::list<std::string>::const_iterator  it = params.begin();
-	out << "Parameters: ";
-	while (it != params.end())
+	if (!params.empty())
 	{
-		out << *it << ", ";
-		it++;
+		std::list<std::string>::const_iterator  it = params.begin();
+		out << "Parameters: ";
+		while (it != params.end())
+		{
+			out << *it << ", ";
+			it++;
+		}
+		out << std::endl;
 	}
-	out << std::endl;
 //	out << "Parameters: " << msg.getParams() << std::endl;
 	return (out);
 }
