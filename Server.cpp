@@ -222,6 +222,13 @@ void Server::run()
 					{
 						// NOTE This *should* be the cut-till crlf tmp string though
 						Message	*nxtMessage = Message::makeMessage(str_buf);
+						std::string command = nxtMessage->getCommand();
+						std::cout << "Comando parseado: [" << command << "]" << std::endl;
+						if (command == "KICK")
+							handleKick(nxtMessage, events[i].data.fd);
+						else if (command == "PRIVMSG")
+							handlePrivmsg(nxtMessage, events[i].data.fd);
+                        // ...otros comandos aquí...
 						std::cout << nxtMessage << std::endl;
 						this->_toProcess.push(nxtMessage);
 					}
@@ -261,6 +268,22 @@ int	Server::get_fd(void) const
 // Debug function to view a message queue.
 // Uses a copy not a reference so that we don't lose item
 // (Yes that is probably *very* inefficient)
+// --- Manejo de comandos IRC ---
+// Esqueleto para el comando KICK
+void Server::handleKick(Message *msg, int sender_fd)
+{
+	// Aquí va la lógica para expulsar a un usuario de un canal
+	// Ejemplo: obtener parámetros, buscar usuario, eliminarlo del canal, notificar, etc.
+	std::cout << "[KICK] Comando recibido de fd " << sender_fd << std::endl;
+	// Puedes acceder a los parámetros con msg->getParams()
+}
+
+// Esqueleto para el comando PRIVMSG (opcional, puedes completarlo luego)
+void Server::handlePrivmsg(Message *msg, int sender_fd)
+{
+	// Aquí va la lógica para enviar mensajes privados o a canales
+	std::cout << "[PRIVMSG] Comando recibido de fd " << sender_fd << " " << msg << std::endl;
+}
 void	Server::_printMessageQueue(std::queue<Message *> toPrint)
 {
 	Message	*this_one;

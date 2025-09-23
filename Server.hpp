@@ -37,6 +37,10 @@ class	Server
 		void		_removeClient(struct epoll_event &bye);
 		bool 		_setNonBlocking(int fd);
 
+		// --- Manejo de comandos IRC ---
+		void        handleKick(Message *msg, int sender_fd);
+		void        handlePrivmsg(Message *msg, int sender_fd);
+
 	public:
 					Server(int port, std::string password);
 					~Server(void);	// NOTE Destructor will have to cleanly close connections and whatever partial / pending messages we have

@@ -46,6 +46,9 @@ Message::Message(std::string text_recvd) : _tags(""), _source(""), _command(""),
     // After this, we have a command
 	_stepOver(strm);
     std::getline(strm, this->_command, ' ');
+    // Limpiar saltos de línea y espacios al final del comando
+    while (!_command.empty() && (_command[_command.size()-1] == '\n' || _command[_command.size()-1] == '\r' || _command[_command.size()-1] == ' '))
+        _command.erase(_command.size()-1);
     // And the parameters, finally
 	_stepOver(strm);
     std::string	tmp;
