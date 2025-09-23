@@ -1,6 +1,8 @@
 #include "Server.hpp"
 #include "Message.hpp"
+#include "User.hpp"
 #include <iostream>
+#include <netinet/in.h>
 #include <unistd.h>	// for close()
 #include <sstream>
 #include <sys/epoll.h>
@@ -94,6 +96,7 @@ Server::Server(int port, std::string password) : _socketFD(0), _epollFD(0),
 // - make an event struct for its input
 // - add that to the epollFD that we monitor.
 // NOTE If something goes wrong, throws a runtime_error exception to be caught outside
+// TODO Make proper use of the newUser!
 void	Server::_addNewClient()
 {
 	int clientSocket = accept(this->_socketFD, NULL, NULL);
@@ -107,7 +110,16 @@ void	Server::_addNewClient()
 		close (clientSocket);
 		throw std::runtime_error("Failed to set client socket non-blocking!");
 	}
-	// Añadir el cliente a epoll
+	try
+	{
+		User	*newUser = User::makeUser(clientSocket);
+		delete newUser;	// HACK Until I know what to do with the user
+	}
+	catch (std::exception &e)
+	{
+		std::cerr << e.what() << "User creation failure" << std::endl;
+	}
+// Añadir el cliente a epoll
 	struct epoll_event ev;
 	ev.events = EPOLLIN | EPOLLET;
 	ev.data.fd = clientSocket;

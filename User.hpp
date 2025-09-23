@@ -1,9 +1,9 @@
 #ifndef USER_HPP
 # define USER_HPP
 
+#include <netinet/in.h>		// Needed for sockaddr_in
 #include <string>
 #include <iostream>
-//#include <sys/socket.h>		// Needed if we use sockaddr_in
 
 // TODO Decide if any other information is useful to us here
 // TODO Add a last seen timestamp (what format?) to allow for timeouts
@@ -12,6 +12,7 @@
 // TODO Decide how to store server info
 // TODO Add a "display as source" method giving info to add to Message.source
 // .....which commands need that?
+// TODO Add _address info to the << display override
 class	User
 {
 	private:
@@ -19,7 +20,7 @@ class	User
 		std::string				_uname;
 		std::string				_rname;
 		bool					_gavepass;
-		// sockaddr_in			_address;	// has sin_port and sin_addr
+		sockaddr_in				_address;	// has sin_port and sin_addr
 		// int _mode;	// How do we store / manage this?
 		// time_t	last_seen;	// to refer to in case of partial registration
 
@@ -27,10 +28,11 @@ class	User
 
 	public:
 		User(void);	// Which other versions of this are needed?
+		User(int fd);	// Use fd to get more info
 		User(const User &irc);	// Copying a User seems reasonable to allow
 		~User(void);
 
-		static User*		makeUser(void);
+		static User*		makeUser(int fd);
 
 		std::string			getNick() const;
 		std::string			getUser() const;
