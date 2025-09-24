@@ -1,4 +1,6 @@
 #include "User.hpp"
+#include <arpa/inet.h>	// inet_ntop() ("network-to-printable")
+#include <netinet/in.h>
 #include <unistd.h>
 
 // FIXME Parameters needed to create a User from nothing?
@@ -6,22 +8,30 @@
 // ...but the connection information?
 // The first thing we see is a file descriptor I think. What else in the socket
 User::User(void) : _nick(""), _uname(""), _rname(""),
-									 _gavepass(false), _address()
-{}
+				   _gavepass(false), _address(), _host()
+{
+	std::cerr << "Cannot create User instance without a socket fd" << std::endl;
+}
 
 // TODO Add debug info about the address
+// TODO Catch more possible problems with the creation
+// NOTE Cannot get hostname so taking the IP addr
 User::User(int fd) : _nick(""), _uname(""), _rname(""),
-									 _gavepass(false), _address()
+					 _gavepass(false), _address(), _host()
 {
-	socklen_t	addr_size;	// I only made this for getsockname and I guess error checking
+	socklen_t	addr_size = INET_ADDRSTRLEN;	// I only made this for getsockname and I guess error checking
+	char	ip_addr[INET_ADDRSTRLEN];
 	// Get more info about the socket
-	// TODO Perhaps this should be part of User creation and storage?
 	if (getsockname (fd, (struct sockaddr *) &_address, &addr_size) == -1)
 	{
 		close (fd);
 		throw std::runtime_error("Failed to get client info");
 	}
+	inet_ntop(AF_INET, &_address.sin_addr, ip_addr, INET_ADDRSTRLEN);
+	this->_host = ip_addr;
+	// HACK debug statements that can be removed
 	std::cout << "User created for fd:" << fd << std::endl;
+	std::cout << "IP Address: " << this->_host << std::endl;
 }
 
 
@@ -40,7 +50,7 @@ User	*User::makeUser(int fd)
 
 User::User(const User &original): _nick(original._nick), _uname(original._uname),
 										   _rname(original._rname), _gavepass(original._gavepass),
-								  _address(original._address)
+								  _address(original._address), _host(original._host)
 {}
 
 std::string	User::getNick() const
@@ -61,4 +71,14 @@ std::string	User::getReal() const
 bool	User::isVerified() const
 {
 	return(this->_gavepass);
+}
+
+sockaddr_in	User::getAddress() const
+{
+	return(this->_address);
+}
+
+std::string	User::getHost() const
+{
+	return(this->_host);
 }
