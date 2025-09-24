@@ -9,6 +9,7 @@
 #include <map>	// dictionary of partial messages
 
 class	Message;
+class	User;
 
 // What should this hold?
 // - port
@@ -27,6 +28,7 @@ class	Server
 		std::queue<Message *>	_toProcess;
 		std::set<int> _clients;		// NOTE This is the fds to be sent to; may duplicate other info
 		std::map<int, std::string>	_partial_msgs;
+		std::map<int, User*>	_moreClients;	// TODO Potentially  this replaces _clients()
 
 					Server(void);	// private so not called
 					Server(const Server &irc);	// No good reason to allow copy construction of the server

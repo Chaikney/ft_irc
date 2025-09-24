@@ -10,6 +10,17 @@
 #include <cstring>	// for memset. Too many includes!
 #include <fcntl.h>	// NOTE IS there a C++ equivalent we should prefer?
 					// RESPONSE No, fcntl is what we need to use because we cant use external libraries and stl has nothing better or equal.
+					// ***
+					// Subject IV.2 *** For MacOS only ***
+					// ***
+					// Since MacOS does not implement write() in the same
+					// way as other Unix OSes, you are permitted to use fcntl().
+					// However, you are allowed to use fcntl() only as follows:
+					// fcntl(fd, F_SETFL, O_NONBLOCK);
+					// Any other flag is forbidden.
+					//
+					// ...we maybe are supposed to directly create a non-blocking socket,
+					// https://stackoverflow.com/a/63348937
 
 
 // Helper para poner un socket en modo no bloqueante
@@ -35,7 +46,8 @@ bool Server::_setNonBlocking(int fd)
 // FIXED There are no try/catch blocks for the thrown exceptions
 Server::Server(int port, std::string password) : _socketFD(0), _epollFD(0),
 												 _serverAddress(), _password(password),
-												 _toProcess(), _clients(), _partial_msgs()
+												 _toProcess(), _clients(), _partial_msgs(),
+												 _moreClients()
 {
 	std::cout << "Server constructor with parameters called" << std::endl;
 	_socketFD = socket(AF_INET, SOCK_STREAM, 0);
@@ -99,6 +111,8 @@ Server::Server(int port, std::string password) : _socketFD(0), _epollFD(0),
 // TODO Make proper use of the newUser!
 void	Server::_addNewClient()
 {
+	try
+	{
 	int clientSocket = accept(this->_socketFD, NULL, NULL);
 
 	if (clientSocket == -1)
@@ -110,27 +124,28 @@ void	Server::_addNewClient()
 		close (clientSocket);
 		throw std::runtime_error("Failed to set client socket non-blocking!");
 	}
-	try
-	{
 		User	*newUser = User::makeUser(clientSocket);
-		delete newUser;	// HACK Until I know what to do with the user
-	}
-	catch (std::exception &e)
-	{
-		std::cerr << e.what() << "User creation failure" << std::endl;
-	}
-// Añadir el cliente a epoll
+		std::cout << "Created a new user from fd" << clientSocket << std::endl;
+		this->_moreClients[clientSocket] = newUser;
+//		delete newUser;	// HACK Until I know what to do with the user
+	// Añadir el cliente a epoll
 	struct epoll_event ev;
 	ev.events = EPOLLIN | EPOLLET;
 	ev.data.fd = clientSocket;
-	if (epoll_ctl(_epollFD, EPOLL_CTL_ADD, clientSocket, &ev) == -1)
+	//if (epoll_ctl(_epollFD, EPOLL_CTL_ADD, clientSocket, &ev) == -1)
+	if (epoll_ctl(_epollFD, EPOLL_CTL_ADD, newUser->getFD(), &ev) == -1)
 	{
 		close(clientSocket);
 		throw std::runtime_error("Could not add client socket to epoll");
 	}
 	else
 	{
-		this->_clients.insert(clientSocket);
+		this->_clients.insert(newUser->getFD());
+	}
+	}
+	catch (std::exception &e)
+	{
+		std::cerr << e.what() << "User creation failure" << std::endl;
 	}
 }
 
@@ -139,6 +154,7 @@ void	Server::_addNewClient()
 // - remove that fd from the epoll listening set
 // NOTE Should the events array we pass in be stored as part of the class instead?
 // NOTE This could work on an int fd only, but this allows other actions if needed.
+// TODO Once we have User instances, this should remove those too
 void	Server::_removeClient(struct epoll_event &goodbye)
 {
 	std::cout << "Cliente desconectado, fd: " << goodbye.data.fd << std::endl;
@@ -330,6 +346,7 @@ std::string	Server::_getClientInput(int fd)
 // Return TRUE if the message contains the correct password
 // The message should only have 1 parameter, how to get that?
 // NOTE This works provided there is no \n at the end of the parameters
+// TODO This has to link to the User, somehow. Receive it? Lookup on FD?
 bool	Server::_checkPass(Message &msg) const
 {
 	std::string	_sPass = this->_password;
