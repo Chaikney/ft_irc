@@ -37,6 +37,7 @@ class	Message
 		std::list<std::string>	getParams() const;
 };
 
+// TODO How can we make this return nothing when Message is absent/empty?
 inline std::ostream&	operator<<(std::ostream &out, const Message &msg)
 {
 	std::list<std::string>	params;
@@ -44,13 +45,13 @@ inline std::ostream&	operator<<(std::ostream &out, const Message &msg)
 
 	tmp = msg.getTags();
 	if (!tmp.empty())
-		out << "Tags: " << msg.getTags() << std::endl;
+		out << "Tags: " << tmp << std::endl;
 	tmp = msg.getSource();
 	if (!tmp.empty())
-		out << "Source: " << msg.getSource() << std::endl;
+		out << "Source: " << tmp << std::endl;
 	tmp = msg.getCommand();
 	if (!tmp.empty())
-		out << "Command: " << msg.getCommand() << std::endl;
+		out << "Command: " << tmp << std::endl;
 	params = msg.getParams();
 
 	if (!params.empty())
@@ -59,7 +60,7 @@ inline std::ostream&	operator<<(std::ostream &out, const Message &msg)
 		out << "Parameters: ";
 		while (it != params.end())
 		{
-			out << *it << ", ";
+			out << *it << ",";
 			it++;
 		}
 		out << std::endl;
