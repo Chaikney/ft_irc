@@ -7,7 +7,7 @@
 // Start with blank names, password FALSE
 // ...but the connection information?
 // The first thing we see is a file descriptor I think. What else in the socket
-User::User(void) : _nick(""), _uname(""), _rname(""),
+User::User(void) : _fd(-1), _nick(""), _uname(""), _rname(""),
 				   _gavepass(false), _address(), _host()
 {
 	std::cerr << "Cannot create User instance without a socket fd" << std::endl;
@@ -16,7 +16,7 @@ User::User(void) : _nick(""), _uname(""), _rname(""),
 // TODO Add debug info about the address
 // TODO Catch more possible problems with the creation
 // NOTE Cannot get hostname so taking the IP addr
-User::User(int fd) : _nick(""), _uname(""), _rname(""),
+User::User(int fd) : _fd(fd), _nick(""), _uname(""), _rname(""),
 					 _gavepass(false), _address(), _host()
 {
 	socklen_t	addr_size = INET_ADDRSTRLEN;	// I only made this for getsockname and I guess error checking
@@ -48,10 +48,15 @@ User	*User::makeUser(int fd)
 	return (usr);
 }
 
-User::User(const User &original): _nick(original._nick), _uname(original._uname),
+User::User(const User &original): _fd(original._fd), _nick(original._nick), _uname(original._uname),
 										   _rname(original._rname), _gavepass(original._gavepass),
 								  _address(original._address), _host(original._host)
 {}
+
+int	User::getFD() const
+{
+	return(this->_fd);
+}
 
 std::string	User::getNick() const
 {

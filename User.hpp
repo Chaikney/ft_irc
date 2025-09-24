@@ -18,6 +18,7 @@
 class	User
 {
 	private:
+		int						_fd;
 		std::string				_nick;
 		std::string				_uname;
 		std::string				_rname;
@@ -37,6 +38,7 @@ class	User
 
 		static User*		makeUser(int fd);
 
+		int					getFD() const;
 		std::string			getNick() const;
 		std::string			getUser() const;
 		std::string			getReal() const;
@@ -64,8 +66,10 @@ inline std::ostream&	operator<<(std::ostream &out, const User &usr)
 	}
 	else
 		out << "Unverified user" << std::endl;
+	std::cout << "Socket FD: " << usr.getFD() << std::endl;
 	tmp = usr.getHost();
-	out << "Host: " << tmp << std::endl;
+	if (!tmp.empty())
+		out << "Host: " << tmp << std::endl;
 	return (out);
 }
 #endif
