@@ -203,8 +203,9 @@ void Server::run()
 					else	// Parse into Message and queue for further action
 					{
 						std::cout << "Can be parsed" << std::endl;
-						// TODO Somewhere we must remove the \n
-						Message	*nxtMessage = Message::makeMessage(str_buf);
+						// TODO Somewhere we must remove the \n from command and params
+						User*	msgFrom =  this->_moreClients[events[i].data.fd];
+						Message	*nxtMessage = Message::makeMessage(str_buf, msgFrom);
 						this->_toProcess.push(nxtMessage);
 					}
 					std::cout << "Mensaje recibido de fd " << events[i].data.fd << ": " << str_buf << std::endl;

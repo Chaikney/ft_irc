@@ -5,6 +5,8 @@
 #include <list>
 #include <iostream>
 
+class	User;
+
 // Static member variable. All messages of the same max length bytes
 const int	MSG_LEN = 512;
 
@@ -18,6 +20,7 @@ class	Message
 		std::string				_source;	// TODO This might be the wrong format
 		std::string				_command;	// Could be an int instead if we convert to the numeric?
 		std::list<std::string>	_params;
+		User*					_origin;	// Link to who sent this? Allows key  info to be retrieved
 
 
 					Message(void);	// private so not called - no blank messages please
@@ -27,14 +30,17 @@ class	Message
 
 	public:
 					Message(std::string raw_text);
+					Message(std::string text_recvd, User *usr);
 					Message(const Message &irc);	// Copying a Message seems reasonable to allow
 					~Message(void);
 
-		static Message*				makeMessage(std::string &str);
+		static Message*			makeMessage(std::string &str);
+		static Message*			makeMessage(std::string &str, User *origin);
 		std::string				getTags() const;
 		std::string				getSource() const;
 		std::string				getCommand() const;
 		std::list<std::string>	getParams() const;
+		User*					getOrigin() const;
 };
 
 // TODO How can we make this return nothing when Message is absent/empty?
@@ -43,6 +49,8 @@ inline std::ostream&	operator<<(std::ostream &out, const Message &msg)
 	std::list<std::string>	params;
 	std::string				tmp;
 
+	if (!msg.getOrigin())
+		std::cout << "Message of unknown origin" << std::endl;
 	tmp = msg.getTags();
 	if (!tmp.empty())
 		out << "Tags: " << tmp << std::endl;
