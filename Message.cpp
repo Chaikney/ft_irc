@@ -15,7 +15,9 @@
 // FIXED Step over extra spaces between command and parameters (also check before command)
 // FIXME Now the only parsing issue seems to be the final \n in cases where there are no end spaces
 // ...we should strip that out
-Message::Message(std::string text_recvd) : _tags(""), _source(""), _command(""), _params()
+Message::Message(std::string text_recvd) : _tags(""), _source(""),
+										   _command(""), _params(),
+										   _origin()
 {
     char	c;
 
@@ -75,6 +77,67 @@ Message::Message(std::string text_recvd) : _tags(""), _source(""), _command(""),
     }
 }
 
+Message::Message(std::string text_recvd, User *usr) : _tags(""), _source(""),
+										   _command(""), _params(),
+										   _origin(usr)
+{
+    char	c;
+
+    if (text_recvd.empty())
+        throw std::invalid_argument("Tried to create message with empty string");
+    if (text_recvd.length() < 3)
+        throw std::invalid_argument("Message too short");
+    if (text_recvd.length() > MSG_LEN)
+        throw std::invalid_argument("Message too long");
+    std::istringstream	strm(text_recvd);
+    std::cout << "Message constructor called using:" << text_recvd << std::endl;
+    c = strm.get();
+    if (c == '@')
+    {
+        // we have been sent tags which we do not support read into buffer anyway
+        std::getline(strm, this->_tags, ' ');
+		_stepOver(strm);
+        c = strm.get();
+    }
+    if (c == ':')
+        {
+        // we have been sent a source which clients should not do
+        std::getline(strm, this->_source, ' ');
+		_stepOver(strm);
+		}
+	else
+		strm.unget();	// If that char is not identifying tags/source, we need to use it
+    // After this, we have a command
+	_stepOver(strm);
+    std::getline(strm, this->_command, ' ');
+    // Limpiar saltos de línea y espacios al final del comando
+    // TODO This has to happen for the parameters as well
+    while (!_command.empty() && (_command[_command.size()-1] == '\n' || _command[_command.size()-1] == '\r' || _command[_command.size()-1] == ' '))
+        _command.erase(_command.size()-1);
+    // And the parameters, finally
+	_stepOver(strm);
+    std::string	tmp;
+    while (strm)
+    {
+        c = strm.peek();
+		if ((c == EOF) || (c == '\n'))
+			break ;
+        else if (c == ':')
+        {
+            // last parameter, read everything else as one and break
+			strm.ignore(1, ':');
+            std::getline(strm, tmp, '\n');
+        }
+        else
+        {
+			// Store everything until the next space and ignore subsequent spaces
+            std::getline(strm, tmp, ' ');
+			_stepOver(strm);
+        }
+//		std::cout << "Adding param:" << tmp << std::endl;	// HACK to debug
+        this->_params.push_back(tmp);
+    }
+}
 // Step over any spaces in a string stream
 void	Message::_stepOver(std::istringstream &strm) const
 {	char	c;
@@ -99,9 +162,15 @@ Message	*Message::makeMessage(std::string &str)
 	return (msg);
 }
 
+Message	*Message::makeMessage(std::string &str, User *origin)
+{
+	Message	*msg = new Message(str, origin);
+	return (msg);
+}
 // NOTE Must be a DEEP COPY of _params
 Message::Message(const Message &original): _tags(original._tags), _source(original._source),
-										   _command(original._command), _params()
+										   _command(original._command), _params(),
+										   _origin(original._origin)
 {
 	this->_params = original._params;
 }
@@ -124,4 +193,10 @@ std::string	Message::getCommand() const
 std::list<std::string>	Message::getParams() const
 {
 	return(this->_params);
+}
+
+// NOTE May return a NULL pointer
+User*	Message::getOrigin() const
+{
+	return (this->_origin);
 }
