@@ -3,6 +3,7 @@
 #include <iostream>
 #include <sstream>
 #include <cstdio>	// EOF marker in stringstream
+#include <algorithm>	// erase
 
 // Make sure that the string is not empty and it ends in crlf
 // TODO Check the final two chars are cr and lf
@@ -15,6 +16,7 @@
 // FIXED Step over extra spaces between command and parameters (also check before command)
 // FIXME Now the only parsing issue seems to be the final \n in cases where there are no end spaces
 // ...we should strip that out
+// TODO UNify the parsing part of these 2 constructors
 Message::Message(std::string text_recvd) : _tags(""), _source(""),
 										   _command(""), _params(),
 										   _origin()
@@ -49,7 +51,6 @@ Message::Message(std::string text_recvd) : _tags(""), _source(""),
 	_stepOver(strm);
     std::getline(strm, this->_command, ' ');
     // Limpiar saltos de línea y espacios al final del comando
-    // TODO This has to happen for the parameters as well
     while (!_command.empty() && (_command[_command.size()-1] == '\n' || _command[_command.size()-1] == '\r' || _command[_command.size()-1] == ' '))
         _command.erase(_command.size()-1);
     // And the parameters, finally
@@ -75,6 +76,26 @@ Message::Message(std::string text_recvd) : _tags(""), _source(""),
 //		std::cout << "Adding param:" << tmp << std::endl;	// HACK to debug
         this->_params.push_back(tmp);
     }
+}
+
+// This should be easy but it has not been
+// TODO Move this to a shared "helpers" file?
+void	stripFinalNewline(std::string *str)
+{
+	size_t	hunt_it = str->find('\n') ;
+	if (hunt_it != std::string::npos)
+	{
+		// std::cout << "Newline found in this parameter:" << *str;
+		// std::cout << ". At position: " << str->find('\n') << std::endl;
+		str->erase(hunt_it);
+//		str->erase(std::remove(str->begin(), str->end()), str->end());
+//		std::cout << "It is now:" << *str << std::endl;
+	}
+	hunt_it = str->find('\r') ;
+	if (hunt_it != std::string::npos)
+	{
+		str->erase(hunt_it);
+	}
 }
 
 Message::Message(std::string text_recvd, User *usr) : _tags(""), _source(""),
@@ -111,9 +132,9 @@ Message::Message(std::string text_recvd, User *usr) : _tags(""), _source(""),
 	_stepOver(strm);
     std::getline(strm, this->_command, ' ');
     // Limpiar saltos de línea y espacios al final del comando
-    // TODO This has to happen for the parameters as well
-    while (!_command.empty() && (_command[_command.size()-1] == '\n' || _command[_command.size()-1] == '\r' || _command[_command.size()-1] == ' '))
-        _command.erase(_command.size()-1);
+    // while (!_command.empty() && (_command[_command.size()-1] == '\n' || _command[_command.size()-1] == '\r' || _command[_command.size()-1] == ' '))
+    //     _command.erase(_command.size()-1);
+    stripFinalNewline(&_command);
     // And the parameters, finally
 	_stepOver(strm);
     std::string	tmp;
@@ -135,9 +156,11 @@ Message::Message(std::string text_recvd, User *usr) : _tags(""), _source(""),
 			_stepOver(strm);
         }
 //		std::cout << "Adding param:" << tmp << std::endl;	// HACK to debug
+		stripFinalNewline(&tmp);
         this->_params.push_back(tmp);
     }
 }
+
 // Step over any spaces in a string stream
 void	Message::_stepOver(std::istringstream &strm) const
 {	char	c;
