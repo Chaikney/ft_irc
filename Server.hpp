@@ -41,7 +41,6 @@ class	Server
 		bool		_isFullMsg(std::string msg, int to_chk) const;
 		void		_storePartial(int fd_source, std::string msg);
 		std::string	_getClientInput(int fd);
-		void		_processQueue(void);
 		void		_reply(int send_to, int msg) const;
 
 		// --- Manejo de comandos IRC ---
@@ -55,5 +54,6 @@ class	Server
 		int			get_fd(void) const;
 		void		run(void);
 		bool		_checkPass(Message &msg) const;	//public to act as friend of Message
+		void		_processQueue(void);	//public to act as friend of Message
 };
 #endif

@@ -48,7 +48,9 @@ class	Message
 
 		// Declare this as friend so it can access _origin
 		// TODO This may be needed for a lot of commands - revisit design later
-		friend bool	Server::_checkPass(Message &msg) const;
+		// ...maybe only _processQueue needed?
+		friend	bool	Server::_checkPass(Message &msg) const;
+		friend	void	Server::_processQueue(void);
 };
 
 // TODO How can we make this return nothing when Message is absent/empty?

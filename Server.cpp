@@ -393,6 +393,11 @@ bool	Server::_checkPass(Message &msg) const
 // TODO First check that the User is allowed to have the MEssage processed
 // ...i.e. if no Pass, that is the only allowed action
 // TODO Give this function friend-based access to Message so it can extract the User involved
+// TODO Implement the commands needed for registration:
+// [ ] CAP
+// [ ] NICK
+// [ ] USER
+// [ ] PASS - partly done, make consistent
 void	Server::_processQueue(void)
 {
 	Message	*do_next;
