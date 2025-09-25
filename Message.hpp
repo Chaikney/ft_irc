@@ -47,9 +47,7 @@ class	Message
 
 
 		// Declare this as friend so it can access _origin
-		// TODO This may be needed for a lot of commands - revisit design later
 		// ...maybe only _processQueue needed?
-		friend	bool	Server::_checkPass(Message &msg) const;
 		friend	void	Server::_processQueue(void);
 };
 

@@ -55,7 +55,8 @@ class	Server
 
 		int			get_fd(void) const;
 		void		run(void);
-		bool		_checkPass(Message &msg) const;	//public to act as friend of Message
+//		bool		_checkPass(Message &msg) const;	//public to act as friend of Message
+		void		handlePass(Message *msg, User *usr) const;
 		void		_processQueue(void);	//public to act as friend of Message
 };
 #endif

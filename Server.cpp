@@ -399,46 +399,36 @@ std::string	Server::_getClientInput(int fd)
 	return (ret_val);
 }
 
-// Return TRUE if the message contains the correct password
-// The message should only have 1 parameter, how to get that?
 // NOTE This works provided there is no \n at the end of the parameters
-// TODO May have to change the return type?
 // DONE Don't touch User if already verfified
-bool	Server::_checkPass(Message &msg) const
+void	Server::handlePass(Message *msg, User *usr) const
 {
 	std::string	_sPass = this->_password;
-	std::list<std::string>	_cPass = msg.getParams();
-	// HACK The command comparison should be done elsewhere
-	std::string	_cmd = msg.getCommand();
-	if (_cmd.compare("PASS") == 0)
-	{
-		if (_cPass.empty())
-			{
-				// ERR_NEEDMOREPARAMS
-				_reply(msg._origin->getFD(), 461);
-				return (false);
-			}
-		if (_sPass.compare(_cPass.front()) == 0)
-		{
-			std::cout << "Password match!" << std::endl;
-			if (!(msg._origin->isVerified()))
-				msg._origin->switchVerification();
-			else
-				// ERR_ALREADYREGISTERED
-				_reply(msg._origin->getFD(), 462);
+	std::list<std::string>	_cPass = msg->getParams();
+	std::string	_cmd = msg->getCommand();
 
-			// TODO Server sends some kind of acknowledgment?
-		 	return (true);
-		}
-		else
-		{
-			// TODO send ERR back client
-			// ERR_PASSWORDMISMATCH
-			_reply(msg._origin->getFD(), 464);
-			// TODO disconnect them by implementing the ERROR command
-		}
+	if (_cPass.empty())
+	{
+		// ERR_NEEDMOREPARAMS
+		_reply(usr->getFD(), 461);
+		return ;
 	}
-	return (false);
+	if (_sPass.compare(_cPass.front()) == 0)
+	{
+		std::cout << "Password match!" << std::endl;
+		if (!(usr->isVerified()))
+			usr->switchVerification();
+		else	 // ERR_ALREADYREGISTERED
+			_reply(usr->getFD(), 462);
+		// TODO Server sends some kind of acknowledgment?
+	}
+	else
+	{
+		// TODO send ERR back client
+		// ERR_PASSWORDMISMATCH
+		_reply(usr->getFD(), 464);
+		// TODO disconnect them by implementing the ERROR command
+	}
 }
 
 // Run through the Messages in the _toProcess queue
@@ -451,9 +441,9 @@ bool	Server::_checkPass(Message &msg) const
 // TODO Give this function friend-based access to Message so it can extract the User involved
 // TODO Implement the commands needed for registration:
 // [ ] CAP
-// [ ] NICK
-// [ ] USER
-// [ ] PASS - partly done, make consistent
+// [X] NICK
+// [X] USER
+// [X] PASS - partly done, make consistent
 void	Server::_processQueue(void)
 {
 	Message	*do_next;
@@ -462,12 +452,13 @@ void	Server::_processQueue(void)
 	{
 		do_next = this->_toProcess.front();
 		this->_toProcess.pop();
-		std::cout << "Pretending to process:" << *do_next << std::endl;
+		std::cout << "Might really process:" << *do_next << std::endl;
 		std::string command = do_next->getCommand();
-		std::cout << "Comando parseado: [" << command << "]" << std::endl;
-		// HACK PoC for PASS checking
-		if (_checkPass(*do_next))
-			std::cout << "Password accepted" << std::endl;
+//		std::cout << "Comando parseado: [" << command << "]" << std::endl;
+		// if (_checkPass(*do_next))
+		// 	std::cout << "Password accepted" << std::endl;
+		if (command.compare("NICK") == 0)
+			handlePass(do_next, do_next->getOrigin());
 		// HACK fd replaced by 999 until that info is held in the Message object (source)
 		else if (do_next->_origin->isVerified())
 		{
@@ -482,6 +473,7 @@ void	Server::_processQueue(void)
 				handlePrivmsg(do_next, 999);
 			//handlePrivmsg(do_next, events[i].data.fd);
 		}
+		// TODO Check memory - delete the do_next Message here?
  	}
 }
 
