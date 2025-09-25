@@ -73,7 +73,7 @@ inline std::ostream&	operator<<(std::ostream &out, const Message &msg)
 	if (!params.empty())
 	{
 		std::list<std::string>::const_iterator  it = params.begin();
-		out << "Parameters: ";
+		out << "Parameters (" << params.size() << "):";
 		while (it != params.end())
 		{
 			out << *it << ",";
