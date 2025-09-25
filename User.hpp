@@ -33,6 +33,7 @@ class	User
 	public:
 		User(void);	// Which other versions of this are needed?
 		User(int fd);	// Use fd to get more info
+	User(int fd, std::string nick, std::string uname, std::string rname, bool gavepass, sockaddr_in addr, std::string host);
 		User(const User &irc);	// Copying a User seems reasonable to allow
 		~User(void);
 
@@ -43,8 +44,15 @@ class	User
 		std::string			getUser() const;
 		std::string			getReal() const;
 		bool				isVerified() const;
+		bool				isRegistered() const;
 		sockaddr_in			getAddress() const;		// NOTE This is too low-level to be public IMO
 		std::string			getHost() const;
+
+		// --- Registration setters ---
+		void				setNick(const std::string &nick);
+		void				setUser(const std::string &uname);
+		void				setReal(const std::string &rname);
+		void				setPassGiven(bool given);
 };
 
 // NOTE Remember to update this alongside the class members

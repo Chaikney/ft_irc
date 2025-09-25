@@ -4,6 +4,19 @@
 #include <sstream>
 #include <cstdio>	// EOF marker in stringstream
 
+// Local helper to trim trailing whitespace and CR/LF from a string
+static void _rtrim(std::string &s)
+{
+    while (!s.empty())
+    {
+        char c = s[s.size() - 1];
+        if (c == ' ' || c == '\r' || c == '\n' || c == '\t')
+            s.erase(s.size() - 1);
+        else
+            break;
+    }
+}
+
 // Make sure that the string is not empty and it ends in crlf
 // TODO Check the final two chars are cr and lf
 // TODO Check that we have not received illegal characters
@@ -65,12 +78,14 @@ Message::Message(std::string text_recvd) : _tags(""), _source(""),
             // last parameter, read everything else as one and break
 			strm.ignore(1, ':');
             std::getline(strm, tmp, '\n');
+            _rtrim(tmp);
         }
         else
         {
 			// Store everything until the next space and ignore subsequent spaces
             std::getline(strm, tmp, ' ');
 			_stepOver(strm);
+            _rtrim(tmp);
         }
 //		std::cout << "Adding param:" << tmp << std::endl;	// HACK to debug
         this->_params.push_back(tmp);
@@ -127,12 +142,14 @@ Message::Message(std::string text_recvd, User *usr) : _tags(""), _source(""),
             // last parameter, read everything else as one and break
 			strm.ignore(1, ':');
             std::getline(strm, tmp, '\n');
+            _rtrim(tmp);
         }
         else
         {
 			// Store everything until the next space and ignore subsequent spaces
             std::getline(strm, tmp, ' ');
 			_stepOver(strm);
+            _rtrim(tmp);
         }
 //		std::cout << "Adding param:" << tmp << std::endl;	// HACK to debug
         this->_params.push_back(tmp);

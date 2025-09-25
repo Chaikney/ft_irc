@@ -42,6 +42,7 @@ class	Server
 		void		_storePartial(int fd_source, std::string msg);
 		std::string	_getClientInput(int fd);
 		bool		_checkPass(Message &msg) const;
+		bool		_isNickTaken(const std::string &nick, int except_fd = -1) const;
 		void		_processQueue(void);
 
 		// --- Manejo de comandos IRC ---

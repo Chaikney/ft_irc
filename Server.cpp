@@ -9,6 +9,7 @@
 #include <cstdlib>	// for the EXIT code
 #include <cstring>	// for memset. Too many includes!
 #include <fcntl.h>	// NOTE IS there a C++ equivalent we should prefer?
+#include <algorithm>
 					// RESPONSE No, fcntl is what we need to use because we cant use external libraries and stl has nothing better or equal.
 					// ***
 					// Subject IV.2 *** For MacOS only ***
@@ -162,6 +163,13 @@ void	Server::_removeClient(struct epoll_event &goodbye)
 	epoll_ctl(_epollFD, EPOLL_CTL_DEL, goodbye.data.fd, NULL);
 	_clients.erase(goodbye.data.fd);
 	this->_partial_msgs.erase(goodbye.data.fd);
+	// Free and forget the User instance if present
+	std::map<int, User*>::iterator it = this->_moreClients.find(goodbye.data.fd);
+	if (it != this->_moreClients.end())
+	{
+		delete it->second;
+		this->_moreClients.erase(it);
+	}
 }
 
 // Activates the Server's epoll loop
@@ -225,11 +233,21 @@ void Server::run()
 						this->_toProcess.push(nxtMessage);
 					}
 					std::cout << "Mensaje recibido de fd " << events[i].data.fd << ": " << str_buf << std::endl;
-					// HACK Loop to send to all other clients connected
-					for (std::set<int>::iterator it = _clients.begin(); it != _clients.end(); ++it)
+					// Only broadcast if sender is registered
+					User *sender = this->_moreClients[events[i].data.fd];
+					if (sender && sender->isRegistered())
 					{
-						if (*it != events[i].data.fd)
-							write(*it, str_buf.c_str(), str_buf.size());
+						for (std::set<int>::iterator it = _clients.begin(); it != _clients.end(); ++it)
+						{
+							if (*it == events[i].data.fd)
+								continue;
+							User *recipient = NULL;
+							std::map<int, User*>::iterator uit = this->_moreClients.find(*it);
+							if (uit != this->_moreClients.end())
+								recipient = uit->second;
+							if (recipient && recipient->isRegistered())
+								write(*it, str_buf.c_str(), str_buf.size());
+						}
 					}
 					// HACK debugging print statement below
 					//this->_printMessageQueue(this->_toProcess);
@@ -354,10 +372,30 @@ bool	Server::_checkPass(Message &msg) const
 	std::string	_cmd = msg.getCommand();	// HACK This comparison shoulfd be done elsewhere
 	if (_cmd.compare("PASS") == 0)
 	{
-		if (_sPass.compare(_cPass.front()) == 0)
+		if (_cPass.empty())
+			return (false);
+		std::string provided = _cPass.front();
+		// Trim trailing spaces/CR/LF from provided password
+		while (!provided.empty() && (provided[provided.size()-1] == '\n' || provided[provided.size()-1] == '\r' || provided[provided.size()-1] == ' ' || provided[provided.size()-1] == '\t'))
+			provided.erase(provided.size()-1);
+		if (_sPass.compare(provided) == 0)
 		 	return (true);
 	}
 	return (false);
+}
+
+// Check if a nickname is already in use by any connected user
+bool	Server::_isNickTaken(const std::string &nick, int except_fd) const
+{
+    for (std::map<int, User*>::const_iterator it = this->_moreClients.begin(); it != this->_moreClients.end(); ++it)
+    {
+        if (it->first == except_fd)
+            continue;
+        User *u = it->second;
+        if (u && u->getNick() == nick && !nick.empty())
+            return (true);
+    }
+    return (false);
 }
 
 // Run through the Messages in the _toProcess queue
@@ -376,9 +414,57 @@ void	Server::_processQueue(void)
 		std::cout << "Pretending to process:" << *do_next << std::endl;
 		std::string command = do_next->getCommand();
 		std::cout << "Comando parseado: [" << command << "]" << std::endl;
-		// HACK PoC for PASS checking
-		if (_checkPass(*do_next))
-			std::cout << "We could register this client, password matches" << std::endl;
+		// Registration handling
+		User *origin = do_next->getOrigin();
+		if (origin)
+		{
+			if (command == "PASS")
+			{
+				if (_checkPass(*do_next))
+				{
+					origin->setPassGiven(true);
+					std::cout << "Password accepted for fd " << origin->getFD() << std::endl;
+				}
+				else
+				{
+					origin->setPassGiven(false);
+					std::cout << "Password rejected for fd " << origin->getFD() << std::endl;
+				}
+			}
+			else if (command == "NICK")
+			{
+				std::list<std::string> params = do_next->getParams();
+				if (!params.empty())
+				{
+					std::string desired = params.front();
+					if (_isNickTaken(desired, origin->getFD()))
+					{
+						std::string err = ":server 433 * " + desired + " :Nickname is already in use\r\n";
+						write(origin->getFD(), err.c_str(), err.size());
+					}
+					else
+					{
+						origin->setNick(desired);
+					}
+				}
+			}
+			else if (command == "USER")
+			{
+				std::list<std::string> params = do_next->getParams();
+				if (!params.empty())
+				{
+					// USER <username> <mode> <unused> :<realname>
+					std::list<std::string>::iterator it = params.begin();
+					origin->setUser(*it);
+					// Find realname if available (4th param or trailing)
+					if (params.size() >= 4)
+					{
+						std::advance(it, 3);
+						origin->setReal(*it);
+					}
+				}
+			}
+		}
 		// HACK fd replaced by 999 until that info is held in the Message object (source)
 		if (command == "KICK")
 			handleKick(do_next, 999);

@@ -3,7 +3,6 @@
 #include <netinet/in.h>
 #include <unistd.h>
 
-// FIXME Parameters needed to create a User from nothing?
 // Start with blank names, password FALSE
 // ...but the connection information?
 // The first thing we see is a file descriptor I think. What else in the socket
@@ -51,7 +50,9 @@ User	*User::makeUser(int fd)
 User::User(const User &original): _fd(original._fd), _nick(original._nick), _uname(original._uname),
 										   _rname(original._rname), _gavepass(original._gavepass),
 								  _address(original._address), _host(original._host)
-{}
+{
+
+}
 
 int	User::getFD() const
 {
@@ -78,6 +79,12 @@ bool	User::isVerified() const
 	return(this->_gavepass);
 }
 
+bool	User::isRegistered() const
+{
+    // Consider a user registered when PASS was accepted and both nick and username are set
+    return (this->_gavepass && !this->_nick.empty() && !this->_uname.empty());
+}
+
 sockaddr_in	User::getAddress() const
 {
 	return(this->_address);
@@ -86,4 +93,24 @@ sockaddr_in	User::getAddress() const
 std::string	User::getHost() const
 {
 	return(this->_host);
+}
+
+void	User::setNick(const std::string &nick)
+{
+    this->_nick = nick;
+}
+
+void	User::setUser(const std::string &uname)
+{
+    this->_uname = uname;
+}
+
+void	User::setReal(const std::string &rname)
+{
+    this->_rname = rname;
+}
+
+void	User::setPassGiven(bool given)
+{
+    this->_gavepass = given;
 }
