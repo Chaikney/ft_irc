@@ -87,3 +87,13 @@ std::string	User::getHost() const
 {
 	return(this->_host);
 }
+
+// Made this as a toggle so it can be used to de-verify users,
+// should we want to
+void	User::switchVerification()
+{
+	if (this->isVerified())
+		this->_gavepass = false;
+	else
+		this->_gavepass = true;
+}

@@ -45,6 +45,7 @@ class	User
 		bool				isVerified() const;
 		sockaddr_in			getAddress() const;		// NOTE This is too low-level to be public IMO
 		std::string			getHost() const;
+		void				switchVerification();
 };
 
 // NOTE Remember to update this alongside the class members
