@@ -388,3 +388,16 @@ void	Server::_processQueue(void)
 			//handlePrivmsg(do_next, events[i].data.fd);
  	}
 }
+
+// Send a numeric reply in response to a command received
+// NOTE that this is more easily called if we import a
+// bunch of enums in a header, or similar.
+// TODO Actually send something.
+// TODO Decide how to handle the PARAMETERS that some messages need
+// ...call in the function? Lookup in another map?
+void	Server::_reply(int send_to, int msg) const
+{
+	(void) send_to;
+	(void) msg;
+	std::cerr << "replies not implemented yet." << std::endl;
+}

@@ -43,6 +43,7 @@ class	Server
 		std::string	_getClientInput(int fd);
 		bool		_checkPass(Message &msg) const;
 		void		_processQueue(void);
+		void		_reply(int send_to, int msg) const;
 
 		// --- Manejo de comandos IRC ---
 		void        handleKick(Message *msg, int sender_fd);
