@@ -30,6 +30,7 @@ class	Message
 		Message		operator=(const Message &irc);	// NOTE Not sure about assignment to a Message, this could be public
 
 		void		_stepOver(std::istringstream &strm) const;
+		void		_parseMessage(std::string text_recvd);
 
 	public:
 					Message(std::string raw_text);

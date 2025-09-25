@@ -21,61 +21,13 @@ Message::Message(std::string text_recvd) : _tags(""), _source(""),
 										   _command(""), _params(),
 										   _origin()
 {
-    char	c;
-
     if (text_recvd.empty())
         throw std::invalid_argument("Tried to create message with empty string");
     if (text_recvd.length() < 3)
         throw std::invalid_argument("Message too short");
     if (text_recvd.length() > MSG_LEN)
-        throw std::invalid_argument("Message too long");
-    std::istringstream	strm(text_recvd);
-    std::cout << "Message constructor called using:" << text_recvd << std::endl;
-    c = strm.get();
-    if (c == '@')
-    {
-        // we have been sent tags which we do not support read into buffer anyway
-        std::getline(strm, this->_tags, ' ');
-		_stepOver(strm);
-        c = strm.get();
-    }
-    if (c == ':')
-        {
-        // we have been sent a source which clients should not do
-        std::getline(strm, this->_source, ' ');
-		_stepOver(strm);
-		}
-	else
-		strm.unget();	// If that char is not identifying tags/source, we need to use it
-    // After this, we have a command
-	_stepOver(strm);
-    std::getline(strm, this->_command, ' ');
-    // Limpiar saltos de línea y espacios al final del comando
-    while (!_command.empty() && (_command[_command.size()-1] == '\n' || _command[_command.size()-1] == '\r' || _command[_command.size()-1] == ' '))
-        _command.erase(_command.size()-1);
-    // And the parameters, finally
-	_stepOver(strm);
-    std::string	tmp;
-    while (strm)
-    {
-        c = strm.peek();
-		if ((c == EOF) || (c == '\n'))
-			break ;
-        else if (c == ':')
-        {
-            // last parameter, read everything else as one and break
-			strm.ignore(1, ':');
-            std::getline(strm, tmp, '\n');
-        }
-        else
-        {
-			// Store everything until the next space and ignore subsequent spaces
-            std::getline(strm, tmp, ' ');
-			_stepOver(strm);
-        }
-//		std::cout << "Adding param:" << tmp << std::endl;	// HACK to debug
-        this->_params.push_back(tmp);
-    }
+		throw std::invalid_argument("Message too long");
+	_parseMessage(text_recvd);
 }
 
 // This should be easy but it has not been
@@ -98,20 +50,11 @@ void	stripFinalNewline(std::string *str)
 	}
 }
 
-Message::Message(std::string text_recvd, User *usr) : _tags(""), _source(""),
-										   _command(""), _params(),
-										   _origin(usr)
+void	Message::_parseMessage(std::string text_recvd)
 {
-    char	c;
+	char	c;
+	std::istringstream	strm(text_recvd);
 
-    if (text_recvd.empty())
-        throw std::invalid_argument("Tried to create message with empty string");
-    if (text_recvd.length() < 3)
-        throw std::invalid_argument("Message too short");
-    if (text_recvd.length() > MSG_LEN)
-        throw std::invalid_argument("Message too long");
-    std::istringstream	strm(text_recvd);
-    std::cout << "Message constructor called using:" << text_recvd << std::endl;
     c = strm.get();
     if (c == '@')
     {
@@ -131,9 +74,6 @@ Message::Message(std::string text_recvd, User *usr) : _tags(""), _source(""),
     // After this, we have a command
 	_stepOver(strm);
     std::getline(strm, this->_command, ' ');
-    // Limpiar saltos de línea y espacios al final del comando
-    // while (!_command.empty() && (_command[_command.size()-1] == '\n' || _command[_command.size()-1] == '\r' || _command[_command.size()-1] == ' '))
-    //     _command.erase(_command.size()-1);
     stripFinalNewline(&_command);
     // And the parameters, finally
 	_stepOver(strm);
@@ -145,7 +85,7 @@ Message::Message(std::string text_recvd, User *usr) : _tags(""), _source(""),
 			break ;
         else if (c == ':')
         {
-            // last parameter, read everything else as one and break
+            // : indicates the last parameter, read everything else as one and break
 			strm.ignore(1, ':');
             std::getline(strm, tmp, '\n');
         }
@@ -158,7 +98,20 @@ Message::Message(std::string text_recvd, User *usr) : _tags(""), _source(""),
 //		std::cout << "Adding param:" << tmp << std::endl;	// HACK to debug
 		stripFinalNewline(&tmp);
         this->_params.push_back(tmp);
-    }
+	}
+}
+
+Message::Message(std::string text_recvd, User *usr) : _tags(""), _source(""),
+										   _command(""), _params(),
+										   _origin(usr)
+{
+    if (text_recvd.empty())
+        throw std::invalid_argument("Tried to create message with empty string");
+    if (text_recvd.length() < 3)
+        throw std::invalid_argument("Message too short");
+    if (text_recvd.length() > MSG_LEN)
+		throw std::invalid_argument("Message too long");
+	_parseMessage(text_recvd);
 }
 
 // Step over any spaces in a string stream
