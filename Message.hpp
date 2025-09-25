@@ -6,6 +6,9 @@
 #include <iostream>
 
 class	User;
+// NOTE use include not forward definition so the "friend" keyword works
+// class Server;
+#include "Server.hpp"
 
 // Static member variable. All messages of the same max length bytes
 const int	MSG_LEN = 512;
@@ -41,6 +44,11 @@ class	Message
 		std::string				getCommand() const;
 		std::list<std::string>	getParams() const;
 		User*					getOrigin() const;
+
+
+		// Declare this as friend so it can access _origin
+		// TODO This may be needed for a lot of commands - revisit design later
+		friend bool	Server::_checkPass(Message &msg) const;
 };
 
 // TODO How can we make this return nothing when Message is absent/empty?

@@ -346,16 +346,41 @@ std::string	Server::_getClientInput(int fd)
 // Return TRUE if the message contains the correct password
 // The message should only have 1 parameter, how to get that?
 // NOTE This works provided there is no \n at the end of the parameters
-// TODO This has to link to the User, somehow. Receive it? Lookup on FD?
+// TODO May have to change the return type?
+// DONE Don't touch User if already verfified
 bool	Server::_checkPass(Message &msg) const
 {
 	std::string	_sPass = this->_password;
 	std::list<std::string>	_cPass = msg.getParams();
-	std::string	_cmd = msg.getCommand();	// HACK This comparison shoulfd be done elsewhere
+	// HACK The command comparison should be done elsewhere
+	std::string	_cmd = msg.getCommand();
 	if (_cmd.compare("PASS") == 0)
 	{
+		if (_cPass.empty())
+			{
+				// ERR_NEEDMOREPARAMS
+				_reply(msg._origin->getFD(), 461);
+				return (false);
+			}
 		if (_sPass.compare(_cPass.front()) == 0)
+		{
+			std::cout << "Password match!" << std::endl;
+			if (!(msg._origin->isVerified()))
+				msg._origin->switchVerification();
+			else
+				// ERR_ALREADYREGISTERED
+				_reply(msg._origin->getFD(), 462);
+
+			// TODO Server sends some kind of acknowledgment?
 		 	return (true);
+		}
+		else
+		{
+			// TODO send ERR back client
+			// ERR_PASSWORDMISMATCH
+			_reply(msg._origin->getFD(), 464);
+			// TODO disconnect them by implementing the ERROR command
+		}
 	}
 	return (false);
 }
@@ -365,6 +390,9 @@ bool	Server::_checkPass(Message &msg) const
 // TODO Make this spin off thread(s) to process the command efficiently
 // NOTE How do we make sure that this is non-blocking?
 // TODO Need some kind of matching / switch-case logic here (I guess)
+// TODO First check that the User is allowed to have the MEssage processed
+// ...i.e. if no Pass, that is the only allowed action
+// TODO Give this function friend-based access to Message so it can extract the User involved
 void	Server::_processQueue(void)
 {
 	Message	*do_next;
