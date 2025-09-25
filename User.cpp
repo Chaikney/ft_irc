@@ -103,3 +103,15 @@ void	User::setNick(std::string nick)
 {
 	this->_nick = nick;
 }
+
+// NOTE This assumes that checking has already happened
+void	User::setUser(std::string user)
+{
+	this->_uname = user;
+}
+
+// NOTE This assumes that checking has already happened
+void	User::setReal(std::string realname)
+{
+	this->_rname = realname;
+}

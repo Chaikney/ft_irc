@@ -47,6 +47,8 @@ class	User
 		std::string			getHost() const;
 		void				switchVerification();
 		void				setNick(std::string nick);
+		void				setUser(std::string user);
+		void				setReal(std::string rname);
 };
 
 // NOTE Remember to update this alongside the class members

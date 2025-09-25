@@ -328,6 +328,30 @@ void	Server::handleNick(Message *msg, User *usr)
 	}
 }
 
+void	Server::handleUser(Message *msg, User *usr)
+{
+	std::list<std::string>	_params = msg->getParams();
+	std::string	newUser = _params.front();
+	if (_params.size() != 4)
+	{
+		std::cerr << "Not enough parameters" << std::endl;
+		// send  ERR_NEEDMOREPARAMS (461)
+		// return
+	}
+	// Skip to the final entry (used the first, ingore the middle 2)
+	_params.pop_front();
+	_params.pop_front();
+	_params.pop_front();
+	std::string	newRName = _params.front();
+	if (newUser.empty())
+		newUser = usr->getNick();
+	if (newRName.empty())
+		newRName = usr->getReal();
+	usr->setUser(newUser);
+	usr->setReal(newRName);
+	std::cout << "User: " << newUser << ", Really: " << newRName << std::endl;
+}
+
 Server::~Server(void)
 {
 	// Libera recursos si es necesario
@@ -449,6 +473,8 @@ void	Server::_processQueue(void)
 		{
 			if (command.compare("NICK") == 0)
 				handleNick(do_next, do_next->getOrigin());
+			if (command.compare("USER") == 0)
+				handleUser(do_next, do_next->getOrigin());
 			else if (command == "KICK")
 				handleKick(do_next, 999);
 			//handleKick(do_next, events[i].data.fd);
