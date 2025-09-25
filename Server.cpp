@@ -296,6 +296,38 @@ void Server::handlePrivmsg(Message *msg, int sender_fd)
 	std::cout << "[PRIVMSG] Comando recibido de fd " << sender_fd << " " << msg << std::endl;
 }
 
+// Get user
+// Get parameters
+// Check the requested nick is valid
+// set new nicname on user (will need a setter on User?)
+// TODO Check that the Nick does not already exist
+void	Server::handleNick(Message *msg, User *usr)
+{
+	std::list<std::string>	_params = msg->getParams();
+	if (_params.empty())
+	{
+		// send  ERR_NONICKNAMEGIVEN (431)
+		// return
+	}
+	std::string	newNick = _params.front();
+	std::cout << "Trying to set nickname to " << newNick << std::endl;
+	// NOTE These characters are forbidden from starting the nick
+	std::string	notLeading = "#:&123456789";
+	std::string forbidden = " \b\n\r";
+
+	if ((newNick.find_first_of(notLeading) == 0) ||
+		(newNick.find_first_of(forbidden) != std::string::npos))
+	{
+		std::cerr << "Bad characters in nickname" << std::endl;
+		// send  ERR_ERRONEUSNICKNAME (432)
+	}
+	else
+	{
+		std::cout << "setting nickname to " << newNick << std::endl;
+		usr->setNick(newNick);
+	}
+}
+
 Server::~Server(void)
 {
 	// Libera recursos si es necesario
@@ -411,14 +443,19 @@ void	Server::_processQueue(void)
 		std::cout << "Comando parseado: [" << command << "]" << std::endl;
 		// HACK PoC for PASS checking
 		if (_checkPass(*do_next))
-			std::cout << "We could register this client, password matches" << std::endl;
+			std::cout << "Password accepted" << std::endl;
 		// HACK fd replaced by 999 until that info is held in the Message object (source)
-		if (command == "KICK")
-			handleKick(do_next, 999);
+		else if (do_next->_origin->isVerified())
+		{
+			if (command.compare("NICK") == 0)
+				handleNick(do_next, do_next->getOrigin());
+			else if (command == "KICK")
+				handleKick(do_next, 999);
 			//handleKick(do_next, events[i].data.fd);
-		else if (command == "PRIVMSG")
-			handlePrivmsg(do_next, 999);
+			else if (command == "PRIVMSG")
+				handlePrivmsg(do_next, 999);
 			//handlePrivmsg(do_next, events[i].data.fd);
+		}
  	}
 }
 

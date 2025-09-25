@@ -46,6 +46,7 @@ class	Server
 		// --- Manejo de comandos IRC ---
 		void        handleKick(Message *msg, int sender_fd);
 		void        handlePrivmsg(Message *msg, int sender_fd);
+		void		handleNick(Message *msg, User *usr);
 
 	public:
 					Server(int port, std::string password);

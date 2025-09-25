@@ -97,3 +97,9 @@ void	User::switchVerification()
 	else
 		this->_gavepass = true;
 }
+
+// NOTE This assumes that checking has already happened
+void	User::setNick(std::string nick)
+{
+	this->_nick = nick;
+}
