@@ -484,7 +484,8 @@ void	Server::_processQueue(void)
 			else if (command == "PRIVMSG")
 				handlePrivmsg(do_next, do_next->getOrigin()->getFD());
 		}
-		// TODO Check memory - delete the do_next Message here?
+		// deleting the Message here seems to reduce "still reachable" type leaks
+		delete do_next;
  	}
 }
 
