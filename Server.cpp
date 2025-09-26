@@ -468,7 +468,7 @@ void	Server::_processQueue(void)
 //		std::cout << "Comando parseado: [" << command << "]" << std::endl;
 		// if (_checkPass(*do_next))
 		// 	std::cout << "Password accepted" << std::endl;
-		if (command.compare("NICK") == 0)
+		if (command.compare("PASS") == 0)
 			handlePass(do_next, do_next->getOrigin());
 		// HACK fd replaced by 999 until that info is held in the Message object (source)
 		else if (do_next->_origin->isVerified())
