@@ -42,6 +42,7 @@ class	Server
 		void		_storePartial(int fd_source, std::string msg);
 		std::string	_getClientInput(int fd);
 		void		_reply(int send_to, int msg) const;
+		bool		_isNickTaken(const std::string &nick, int except_fd = -1) const;
 
 		// --- Manejo de comandos IRC ---
 		void        handleKick(Message *msg, int sender_fd);

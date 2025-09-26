@@ -205,7 +205,7 @@ void Server::run()
 					std::cerr << "Failed to add new client: " << e.what() << std::endl;
 				}
 			}
-			else	// Input from a client
+			else	// Input from a client, written to a Message or stored
 			{
 				try
 				{
@@ -245,7 +245,6 @@ void Server::run()
 				// 	std::cerr << "Something wrong with message: ignore and continue." << std::endl;
 				// 	std::cerr << e.what() <<std::endl;
 				// }
-				// FIXME Unitialised value here sometimes
 			}
 		}
 		_processQueue();
@@ -300,7 +299,7 @@ void Server::handlePrivmsg(Message *msg, int sender_fd)
 // Get parameters
 // Check the requested nick is valid
 // set new nicname on user (will need a setter on User?)
-// TODO Check that the Nick does not already exist
+// DONE Check that the Nick does not already exist - can grab from branch
 void	Server::handleNick(Message *msg, User *usr)
 {
 	std::list<std::string>	_params = msg->getParams();
@@ -320,6 +319,11 @@ void	Server::handleNick(Message *msg, User *usr)
 	{
 		std::cerr << "Bad characters in nickname" << std::endl;
 		// send  ERR_ERRONEUSNICKNAME (432)
+	}
+	else if (_isNickTaken(newNick, usr->getFD()))
+	{
+		std::cerr << "Nickname already in use." << std::endl;
+		// send ERR_NICKNAMEINUSE (433)
 	}
 	else
 	{
@@ -452,7 +456,7 @@ void	Server::_processQueue(void)
 	{
 		do_next = this->_toProcess.front();
 		this->_toProcess.pop();
-		std::cout << "Might really process:" << *do_next << std::endl;
+		std::cout << "Processing:" << *do_next << std::endl;
 		std::string command = do_next->getCommand();
 //		std::cout << "Comando parseado: [" << command << "]" << std::endl;
 		// if (_checkPass(*do_next))
@@ -488,4 +492,19 @@ void	Server::_reply(int send_to, int msg) const
 	(void) send_to;
 	(void) msg;
 	std::cerr << "replies not implemented yet." << std::endl;
+}
+
+// Check if a nickname is already in use by any connected user
+// NOTE This might be faster/scale better if we store (and update) a SET of known nicks
+bool	Server::_isNickTaken(const std::string &nick, int except_fd) const
+{
+    for (std::map<int, User*>::const_iterator it = this->_moreClients.begin(); it != this->_moreClients.end(); ++it)
+    {
+        if (it->first == except_fd)
+            continue;
+        User *u = it->second;
+        if (u && u->getNick() == nick && !nick.empty())
+            return (true);
+    }
+    return (false);
 }
