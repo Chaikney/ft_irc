@@ -154,7 +154,7 @@ void	Server::_addNewClient()
 // - remove that fd from the epoll listening set
 // NOTE Should the events array we pass in be stored as part of the class instead?
 // NOTE This could work on an int fd only, but this allows other actions if needed.
-// TODO Once we have User instances, this should remove those too
+// DONE Once we have User instances, this should remove those too
 void	Server::_removeClient(struct epoll_event &goodbye)
 {
 	std::cout << "Cliente desconectado, fd: " << goodbye.data.fd << std::endl;
@@ -162,6 +162,13 @@ void	Server::_removeClient(struct epoll_event &goodbye)
 	epoll_ctl(_epollFD, EPOLL_CTL_DEL, goodbye.data.fd, NULL);
 	_clients.erase(goodbye.data.fd);
 	this->_partial_msgs.erase(goodbye.data.fd);
+	// Free and forget the User instance if present
+	std::map<int, User*>::iterator it = this->_moreClients.find(goodbye.data.fd);
+	if (it != this->_moreClients.end())
+	{
+		delete it->second;
+		this->_moreClients.erase(it);
+	}
 }
 
 // Activates the Server's epoll loop
