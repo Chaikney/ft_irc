@@ -225,8 +225,8 @@ void Server::run()
 					}
 					else	// Parse into Message and queue for further action
 					{
+						// TODO With a complete message, must delete partials
 						std::cout << "Can be parsed" << std::endl;
-						// TODO Somewhere we must remove the \n from command and params
 						User*	msgFrom =  this->_moreClients[events[i].data.fd];
 						Message	*nxtMessage = Message::makeMessage(str_buf, msgFrom);
 						this->_toProcess.push(nxtMessage);
@@ -447,11 +447,11 @@ void	Server::handlePass(Message *msg, User *usr) const
 // TODO Make this spin off thread(s) to process the command efficiently
 // NOTE How do we make sure that this is non-blocking?
 // TODO Need some kind of matching / switch-case logic here (I guess)
-// TODO First check that the User is allowed to have the MEssage processed
+// DONE First check that the User is allowed to have the MEssage processed
 // ...i.e. if no Pass, that is the only allowed action
-// TODO Give this function friend-based access to Message so it can extract the User involved
-// TODO Implement the commands needed for registration:
-// [ ] CAP
+// NOTE This function has friend-based access to Message so it can extract the User involved
+// DONE Implement the commands needed for registration:
+// [X] CAP -- we could do this for a bonus but for just ignoring
 // [X] NICK
 // [X] USER
 // [X] PASS - partly done, make consistent
@@ -466,11 +466,11 @@ void	Server::_processQueue(void)
 		std::cout << "Processing:" << *do_next << std::endl;
 		std::string command = do_next->getCommand();
 //		std::cout << "Comando parseado: [" << command << "]" << std::endl;
-		// if (_checkPass(*do_next))
-		// 	std::cout << "Password accepted" << std::endl;
 		if (command.compare("PASS") == 0)
 			handlePass(do_next, do_next->getOrigin());
-		// HACK fd replaced by 999 until that info is held in the Message object (source)
+		else if (command.compare("CAP") == 0)
+			std::cout << "Ignoring capability negotiation request" << std::endl;
+		// NOTE Probably KICK & PRIVMSG should change to accept a USER not FD
 		else if (do_next->_origin->isVerified())
 		{
 			if (command.compare("NICK") == 0)
@@ -478,11 +478,9 @@ void	Server::_processQueue(void)
 			if (command.compare("USER") == 0)
 				handleUser(do_next, do_next->getOrigin());
 			else if (command == "KICK")
-				handleKick(do_next, 999);
-			//handleKick(do_next, events[i].data.fd);
+				handleKick(do_next, do_next->getOrigin()->getFD());
 			else if (command == "PRIVMSG")
-				handlePrivmsg(do_next, 999);
-			//handlePrivmsg(do_next, events[i].data.fd);
+				handlePrivmsg(do_next, do_next->getOrigin()->getFD());
 		}
 		// TODO Check memory - delete the do_next Message here?
  	}
