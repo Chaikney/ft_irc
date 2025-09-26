@@ -38,7 +38,7 @@ class	Server
 		void		_addNewClient();
 		void		_removeClient(struct epoll_event &bye);
 		bool 		_setNonBlocking(int fd);
-		bool		_isFullMsg(std::string msg, int to_chk) const;
+		bool		_isFullMsg(std::string msg) const;
 		void		_storePartial(int fd_source, std::string msg);
 		std::string	_getClientInput(int fd);
 		void		_reply(int send_to, int msg) const;

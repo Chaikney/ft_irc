@@ -217,15 +217,16 @@ void Server::run()
 				try
 				{
 					std::string	str_buf = _getClientInput(events[i].data.fd);
-					if (!this->_isFullMsg(str_buf, str_buf.length()))	// buffer does not form a complete message
+					if (!this->_isFullMsg(str_buf))	// buffer does not form a complete message
 					{
 						std::cout << "Can NOT be parsed, store partial" << std::endl;
 						this->_storePartial(events[i].data.fd, str_buf);
-						std::cout << "Done. Stored:" << _partial_msgs[events[i].data.fd] << std::endl;
+//						std::cout << "Done. Stored:" << _partial_msgs[events[i].data.fd] << std::endl;
 					}
 					else	// Parse into Message and queue for further action
 					{
-						// TODO With a complete message, must delete partials
+						// With a complete message, must delete partials
+						this->_partial_msgs[events[i].data.fd].erase();
 						std::cout << "Can be parsed" << std::endl;
 						User*	msgFrom =  this->_moreClients[events[i].data.fd];
 						Message	*nxtMessage = Message::makeMessage(str_buf, msgFrom);
@@ -369,10 +370,11 @@ Server::~Server(void)
 	std::cout << "Server destructor called." << std::endl;
 }
 
-bool	Server::_isFullMsg(std::string msg, int to_chk) const
+// TODO Consider being more lenient and allowing \r only to terminate commands
+bool	Server::_isFullMsg(std::string msg) const
 {
 	size_t	pos;
-	(void) to_chk;	// TODO remove this from function signature altogether?
+
 	pos = msg.find('\n');
 	if (pos == std::string::npos)
 		return (false);
