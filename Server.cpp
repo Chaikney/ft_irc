@@ -347,11 +347,10 @@ void	Server::handleNick(Message *msg, User *usr)
 	}
 }
 
-// FIXME Protect against empty _params!
+// FIXED Protect against empty _params!
 void	Server::handleUser(Message *msg, User *usr)
 {
 	std::list<std::string>	_params = msg->getParams();
-	std::string	newUser = _params.front();
 	if (_params.size() != 4)
 	{
 		std::cerr << "Not enough parameters" << std::endl;
@@ -359,6 +358,7 @@ void	Server::handleUser(Message *msg, User *usr)
 		this->_reply(usr->getFD(), 461);
 		return ;
 	}
+	std::string	newUser = _params.front();
 	// Skip to the final entry (used the first, ingore the middle 2)
 	_params.pop_front();
 	_params.pop_front();
