@@ -3,9 +3,12 @@
 #include "User.hpp"
 #include <iostream>
 #include <netinet/in.h>
+#include <sys/socket.h>
 #include <unistd.h>	// for close()
 #include <sstream>
 #include <sys/epoll.h>
+#include <cerrno>	// for error checking in send calls
+// #include <type_traits>	// NO this is C++11 feature :(
 #include <cstdlib>	// for the EXIT code
 #include <cstring>	// for memset. Too many includes!
 #include <fcntl.h>	// NOTE IS there a C++ equivalent we should prefer?
@@ -68,6 +71,7 @@ Server::Server(int port, std::string password) : _socketFD(0), _epollFD(0),
 	_serverAddress.sin_addr.s_addr = INADDR_ANY;
 
 	std::cout << "Binding...";
+	// FIXME If we throw here, the program ends with uncleared memory
 	if (bind(_socketFD, (struct sockaddr *)&_serverAddress, sizeof(_serverAddress)) == -1) 
 	{
 		close(_socketFD);
@@ -314,7 +318,8 @@ void	Server::handleNick(Message *msg, User *usr)
 	if (_params.empty())
 	{
 		// send  ERR_NONICKNAMEGIVEN (431)
-		// return
+		this->_reply(usr->getFD(), 431);
+		return ;
 	}
 	std::string	newNick = _params.front();
 	std::cout << "Trying to set nickname to " << newNick << std::endl;
@@ -327,11 +332,13 @@ void	Server::handleNick(Message *msg, User *usr)
 	{
 		std::cerr << "Bad characters in nickname" << std::endl;
 		// send  ERR_ERRONEUSNICKNAME (432)
+		this->_reply(usr->getFD(), 432);
 	}
 	else if (_isNickTaken(newNick, usr->getFD()))
 	{
 		std::cerr << "Nickname already in use." << std::endl;
 		// send ERR_NICKNAMEINUSE (433)
+		this->_reply(usr->getFD(), 433);
 	}
 	else
 	{
@@ -340,6 +347,7 @@ void	Server::handleNick(Message *msg, User *usr)
 	}
 }
 
+// FIXME Protect against empty _params!
 void	Server::handleUser(Message *msg, User *usr)
 {
 	std::list<std::string>	_params = msg->getParams();
@@ -348,7 +356,8 @@ void	Server::handleUser(Message *msg, User *usr)
 	{
 		std::cerr << "Not enough parameters" << std::endl;
 		// send  ERR_NEEDMOREPARAMS (461)
-		// return
+		this->_reply(usr->getFD(), 461);
+		return ;
 	}
 	// Skip to the final entry (used the first, ingore the middle 2)
 	_params.pop_front();
@@ -492,14 +501,36 @@ void	Server::_processQueue(void)
 // Send a numeric reply in response to a command received
 // NOTE that this is more easily called if we import a
 // bunch of enums in a header, or similar.
-// TODO Actually send something.
 // TODO Decide how to handle the PARAMETERS that some messages need
-// ...call in the function? Lookup in another map?
+// ...call in the function? Lookup in another map? Transform in another function?
+// NOTE std::to_string() is c++17 onwards, forbidden :'(
+// NOTE We don't need to include EAGAIN because it enums the same as EWOULDBLOCK
 void	Server::_reply(int send_to, int msg) const
 {
-	(void) send_to;
-	(void) msg;
-	std::cerr << "replies not implemented yet." << std::endl;
+	std::stringstream strm;
+	strm << msg;
+	std::string msg_as_str = strm.str();
+	// const here is to avoid -fpermissive compiler warning
+	const char*		msg_buf = msg_as_str.c_str();
+	size_t		str_len = msg_as_str.length();
+
+	std::cout << "Sending:" << msg_buf << std::endl;
+	if (send(send_to, msg_buf, str_len, MSG_DONTWAIT) == -1)
+	{
+		// check error number and handle it
+		switch (errno)
+		{
+			case EWOULDBLOCK:
+				std::cerr << "Would block, split message or drop it" << std::endl;
+				break ;
+			default:
+				std::cerr << "Dunno, something else went wrong" << std::endl;
+		}
+	}
+	else
+	{
+		std::cout << "Server reply message sent OK" << std::endl;
+	}
 }
 
 // Check if a nickname is already in use by any connected user
