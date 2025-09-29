@@ -237,11 +237,19 @@ void Server::run()
 						this->_toProcess.push(nxtMessage);
 					}
 					std::cout << "Mensaje recibido de fd " << events[i].data.fd << ": " << str_buf << std::endl;
-					// HACK Loop to send to all other clients connected
-					for (std::set<int>::iterator it = _clients.begin(); it != _clients.end(); ++it)
+					// Broadcast only if the sender is registered, and only to registered recipients
+					User *sender = this->_moreClients[events[i].data.fd];
+					if (sender && sender->isVerified())
 					{
-						if (*it != events[i].data.fd)
-							write(*it, str_buf.c_str(), str_buf.size());
+						for (std::set<int>::iterator it = _clients.begin(); it != _clients.end(); ++it)
+						{
+							if (*it == events[i].data.fd)
+								continue;
+							std::map<int, User*>::iterator uit = this->_moreClients.find(*it);
+							User *recipient = (uit != this->_moreClients.end()) ? uit->second : NULL;
+							if (recipient && recipient->isVerified())
+								write(*it, str_buf.c_str(), str_buf.size());
+						}
 					}
 					// HACK debugging print statement below
 					//this->_printMessageQueue(this->_toProcess);

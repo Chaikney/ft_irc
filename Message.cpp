@@ -23,7 +23,8 @@ Message::Message(std::string text_recvd) : _tags(""), _source(""),
 {
     if (text_recvd.empty())
         throw std::invalid_argument("Tried to create message with empty string");
-    if (text_recvd.length() < 3)
+    // Allow very short messages (e.g., single-letter + newline)
+    if (text_recvd.length() < 1)
         throw std::invalid_argument("Message too short");
     if (text_recvd.length() > MSG_LEN)
 		throw std::invalid_argument("Message too long");
@@ -107,7 +108,8 @@ Message::Message(std::string text_recvd, User *usr) : _tags(""), _source(""),
 {
     if (text_recvd.empty())
         throw std::invalid_argument("Tried to create message with empty string");
-    if (text_recvd.length() < 3)
+    // Allow very short messages (e.g., single-letter + newline)
+    if (text_recvd.length() < 1)
         throw std::invalid_argument("Message too short");
     if (text_recvd.length() > MSG_LEN)
 		throw std::invalid_argument("Message too long");
