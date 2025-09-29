@@ -7,6 +7,7 @@
 #include <queue>// Messages to be processed
 #include <set>	// FDs of clients to be sent to
 #include <map>	// dictionary of partial messages
+#include <vector>
 
 class	Message;
 class	User;
@@ -29,6 +30,18 @@ class	Server
 		std::set<int> _clients;		// NOTE This is the fds to be sent to; may duplicate other info
 		std::map<int, std::string>	_partial_msgs;
 		std::map<int, User*>	_moreClients;	// TODO Potentially  this replaces _clients()
+		// --- Channels ---
+		struct Channel {
+			Channel(): name(), topic(), members(), operators(), invitedNicks(), topicProtected(false), inviteOnly(false) {}
+			std::string			name;
+			std::string			topic;
+			std::set<int>		members;
+			std::set<int>		operators; // fds with op rights
+			std::set<std::string>	invitedNicks; // invite list by nick
+			bool				topicProtected; // +t only ops can set topic
+			bool				inviteOnly; // +i invite-only channel
+		};
+		std::map<std::string, Channel>	_channels;
 
 					Server(void);	// private so not called
 					Server(const Server &irc);	// No good reason to allow copy construction of the server
@@ -44,11 +57,25 @@ class	Server
 		void		_reply(int send_to, int msg) const;
 		bool		_isNickTaken(const std::string &nick, int except_fd = -1) const;
 
+		// --- Helpers for channels/users ---
+		User*		_findUserByNick(const std::string &nick) const;
+		void		_sendToFD(int fd, const std::string &text) const;
+		void		_broadcastToChannel(const std::string &chan, int from_fd, const std::string &text, bool include_sender=false) const;
+		bool		_isChanOp(const Channel &c, int fd) const;
+		void		_setChanOp(Channel &c, int fd, bool make_op);
+
 		// --- Manejo de comandos IRC ---
 		void        handleKick(Message *msg, int sender_fd);
 		void        handlePrivmsg(Message *msg, int sender_fd);
 		void		handleNick(Message *msg, User *usr);
 		void		handleUser(Message *msg, User *usr);
+		void		handleJoin(Message *msg, User *usr);
+		void		handlePart(Message *msg, User *usr);
+		void		handleNames(Message *msg, User *usr);
+		void		handleList(Message *msg, User *usr);
+		void		handleTopic(Message *msg, User *usr);
+		void		handleInvite(Message *msg, User *usr);
+		void		handleMode(Message *msg, User *usr);
 
 	public:
 					Server(int port, std::string password);

@@ -50,7 +50,7 @@ bool Server::_setNonBlocking(int fd)
 Server::Server(int port, std::string password) : _socketFD(0), _epollFD(0),
 												 _serverAddress(), _password(password),
 												 _toProcess(), _clients(), _partial_msgs(),
-												 _moreClients()
+												 _moreClients(), _channels()
 {
 	std::cout << "Server constructor with parameters called" << std::endl;
 	_socketFD = socket(AF_INET, SOCK_STREAM, 0);
@@ -237,20 +237,7 @@ void Server::run()
 						this->_toProcess.push(nxtMessage);
 					}
 					std::cout << "Mensaje recibido de fd " << events[i].data.fd << ": " << str_buf << std::endl;
-					// Broadcast only if the sender is registered, and only to registered recipients
-					User *sender = this->_moreClients[events[i].data.fd];
-					if (sender && sender->isVerified())
-					{
-						for (std::set<int>::iterator it = _clients.begin(); it != _clients.end(); ++it)
-						{
-							if (*it == events[i].data.fd)
-								continue;
-							std::map<int, User*>::iterator uit = this->_moreClients.find(*it);
-							User *recipient = (uit != this->_moreClients.end()) ? uit->second : NULL;
-							if (recipient && recipient->isVerified())
-								write(*it, str_buf.c_str(), str_buf.size());
-						}
-					}
+					// NOTE: No global broadcast here. Message dispatch happens via parsed commands (e.g., PRIVMSG)
 					// HACK debugging print statement below
 					//this->_printMessageQueue(this->_toProcess);
 				}
@@ -301,11 +288,49 @@ void	Server::_printMessageQueue(std::queue<Message *> toPrint) const
 // Esqueleto para el comando KICK
 void Server::handleKick(Message *msg, int sender_fd)
 {
-	// Aquí va la lógica para expulsar a un usuario de un canal
-	// Ejemplo: obtener parámetros, buscar usuario, eliminarlo del canal, notificar, etc.
-	(void) msg;
 	std::cout << "[KICK] Comando recibido de fd " << sender_fd << std::endl;
-	// Puedes acceder a los parámetros con msg->getParams()
+	std::list<std::string> params = msg->getParams();
+	if (params.size() < 2)
+		return ;
+	std::string chan = params.front(); params.pop_front();
+	std::string nick = params.front(); params.pop_front();
+	// Optional reason (rest of params)
+	std::string reason = "";
+	if (!params.empty())
+		reason = params.front();
+	// Normalise channel
+	if (!chan.empty() && chan[0] == ':') chan.erase(0, 1);
+	while (!chan.empty() && (chan[0] == ' ' || chan[0] == '\r' || chan[0] == '\n' || chan[0] == '\t')) chan.erase(0, 1);
+	if (chan.empty() || chan[0] != '#') return ;
+	std::map<std::string, Channel>::iterator it = _channels.find(chan);
+	if (it == _channels.end()) return ;
+	Channel &c = it->second;
+	// Sender must be channel operator
+	if (!_isChanOp(c, sender_fd))
+	{
+		_sendToFD(sender_fd, ":server 482 " + chan + " :You're not channel operator\r\n");
+		return ;
+	}
+	// Find target user
+	User *target = _findUserByNick(nick);
+	if (!target)
+	{
+		_sendToFD(sender_fd, ":server 401 " + nick + " :No such nick\r\n");
+		return ;
+	}
+	// Target must be member of channel
+	if (c.members.find(target->getFD()) == c.members.end())
+	{
+		_sendToFD(sender_fd, ":server 441 " + nick + " " + chan + " :They aren't on that channel\r\n");
+		return ;
+	}
+	// Remove target from channel members and operators
+	c.members.erase(target->getFD());
+	c.operators.erase(target->getFD());
+	if (reason.empty()) reason = "Kicked";
+	// Notify channel and target
+	_broadcastToChannel(chan, -1, ":server KICK " + chan + " " + nick + " :" + reason, true);
+	_sendToFD(target->getFD(), ":server KICK " + chan + " " + nick + " :" + reason + "\r\n");
 }
 
 // Esqueleto para el comando PRIVMSG (opcional, puedes completarlo luego)
@@ -313,6 +338,34 @@ void Server::handlePrivmsg(Message *msg, int sender_fd)
 {
 	// Aquí va la lógica para enviar mensajes privados o a canales
 	std::cout << "[PRIVMSG] Comando recibido de fd " << sender_fd << " " << msg << std::endl;
+	std::list<std::string> params = msg->getParams();
+	if (params.size() < 2)
+		return ;
+	std::string target = params.front();
+	params.pop_front();
+	std::string text = params.front();
+	// Channel message
+	if (!target.empty() && target[0] == '#')
+	{
+		// Only allow if sender is member of the channel
+		std::map<std::string, Channel>::const_iterator it = _channels.find(target);
+		if (it == _channels.end())
+			return ;
+		const Channel &c = it->second;
+		if (c.members.find(sender_fd) == c.members.end())
+		{
+			// 404 ERR_CANNOTSENDTOCHAN
+			_sendToFD(sender_fd, ":server 404 " + target + " :Cannot send to channel\r\n");
+			return ;
+		}
+		_broadcastToChannel(target, sender_fd, text, false);
+	}
+	else
+	{
+		User *to = _findUserByNick(target);
+		if (to)
+			_sendToFD(to->getFD(), text + "\r\n");
+	}
 }
 
 // Get user
@@ -381,6 +434,126 @@ void	Server::handleUser(Message *msg, User *usr)
 	std::cout << "User: " << newUser << ", Really: " << newRName << std::endl;
 }
 
+void	Server::handleJoin(Message *msg, User *usr)
+{
+    std::list<std::string> params = msg->getParams();
+    if (params.empty())
+        return ;
+    std::string chan = params.front();
+    // Robust normalisation: handle JOIN  #chan and JOIN :#chan
+    while (true)
+    {
+        if (!chan.empty() && chan[0] == ':')
+            chan.erase(0, 1);
+        while (!chan.empty() && (chan[0] == ' ' || chan[0] == '\r' || chan[0] == '\n' || chan[0] == '\t'))
+            chan.erase(0, 1);
+        if (!chan.empty() || params.size() <= 1)
+            break;
+        // Current token was empty/whitespace-only after trimming; try next param
+        params.pop_front();
+        chan = params.front();
+    }
+    if (chan.empty() || chan[0] != '#')
+        return ;
+    Channel &c = _channels[chan];
+    if (c.name.empty())
+    {
+        c.name = chan;
+        c.topic = "";
+        c.topicProtected = false;
+        c.inviteOnly = false;
+    }
+    if (c.inviteOnly)
+    {
+        if (c.invitedNicks.find(usr->getNick()) == c.invitedNicks.end())
+        {
+            _sendToFD(usr->getFD(), ":server 473 " + chan + " :Cannot join channel (+i)\r\n");
+            return ;
+        }
+        else
+        {
+            c.invitedNicks.erase(usr->getNick());
+        }
+    }
+    c.members.insert(usr->getFD());
+    if (c.members.size() == 1)
+        c.operators.insert(usr->getFD());
+    // Notify channel (simple join message)
+    _broadcastToChannel(chan, -1, ":server NOTICE " + chan + " :" + usr->getNick() + " joined", true);
+}
+
+void	Server::handlePart(Message *msg, User *usr)
+{
+	cout << "part" << std::endl;
+}
+
+void	Server::handleNames(Message *msg, User *usr)
+{
+    (void)msg;
+    for (std::map<std::string, Channel>::const_iterator it = _channels.begin(); it != _channels.end(); ++it)
+    {
+        const std::string &chan = it->first;
+        std::string line = "353 = " + chan + " :";
+        const Channel &c = it->second;
+        for (std::set<int>::const_iterator fit = c.members.begin(); fit != c.members.end(); ++fit)
+        {
+            std::map<int, User*>::const_iterator uit = _moreClients.find(*fit);
+            if (uit != _moreClients.end() && uit->second)
+            {
+                if (fit != c.members.begin()) line += " ";
+                line += uit->second->getNick();
+            }
+        }
+        _sendToFD(usr->getFD(), line + "\r\n");
+    }
+}
+
+void	Server::handleList(Message *msg, User *usr)
+{
+    (void)msg;
+    for (std::map<std::string, Channel>::const_iterator it = _channels.begin(); it != _channels.end(); ++it)
+    {
+        const Channel &c = it->second;
+        std::stringstream ss;
+        ss << "322 " << c.name << " " << c.members.size() << " :" << c.topic;
+        _sendToFD(usr->getFD(), ss.str() + "\r\n");
+    }
+}
+
+void	Server::handleTopic(Message *msg, User *usr)
+{
+    std::list<std::string> params = msg->getParams();
+    if (params.empty()) return ;
+    std::string chan = params.front();
+    std::map<std::string, Channel>::iterator it = _channels.find(chan);
+    if (it == _channels.end()) return ;
+    Channel &c = it->second;
+    if (params.size() == 1)
+    {
+        _sendToFD(usr->getFD(), ":server 332 " + chan + " :" + c.topic + "\r\n");
+        return ;
+    }
+    if (c.topicProtected && !_isChanOp(c, usr->getFD()))
+    {
+        _sendToFD(usr->getFD(), ":server 482 " + chan + " :You're not channel operator\r\n");
+        return ;
+    }
+    params.pop_front();
+    std::string newTopic = params.front();
+    c.topic = newTopic;
+    _broadcastToChannel(chan, -1, ":server TOPIC " + chan + " :" + newTopic, true);
+}
+
+void	Server::handleInvite(Message *msg, User *usr)
+{
+    cout << "invite" << std::endl;
+}
+
+void	Server::handleMode(Message *msg, User *usr)
+{
+	cout << "mode" << std::endl;
+}
+
 Server::~Server(void)
 {
 	// Libera recursos si es necesario
@@ -431,6 +604,48 @@ std::string	Server::_getClientInput(int fd)
 
 // NOTE This works provided there is no \n at the end of the parameters
 // DONE Don't touch User if already verfified
+User* Server::_findUserByNick(const std::string &nick) const
+{
+    for (std::map<int, User*>::const_iterator it = this->_moreClients.begin(); it != this->_moreClients.end(); ++it)
+    {
+        if (it->second && it->second->getNick() == nick)
+            return it->second;
+    }
+    return NULL;
+}
+
+void	Server::_sendToFD(int fd, const std::string &text) const
+{
+    write(fd, text.c_str(), text.size());
+}
+
+void	Server::_broadcastToChannel(const std::string &chan, int from_fd, const std::string &text, bool include_sender) const
+{
+    std::map<std::string, Channel>::const_iterator it = _channels.find(chan);
+    if (it == _channels.end())
+        return ;
+    const Channel &c = it->second;
+    for (std::set<int>::const_iterator fit = c.members.begin(); fit != c.members.end(); ++fit)
+    {
+        if (!include_sender && *fit == from_fd)
+            continue;
+        _sendToFD(*fit, text + "\r\n");
+    }
+}
+
+bool	Server::_isChanOp(const Channel &c, int fd) const
+{
+    return (c.operators.find(fd) != c.operators.end());
+}
+
+void	Server::_setChanOp(Channel &c, int fd, bool make_op)
+{
+    if (make_op)
+        c.operators.insert(fd);
+    else
+        c.operators.erase(fd);
+}
+
 void	Server::handlePass(Message *msg, User *usr) const
 {
 	std::string	_sPass = this->_password;
@@ -489,13 +704,39 @@ void	Server::_processQueue(void)
 			handlePass(do_next, do_next->getOrigin());
 		else if (command.compare("CAP") == 0)
 			std::cout << "Ignoring capability negotiation request" << std::endl;
-		// NOTE Probably KICK & PRIVMSG should change to accept a USER not FD
-		else if (do_next->_origin->isVerified())
+		// Only allow NICK/USER/PASS before registration. All others require full registration.
+		else if (!do_next->getOrigin()->isRegistered())
+		{
+			if (command.compare("NICK") == 0)
+				handleNick(do_next, do_next->getOrigin());
+			else if (command.compare("USER") == 0)
+				handleUser(do_next, do_next->getOrigin());
+			else
+			{
+				// Send ERR_NOTREGISTERED (451) for other commands until registration completes
+				_reply(do_next->getOrigin()->getFD(), 451);
+			}
+		}
+		else if (do_next->getOrigin()->isRegistered())
 		{
 			if (command.compare("NICK") == 0)
 				handleNick(do_next, do_next->getOrigin());
 			if (command.compare("USER") == 0)
 				handleUser(do_next, do_next->getOrigin());
+			if (command.compare("JOIN") == 0)
+				handleJoin(do_next, do_next->getOrigin());
+			if (command.compare("PART") == 0)
+				handlePart(do_next, do_next->getOrigin());
+			if (command.compare("NAMES") == 0)
+				handleNames(do_next, do_next->getOrigin());
+			if (command.compare("LIST") == 0)
+				handleList(do_next, do_next->getOrigin());
+			if (command.compare("TOPIC") == 0)
+				handleTopic(do_next, do_next->getOrigin());
+			if (command.compare("INVITE") == 0)
+				handleInvite(do_next, do_next->getOrigin());
+			if (command.compare("MODE") == 0)
+				handleMode(do_next, do_next->getOrigin());
 			else if (command == "KICK")
 				handleKick(do_next, do_next->getOrigin()->getFD());
 			else if (command == "PRIVMSG")

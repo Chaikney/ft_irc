@@ -78,6 +78,11 @@ bool	User::isVerified() const
 	return(this->_gavepass);
 }
 
+bool	User::isRegistered() const
+{
+    return (this->_gavepass && !this->_nick.empty() && !this->_uname.empty());
+}
+
 sockaddr_in	User::getAddress() const
 {
 	return(this->_address);
