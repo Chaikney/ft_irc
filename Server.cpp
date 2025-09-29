@@ -484,7 +484,9 @@ void	Server::handleJoin(Message *msg, User *usr)
 
 void	Server::handlePart(Message *msg, User *usr)
 {
-	cout << "part" << std::endl;
+	(void)msg;
+	(void)usr;
+	std::cout << "part" << std::endl;
 }
 
 void	Server::handleNames(Message *msg, User *usr)
@@ -546,12 +548,16 @@ void	Server::handleTopic(Message *msg, User *usr)
 
 void	Server::handleInvite(Message *msg, User *usr)
 {
-    cout << "invite" << std::endl;
+	(void)msg;
+	(void)usr;
+    std::cout << "invite" << std::endl;
 }
 
 void	Server::handleMode(Message *msg, User *usr)
 {
-	cout << "mode" << std::endl;
+	(void)msg;
+	(void)usr;
+	std::cout << "mode" << std::endl;
 }
 
 Server::~Server(void)
