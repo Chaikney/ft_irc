@@ -4,6 +4,7 @@
 #include <string>
 #include <list>
 #include <iostream>
+#include <map>
 
 class	User;
 // NOTE use include not forward definition so the "friend" keyword works
@@ -13,17 +14,17 @@ class	User;
 // Static member variable. All messages of the same max length bytes
 const int	MSG_LEN = 512;
 
-// TODO Add getters for any relevant attribute
-// TODO Decide if any other information is useful to us here
-// TODO We need something to check that the message is complete and logical
+// IRC message format: [@tags] [:]source command [params] [:trailing]
 class	Message
 {
 	private:
-		std::string				_tags;		// IF we supported these, they should be stored as multi?MAP of strings
-		std::string				_source;	// TODO This might be the wrong format
-		std::string				_command;	// Could be an int instead if we convert to the numeric?
-		std::list<std::string>	_params;
-		User*					_origin;	// Link to who sent this? Allows key  info to be retrieved
+		std::map<std::string, std::string>	_tags;		// IRCv3 tags
+		std::string							_source;	// message source (server or user)
+		std::string							_command;	// command or numeric
+		std::list<std::string>				_params;	// parameters
+		std::string							_trailing;	// trailing parameter (after :)
+		User*								_origin;	// Link to who sent this? Allows key  info to be retrieved
+		bool								_isNumeric;	// true if command is a numeric reply
 
 
 					Message(void);	// private so not called - no blank messages please
@@ -31,6 +32,7 @@ class	Message
 
 		void		_stepOver(std::istringstream &strm) const;
 		void		_parseMessage(std::string text_recvd);
+		void		_parseTags(const std::string &tagString);
 
 	public:
 					Message(std::string raw_text);
@@ -40,11 +42,26 @@ class	Message
 
 		static Message*			makeMessage(std::string &str);
 		static Message*			makeMessage(std::string &str, User *origin);
-		std::string				getTags() const;
+		
+		// Getters
+		const std::map<std::string, std::string>& getTags() const;
+		std::string				getTag(const std::string &key) const;
 		std::string				getSource() const;
 		std::string				getCommand() const;
 		std::list<std::string>	getParams() const;
+		std::string				getTrailing() const;
 		User*					getOrigin() const;
+		bool					isNumeric() const;
+		
+		// Setters
+		void					setSource(const std::string &source);
+		void					setCommand(const std::string &command);
+		void					addParam(const std::string &param);
+		void					setTrailing(const std::string &trailing);
+		
+		// Utility
+		std::string				toString() const;	// Convert back to IRC format
+		bool					isValid() const;	// Check if message is valid
 
 
 		// Declare this as friend so it can access _origin
@@ -60,9 +77,10 @@ inline std::ostream&	operator<<(std::ostream &out, const Message &msg)
 
 	if (!msg.getOrigin())
 		std::cout << "Message of unknown origin" << std::endl;
-	tmp = msg.getTags();
-	if (!tmp.empty())
-		out << "Tags: " << tmp << std::endl;
+	// Tags are now a map, so we'll skip displaying them in the simple output
+	// tmp = msg.getTags();
+	// if (!tmp.empty())
+	//	out << "Tags: " << tmp << std::endl;
 	tmp = msg.getSource();
 	if (!tmp.empty())
 		out << "Source: " << tmp << std::endl;

@@ -120,3 +120,17 @@ void	User::setReal(std::string realname)
 {
 	this->_rname = realname;
 }
+
+void	User::addChannel(const std::string &channel)
+{
+	// Simple implementation - just store channel name
+	// In a full implementation, this would add to a set of channels
+	(void)channel;
+}
+
+void	User::removeChannel(const std::string &channel)
+{
+	// Simple implementation - just remove channel name
+	// In a full implementation, this would remove from a set of channels
+	(void)channel;
+}

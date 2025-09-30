@@ -15,7 +15,8 @@ NAME	=	ircserv
 SRC		=	main.cpp \
 			Server.cpp \
 			Message.cpp \
-			User.cpp
+			User.cpp \
+			Channel.cpp
 
 OBJ		= $(SRC:.cpp=.o)
 

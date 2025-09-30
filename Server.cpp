@@ -1,6 +1,7 @@
 #include "Server.hpp"
 #include "Message.hpp"
 #include "User.hpp"
+#include "Channel.hpp"
 #include <iostream>
 #include <netinet/in.h>
 #include <sys/socket.h>
@@ -302,11 +303,12 @@ void Server::handleKick(Message *msg, int sender_fd)
 	if (!chan.empty() && chan[0] == ':') chan.erase(0, 1);
 	while (!chan.empty() && (chan[0] == ' ' || chan[0] == '\r' || chan[0] == '\n' || chan[0] == '\t')) chan.erase(0, 1);
 	if (chan.empty() || chan[0] != '#') return ;
-	std::map<std::string, Channel>::iterator it = _channels.find(chan);
-	if (it == _channels.end()) return ;
-	Channel &c = it->second;
+	
+	Channel *channel = _findChannel(chan);
+	if (!channel) return ;
+	
 	// Sender must be channel operator
-	if (!_isChanOp(c, sender_fd))
+	if (!channel->isOperator(sender_fd))
 	{
 		_sendToFD(sender_fd, ":server 482 " + chan + " :You're not channel operator\r\n");
 		return ;
@@ -319,17 +321,17 @@ void Server::handleKick(Message *msg, int sender_fd)
 		return ;
 	}
 	// Target must be member of channel
-	if (c.members.find(target->getFD()) == c.members.end())
+	if (!channel->isMember(target->getFD()))
 	{
 		_sendToFD(sender_fd, ":server 441 " + nick + " " + chan + " :They aren't on that channel\r\n");
 		return ;
 	}
-	// Remove target from channel members and operators
-	c.members.erase(target->getFD());
-	c.operators.erase(target->getFD());
+	// Remove target from channel
+	channel->removeMember(target->getFD());
+	target->removeChannel(chan);
 	if (reason.empty()) reason = "Kicked";
 	// Notify channel and target
-	_broadcastToChannel(chan, -1, ":server KICK " + chan + " " + nick + " :" + reason, true);
+	_broadcastToChannel(channel, -1, ":server KICK " + chan + " " + nick + " :" + reason, true);
 	_sendToFD(target->getFD(), ":server KICK " + chan + " " + nick + " :" + reason + "\r\n");
 }
 
@@ -348,17 +350,16 @@ void Server::handlePrivmsg(Message *msg, int sender_fd)
 	if (!target.empty() && target[0] == '#')
 	{
 		// Only allow if sender is member of the channel
-		std::map<std::string, Channel>::const_iterator it = _channels.find(target);
-		if (it == _channels.end())
+		Channel *channel = _findChannel(target);
+		if (!channel)
 			return ;
-		const Channel &c = it->second;
-		if (c.members.find(sender_fd) == c.members.end())
+		if (!channel->isMember(sender_fd))
 		{
 			// 404 ERR_CANNOTSENDTOCHAN
 			_sendToFD(sender_fd, ":server 404 " + target + " :Cannot send to channel\r\n");
 			return ;
 		}
-		_broadcastToChannel(target, sender_fd, text, false);
+		_broadcastToChannel(channel, sender_fd, text, false);
 	}
 	else
 	{
@@ -455,54 +456,84 @@ void	Server::handleJoin(Message *msg, User *usr)
     }
     if (chan.empty() || chan[0] != '#')
         return ;
-    Channel &c = _channels[chan];
-    if (c.name.empty())
+    
+    Channel *channel = _findChannel(chan);
+    if (!channel)
+        channel = _createChannel(chan);
+    
+    if (channel->isInviteOnly())
     {
-        c.name = chan;
-        c.topic = "";
-        c.topicProtected = false;
-        c.inviteOnly = false;
-    }
-    if (c.inviteOnly)
-    {
-        if (c.invitedNicks.find(usr->getNick()) == c.invitedNicks.end())
+        if (!channel->isInvited(usr->getNick()))
         {
             _sendToFD(usr->getFD(), ":server 473 " + chan + " :Cannot join channel (+i)\r\n");
             return ;
         }
         else
         {
-            c.invitedNicks.erase(usr->getNick());
+            channel->removeInvite(usr->getNick());
         }
     }
-    c.members.insert(usr->getFD());
-    if (c.members.size() == 1)
-        c.operators.insert(usr->getFD());
-    // Notify channel (simple join message)
-    _broadcastToChannel(chan, -1, ":server NOTICE " + chan + " :" + usr->getNick() + " joined", true);
+    
+    if (channel->addMember(usr->getFD()))
+    {
+        usr->addChannel(chan);
+        // Notify channel (simple join message)
+        _broadcastToChannel(channel, -1, ":server NOTICE " + chan + " :" + usr->getNick() + " joined", true);
+    }
 }
 
 void	Server::handlePart(Message *msg, User *usr)
 {
-	(void)msg;
-	(void)usr;
-	std::cout << "part" << std::endl;
+    std::list<std::string> params = msg->getParams();
+    if (params.empty())
+        return ;
+    std::string chan = params.front();
+    // Robust normalisation: handle PART  #chan and PART :#chan
+    while (true)
+    {
+        if (!chan.empty() && chan[0] == ':')
+            chan.erase(0, 1);
+        while (!chan.empty() && (chan[0] == ' ' || chan[0] == '\r' || chan[0] == '\n' || chan[0] == '\t'))
+            chan.erase(0, 1);
+        if (!chan.empty() || params.size() <= 1)
+            break;
+        // Current token was empty/whitespace-only after trimming; try next param
+        params.pop_front();
+        chan = params.front();
+    }
+    if (chan.empty() || chan[0] != '#')
+        return ;
+    
+    Channel *channel = _findChannel(chan);
+    if (!channel)
+        return ;
+    
+    if (channel->removeMember(usr->getFD()))
+    {
+        usr->removeChannel(chan);
+        _broadcastToChannel(channel, -1, ":server NOTICE " + chan + " :" + usr->getNick() + " left", true);
+        
+        // If channel is empty, remove it
+        if (channel->isEmpty())
+            _removeChannel(chan);
+    }
 }
 
 void	Server::handleNames(Message *msg, User *usr)
 {
     (void)msg;
-    for (std::map<std::string, Channel>::const_iterator it = _channels.begin(); it != _channels.end(); ++it)
+    for (std::map<std::string, Channel*>::const_iterator it = _channels.begin(); it != _channels.end(); ++it)
     {
         const std::string &chan = it->first;
         std::string line = "353 = " + chan + " :";
-        const Channel &c = it->second;
-        for (std::set<int>::const_iterator fit = c.members.begin(); fit != c.members.end(); ++fit)
+        Channel *c = it->second;
+        const std::set<int> &members = c->getMembers();
+        for (std::set<int>::const_iterator fit = members.begin(); fit != members.end(); ++fit)
         {
             std::map<int, User*>::const_iterator uit = _moreClients.find(*fit);
             if (uit != _moreClients.end() && uit->second)
             {
-                if (fit != c.members.begin()) line += " ";
+                if (fit != members.begin()) line += " ";
                 line += uit->second->getNick();
             }
         }
@@ -513,11 +544,11 @@ void	Server::handleNames(Message *msg, User *usr)
 void	Server::handleList(Message *msg, User *usr)
 {
     (void)msg;
-    for (std::map<std::string, Channel>::const_iterator it = _channels.begin(); it != _channels.end(); ++it)
+    for (std::map<std::string, Channel*>::const_iterator it = _channels.begin(); it != _channels.end(); ++it)
     {
-        const Channel &c = it->second;
+        Channel *c = it->second;
         std::stringstream ss;
-        ss << "322 " << c.name << " " << c.members.size() << " :" << c.topic;
+        ss << "322 " << c->getName() << " " << c->getMemberCount() << " :" << c->getTopic();
         _sendToFD(usr->getFD(), ss.str() + "\r\n");
     }
 }
@@ -527,43 +558,102 @@ void	Server::handleTopic(Message *msg, User *usr)
     std::list<std::string> params = msg->getParams();
     if (params.empty()) return ;
     std::string chan = params.front();
-    std::map<std::string, Channel>::iterator it = _channels.find(chan);
-    if (it == _channels.end()) return ;
-    Channel &c = it->second;
+    Channel *channel = _findChannel(chan);
+    if (!channel) return ;
+    
     if (params.size() == 1)
     {
-        _sendToFD(usr->getFD(), ":server 332 " + chan + " :" + c.topic + "\r\n");
+        _sendToFD(usr->getFD(), ":server 332 " + chan + " :" + channel->getTopic() + "\r\n");
         return ;
     }
-    if (c.topicProtected && !_isChanOp(c, usr->getFD()))
+    if (channel->isTopicProtected() && !channel->isOperator(usr->getFD()))
     {
         _sendToFD(usr->getFD(), ":server 482 " + chan + " :You're not channel operator\r\n");
         return ;
     }
     params.pop_front();
     std::string newTopic = params.front();
-    c.topic = newTopic;
-    _broadcastToChannel(chan, -1, ":server TOPIC " + chan + " :" + newTopic, true);
+    channel->setTopic(newTopic);
+    _broadcastToChannel(channel, -1, ":server TOPIC " + chan + " :" + newTopic, true);
 }
 
 void	Server::handleInvite(Message *msg, User *usr)
 {
-	(void)msg;
-	(void)usr;
-    std::cout << "invite" << std::endl;
+    std::list<std::string> params = msg->getParams();
+    if (params.size() < 2) return ;
+    std::string nick = params.front(); params.pop_front();
+    std::string chan = params.front();
+    Channel *channel = _findChannel(chan);
+    if (!channel) return ;
+    
+    if (!channel->isOperator(usr->getFD()))
+    {
+        _sendToFD(usr->getFD(), ":server 482 " + chan + " :You're not channel operator\r\n");
+        return ;
+    }
+    channel->addInvite(nick);
+    User *target = _findUserByNick(nick);
+    if (target)
+        _sendToFD(target->getFD(), ":server INVITE " + nick + " " + chan + "\r\n");
 }
 
 void	Server::handleMode(Message *msg, User *usr)
 {
-	(void)msg;
-	(void)usr;
-	std::cout << "mode" << std::endl;
+    std::list<std::string> params = msg->getParams();
+    if (params.size() < 2) return ;
+    std::string chan = params.front(); params.pop_front();
+    std::string flags = params.front(); params.pop_front();
+    Channel *channel = _findChannel(chan);
+    if (!channel) return ;
+    
+    if (!channel->isOperator(usr->getFD()))
+    {
+        _sendToFD(usr->getFD(), ":server 482 " + chan + " :You're not channel operator\r\n");
+        return ;
+    }
+    
+    bool adding = true;
+    for (size_t i = 0; i < flags.size(); ++i)
+    {
+        char f = flags[i];
+        if (f == '+') { adding = true; continue; }
+        if (f == '-') { adding = false; continue; }
+        
+        std::string param = "";
+        if (!params.empty())
+        {
+            param = params.front();
+            params.pop_front();
+        }
+        
+        if (channel->setMode(f, adding, param))
+        {
+            std::string modeStr = (adding ? "+" : "-") + std::string(1, f);
+            if (!param.empty())
+                modeStr += " " + param;
+            _broadcastToChannel(channel, -1, ":server MODE " + chan + " " + modeStr, true);
+        }
+    }
 }
 
 Server::~Server(void)
 {
 	// Libera recursos si es necesario
 	std::cout << "Server destructor called." << std::endl;
+	
+	// Clean up channels
+	for (std::map<std::string, Channel*>::iterator it = _channels.begin(); it != _channels.end(); ++it)
+	{
+		delete it->second;
+	}
+	_channels.clear();
+	
+	// Clean up users
+	for (std::map<int, User*>::iterator it = _moreClients.begin(); it != _moreClients.end(); ++it)
+	{
+		delete it->second;
+	}
+	_moreClients.clear();
 }
 
 // TODO Consider being more lenient and allowing \r only to terminate commands
@@ -620,6 +710,31 @@ User* Server::_findUserByNick(const std::string &nick) const
     return NULL;
 }
 
+Channel* Server::_findChannel(const std::string &name) const
+{
+    std::map<std::string, Channel*>::const_iterator it = _channels.find(name);
+    if (it != _channels.end())
+        return it->second;
+    return NULL;
+}
+
+Channel* Server::_createChannel(const std::string &name)
+{
+    Channel *channel = new Channel(name);
+    _channels[name] = channel;
+    return channel;
+}
+
+void Server::_removeChannel(const std::string &name)
+{
+    std::map<std::string, Channel*>::iterator it = _channels.find(name);
+    if (it != _channels.end())
+    {
+        delete it->second;
+        _channels.erase(it);
+    }
+}
+
 void	Server::_sendToFD(int fd, const std::string &text) const
 {
     write(fd, text.c_str(), text.size());
@@ -627,11 +742,17 @@ void	Server::_sendToFD(int fd, const std::string &text) const
 
 void	Server::_broadcastToChannel(const std::string &chan, int from_fd, const std::string &text, bool include_sender) const
 {
-    std::map<std::string, Channel>::const_iterator it = _channels.find(chan);
-    if (it == _channels.end())
-        return ;
-    const Channel &c = it->second;
-    for (std::set<int>::const_iterator fit = c.members.begin(); fit != c.members.end(); ++fit)
+    Channel *channel = _findChannel(chan);
+    if (channel)
+        _broadcastToChannel(channel, from_fd, text, include_sender);
+}
+
+void	Server::_broadcastToChannel(Channel *channel, int from_fd, const std::string &text, bool include_sender) const
+{
+    if (!channel)
+        return;
+    const std::set<int> &members = channel->getMembers();
+    for (std::set<int>::const_iterator fit = members.begin(); fit != members.end(); ++fit)
     {
         if (!include_sender && *fit == from_fd)
             continue;
@@ -639,18 +760,6 @@ void	Server::_broadcastToChannel(const std::string &chan, int from_fd, const std
     }
 }
 
-bool	Server::_isChanOp(const Channel &c, int fd) const
-{
-    return (c.operators.find(fd) != c.operators.end());
-}
-
-void	Server::_setChanOp(Channel &c, int fd, bool make_op)
-{
-    if (make_op)
-        c.operators.insert(fd);
-    else
-        c.operators.erase(fd);
-}
 
 void	Server::handlePass(Message *msg, User *usr) const
 {

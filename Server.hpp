@@ -11,6 +11,7 @@
 
 class	Message;
 class	User;
+class	Channel;
 
 // What should this hold?
 // - port
@@ -31,17 +32,7 @@ class	Server
 		std::map<int, std::string>	_partial_msgs;
 		std::map<int, User*>	_moreClients;	// TODO Potentially  this replaces _clients()
 		// --- Channels ---
-		struct Channel {
-			Channel(): name(), topic(), members(), operators(), invitedNicks(), topicProtected(false), inviteOnly(false) {}
-			std::string			name;
-			std::string			topic;
-			std::set<int>		members;
-			std::set<int>		operators; // fds with op rights
-			std::set<std::string>	invitedNicks; // invite list by nick
-			bool				topicProtected; // +t only ops can set topic
-			bool				inviteOnly; // +i invite-only channel
-		};
-		std::map<std::string, Channel>	_channels;
+		std::map<std::string, Channel*>	_channels;
 
 					Server(void);	// private so not called
 					Server(const Server &irc);	// No good reason to allow copy construction of the server
@@ -59,10 +50,12 @@ class	Server
 
 		// --- Helpers for channels/users ---
 		User*		_findUserByNick(const std::string &nick) const;
+		Channel*	_findChannel(const std::string &name) const;
+		Channel*	_createChannel(const std::string &name);
+		void		_removeChannel(const std::string &name);
 		void		_sendToFD(int fd, const std::string &text) const;
 		void		_broadcastToChannel(const std::string &chan, int from_fd, const std::string &text, bool include_sender=false) const;
-		bool		_isChanOp(const Channel &c, int fd) const;
-		void		_setChanOp(Channel &c, int fd, bool make_op);
+		void		_broadcastToChannel(Channel *channel, int from_fd, const std::string &text, bool include_sender=false) const;
 
 		// --- Manejo de comandos IRC ---
 		void        handleKick(Message *msg, int sender_fd);
