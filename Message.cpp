@@ -176,3 +176,27 @@ User*	Message::getOrigin() const
 {
 	return (this->_origin);
 }
+
+// Return the message's parameters as a string suitable to include in
+// a transmittable form
+// NOTE The final parameter is the only one allowed to contain spaces
+// ...it must be preceded by :
+std::string	Message::_paramToString(std::list<std::string> lst)
+{
+	std::string	msg;
+	int	n;
+
+	if (lst.empty())
+		return (msg);
+	n = lst.size();
+	std::list<std::string>::const_iterator  it = lst.begin();
+	while (it != lst.end())
+	{
+		if (n == 1)
+			msg.append(":");
+		msg.append(*it);
+		it++;
+		n--;
+	}
+	return (msg);
+}

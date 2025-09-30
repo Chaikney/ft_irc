@@ -31,6 +31,7 @@ class	Message
 
 		void		_stepOver(std::istringstream &strm) const;
 		void		_parseMessage(std::string text_recvd);
+		std::string	_paramToString(std::list<std::string> lst);	// NOTE Helper for making transmittable messages
 
 	public:
 					Message(std::string raw_text);
