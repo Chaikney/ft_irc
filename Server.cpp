@@ -540,10 +540,25 @@ void	Server::handleMode(Message *msg, User *usr)
         }
     }
 }
+
 Server::~Server(void)
 {
 	// Libera recursos si es necesario
 	std::cout << "Server destructor called." << std::endl;
+	
+	// Clean up channels
+	for (std::map<std::string, Channel*>::iterator it = _channels.begin(); it != _channels.end(); ++it)
+	{
+		delete it->second;
+	}
+	_channels.clear();
+	
+	// Clean up users
+	for (std::map<int, User*>::iterator it = _moreClients.begin(); it != _moreClients.end(); ++it)
+	{
+		delete it->second;
+	}
+	_moreClients.clear();
 }
 
 // TODO Consider being more lenient and allowing \r only to terminate commands
