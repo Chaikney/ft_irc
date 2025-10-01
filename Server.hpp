@@ -15,10 +15,12 @@ class	Channel;
 // What should this hold?
 // - port
 // - password (passed in on command line)
-// TODO Add storage for Registered Users
-// TODO Add storage for Channels (and members?)
-// TODO Which attributes should be marked as const?
-// TODO Add getters for any relevant attribute
+// TODO Commands to implement:
+// [ ] PING
+// [ ] PONG
+// [ ] QUIT
+// [ ] ERROR
+// TODO We don't need both _clients and _moreClients, it looks stupid
 class	Server
 {
 	private:

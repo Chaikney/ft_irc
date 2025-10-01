@@ -30,6 +30,7 @@
 // Helper para poner un socket en modo no bloqueante
 // Get the existing flags for the newly-accepted clientSocket
 // Add non-blocking to those existing client flags
+// TODO Check everywhere for fcntl calls which should be replaced by this
 bool Server::_setNonBlocking(int fd)
 {
 	int flags = fcntl(fd, F_GETFL, 0);
@@ -63,6 +64,7 @@ Server::Server(int port, std::string password) : _socketFD(0), _epollFD(0),
 
 	// Set socket to non-blocking by:
 	// Get the existing flags for the newly-created Socket
+	// FIXME use helper function?
 	int flags = fcntl(_socketFD, F_GETFL, 0);
 	// Add non-blocking to those existing client flags
 	fcntl(_socketFD, F_SETFL, flags | O_NONBLOCK);
@@ -113,40 +115,39 @@ Server::Server(int port, std::string password) : _socketFD(0), _epollFD(0),
 // - make an event struct for its input
 // - add that to the epollFD that we monitor.
 // NOTE If something goes wrong, throws a runtime_error exception to be caught outside
-// TODO Make proper use of the newUser!
+// TODO Make proper use of the newUser! (WHAT DOES THAT MEAN?)
 void	Server::_addNewClient()
 {
 	try
 	{
-	int clientSocket = accept(this->_socketFD, NULL, NULL);
+		int clientSocket = accept(this->_socketFD, NULL, NULL);
 
-	if (clientSocket == -1)
-		throw std::runtime_error("Could not get client socket");
-	std::cout << "Nuevo cliente conectado, fd: " << clientSocket << std::endl;
-	// Hacer el socket del cliente no bloqueante
-	if (!_setNonBlocking(clientSocket))
-	{
-		close (clientSocket);
-		throw std::runtime_error("Failed to set client socket non-blocking!");
-	}
+		if (clientSocket == -1)
+			throw std::runtime_error("Could not get client socket");
+		std::cout << "Nuevo cliente conectado, fd: " << clientSocket << std::endl;
+		// Hacer el socket del cliente no bloqueante
+		if (!_setNonBlocking(clientSocket))
+		{
+			close (clientSocket);
+			throw std::runtime_error("Failed to set client socket non-blocking!");
+		}
 		User	*newUser = User::makeUser(clientSocket);
 		std::cout << "Created a new user from fd" << clientSocket << std::endl;
 		this->_moreClients[clientSocket] = newUser;
-//		delete newUser;	// HACK Until I know what to do with the user
-	// Añadir el cliente a epoll
-	struct epoll_event ev;
-	ev.events = EPOLLIN | EPOLLET;
-	ev.data.fd = clientSocket;
-	//if (epoll_ctl(_epollFD, EPOLL_CTL_ADD, clientSocket, &ev) == -1)
-	if (epoll_ctl(_epollFD, EPOLL_CTL_ADD, newUser->getFD(), &ev) == -1)
-	{
-		close(clientSocket);
-		throw std::runtime_error("Could not add client socket to epoll");
-	}
-	else
-	{
-		this->_clients.insert(newUser->getFD());
-	}
+		// Añadir el cliente a epoll
+		struct epoll_event ev;
+		ev.events = EPOLLIN | EPOLLET;
+		ev.data.fd = clientSocket;
+		//if (epoll_ctl(_epollFD, EPOLL_CTL_ADD, clientSocket, &ev) == -1)
+		if (epoll_ctl(_epollFD, EPOLL_CTL_ADD, newUser->getFD(), &ev) == -1)
+		{
+			close(clientSocket);
+			throw std::runtime_error("Could not add client socket to epoll");
+		}
+		else
+		{
+			this->_clients.insert(newUser->getFD());
+		}
 	}
 	catch (std::exception &e)
 	{
@@ -160,6 +161,7 @@ void	Server::_addNewClient()
 // NOTE Should the events array we pass in be stored as part of the class instead?
 // NOTE This could work on an int fd only, but this allows other actions if needed.
 // DONE Once we have User instances, this should remove those too
+// TODO All of the Channels that contain this User should be notified of the disconnection
 void	Server::_removeClient(struct epoll_event &goodbye)
 {
 	std::cout << "Cliente desconectado, fd: " << goodbye.data.fd << std::endl;
@@ -182,13 +184,10 @@ void	Server::_removeClient(struct epoll_event &goodbye)
 // --- i.e. we add it to the set of Things Listened For
 // --- first setting it as nonblocking
 // -- if it is *not* on the server fd then it is from a client
-// --- TODO Do more useful things with the client input - build command, register users
-// --- (Currently we just echo the input to stdout)
-// TODO Some parts of this should be made more C++ like,
-// e.g. stringstream insteaad of manually terminating a character buffer
-// TODO The errors should throw exception of some kind
-// TODO Refactor this into separate functions; it is unreadable now
+// TODO The errors (anything on std::cerr) should throw exception of some kind
 // TODO Handle client disconnnections better: currently cause "failed to read new input"
+// TODO MAX_EVENTS is better as a class variable
+// TODO refactor out the "message to queue" part of the loop, it's too long
 void Server::run()
 {
 	std::cout << "server on, waiting for conections (epoll)..." << std::endl;
@@ -287,6 +286,10 @@ void	Server::_printMessageQueue(std::queue<Message *> toPrint) const
 
 // Manejo de comandos IRC ---
 // Esqueleto para el comando KICK
+// TODO Remove repetitive parts like checking the channel name, that should be in Channel::_findChannel
+// TODO isOperator() probably is based on NICK or USER not a fd? What happens if they reconnect?
+// TODO Wrong number of parameters needs an error message sent
+// TODO Unified message creation / sending not the hardcoded parameters
 void Server::handleKick(Message *msg, int sender_fd)
 {
 	std::cout << "[KICK] Comando recibido de fd " << sender_fd << std::endl;
@@ -374,9 +377,8 @@ void Server::handlePrivmsg(Message *msg, int sender_fd)
 
 // Get user
 // Get parameters
-// Check the requested nick is valid
-// set new nicname on user (will need a setter on User?)
-// DONE Check that the Nick does not already exist - can grab from branch
+// Check the requested nick is valid and does not already exist
+// Set new nickname on User (will need a setter on User?)
 void	Server::handleNick(Message *msg, User *usr)
 {
 	std::list<std::string>	_params = msg->getParams();
@@ -413,6 +415,7 @@ void	Server::handleNick(Message *msg, User *usr)
 }
 
 // FIXED Protect against empty _params!
+// TODO 3 parameters is probably OK, be less strict and fill gaps with NICK
 void	Server::handleUser(Message *msg, User *usr)
 {
 	std::list<std::string>	_params = msg->getParams();
@@ -438,6 +441,12 @@ void	Server::handleUser(Message *msg, User *usr)
 	std::cout << "User: " << newUser << ", Really: " << newRName << std::endl;
 }
 
+// FIXME This does not cause clients to realise they have joined a room :|
+// TODO Send acknowledgements per https://modern.ircdocs.horse/#join-message
+// [ ] A JOIN message with the client as the message <source> and the channel they have joined as the first parameter of the message.
+// [ ] The channel’s topic (with RPL_TOPIC (332) and optionally RPL_TOPICWHOTIME (333)), and no message if the channel does not have a topic.
+// [ ] A list of users currently joined to the channel (with one or more RPL_NAMREPLY (353) numerics followed by a single RPL_ENDOFNAMES (366) numeric). These RPL_NAMREPLY messages sent by the server MUST include the requesting client that has just joined the channel.
+// TODO Break out the name normalisation to a helper function
 void	Server::handleJoin(Message *msg, User *usr)
 {
     std::list<std::string> params = msg->getParams();
@@ -485,6 +494,9 @@ void	Server::handleJoin(Message *msg, User *usr)
     }
 }
 
+// TODO Factor out the channel name normalisation, it is repeated everywhere
+// TODO Unsuccessful commands will need an Error reply
+// TODO Use a standard function to craft message, not hardcoded parameters
 void	Server::handlePart(Message *msg, User *usr)
 {
     std::list<std::string> params = msg->getParams();
@@ -802,6 +814,16 @@ void	Server::handlePass(Message *msg, User *usr) const
 // NOTE How do we make sure that this is non-blocking?
 // TODO Need some kind of matching / switch-case logic here (I guess)
 // NOTE This function has friend-based access to Message so it can extract the User involved
+// TODO Send messages to client on succesful registration:
+// RPL_WELCOME (001),
+// RPL_YOURHOST (002),
+// RPL_CREATED (003),
+// RPL_MYINFO (004),
+// at least one RPL_ISUPPORT (005) numeric to the client.
+// The server MAY then send other numerics and messages.
+// The server SHOULD then respond as though the client sent the LUSERS command and return the appropriate numerics.
+// The server MUST then respond as though the client sent it the MOTD command, i.e. it must send either the successful Message of the Day numerics or the ERR_NOMOTD (422) numeric.
+// If the user has client modes set on them automatically upon joining the network, the server SHOULD send the client the RPL_UMODEIS (221) reply or a MODE message with the client as target, preferably the former.
 void	Server::_processQueue(void)
 {
 	Message	*do_next;
