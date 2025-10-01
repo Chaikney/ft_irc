@@ -481,6 +481,26 @@ void	Server::handleTopic(Message *msg, User *usr)
     channel->setTopic(newTopic);
     _broadcastToChannel(channel, -1, ":server TOPIC " + chan + " :" + newTopic, true);
 }
+
+void	Server::handleInvite(Message *msg, User *usr)
+{
+    std::list<std::string> params = msg->getParams();
+    if (params.size() < 2) return ;
+    std::string nick = params.front(); params.pop_front();
+    std::string chan = params.front();
+    Channel *channel = _findChannel(chan);
+    if (!channel) return ;
+    
+    if (!channel->isOperator(usr->getFD()))
+    {
+        _sendToFD(usr->getFD(), ":server 482 " + chan + " :You're not channel operator\r\n");
+        return ;
+    }
+    channel->addInvite(nick);
+    User *target = _findUserByNick(nick);
+    if (target)
+        _sendToFD(target->getFD(), ":server INVITE " + nick + " " + chan + "\r\n");
+}
 Server::~Server(void)
 {
 	// Libera recursos si es necesario
