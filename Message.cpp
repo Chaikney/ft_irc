@@ -200,3 +200,28 @@ std::string	Message::_paramToString(std::list<std::string> lst)
 	}
 	return (msg);
 }
+
+// NOTE We are not sending tags, so we ignore them
+// message ::= ['@' <tags> SPACE] [':' <source> SPACE] <command> <parameters> <crlf>
+//  SPACE  ::=  %x20 *( %x20 )   ; space character(s)
+//  crlf   ::=  %x0D %x0A        ; "carriage return" "linefeed"
+std::string	Message::_serialiseMsg(void)
+{
+	std::string	msg;
+	// if (!this->_tags.empty())
+		// handle tags
+	if (!this->_source.empty())
+	{
+		msg.append(":");
+		msg.append(this->_source);
+		msg.append(" ");
+	}
+	msg.append(this->_command);
+	if (!this->_params.empty())
+	{
+		msg.append(" ");
+		msg.append(_paramToString(this->_params));
+	}
+	msg.append("\n\r");
+	return (msg);
+}

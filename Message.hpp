@@ -32,6 +32,7 @@ class	Message
 		void		_stepOver(std::istringstream &strm) const;
 		void		_parseMessage(std::string text_recvd);
 		std::string	_paramToString(std::list<std::string> lst);	// NOTE Helper for making transmittable messages
+		std::string	_serialiseMsg(void);	// All the pieces into a one-line string
 
 	public:
 					Message(std::string raw_text);
@@ -48,8 +49,7 @@ class	Message
 		User*					getOrigin() const;
 
 
-		// Declare this as friend so it can access _origin
-		// ...maybe only _processQueue needed?
+		// Declared as friend so it can access User._origin
 		friend	void	Server::_processQueue(void);
 };
 
