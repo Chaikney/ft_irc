@@ -302,10 +302,41 @@ void Server::handleKick(Message *msg, int sender_fd)
 }
 
 // Esqueleto para el comando PRIVMSG (opcional, puedes completarlo luego)
+// TODO use Server_reply for the 404
+// TODO There are further checks needed on whether a message is allowed, see docs
+// Sends a message to user(s) or channel(s)
+// https://modern.ircdocs.horse/#privmsg-message
 void Server::handlePrivmsg(Message *msg, int sender_fd)
 {
 	// Aquí va la lógica para enviar mensajes privados o a canales
 	std::cout << "[PRIVMSG] Comando recibido de fd " << sender_fd << " " << msg << std::endl;
+	std::list<std::string> params = msg->getParams();
+	if (params.size() < 2)
+		return ;
+	std::string target = params.front();
+	params.pop_front();
+	std::string text = params.front();
+	// Channel message
+	if (!target.empty() && target[0] == '#')
+	{
+		// Only allow if sender is member of the channel
+		Channel *channel = _findChannel(target);
+		if (!channel)
+			return ;
+		if (!channel->isMember(sender_fd))
+		{
+			// 404 ERR_CANNOTSENDTOCHAN
+			_sendToFD(sender_fd, ":server 404 " + target + " :Cannot send to channel\r\n");
+			return ;
+		}
+		_broadcastToChannel(channel, sender_fd, text, false);
+	}
+	else
+	{
+		User *to = _findUserByNick(target);
+		if (to)
+			_sendToFD(to->getFD(), text + "\r\n");
+	}
 }
 
 // Get user
