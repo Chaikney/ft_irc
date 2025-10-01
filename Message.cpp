@@ -192,6 +192,7 @@ std::string	Message::_paramToString(std::list<std::string> lst)
 	std::list<std::string>::const_iterator  it = lst.begin();
 	while (it != lst.end())
 	{
+		msg.append(" ");
 		if (n == 1)
 			msg.append(":");
 		msg.append(*it);
@@ -205,6 +206,7 @@ std::string	Message::_paramToString(std::list<std::string> lst)
 // message ::= ['@' <tags> SPACE] [':' <source> SPACE] <command> <parameters> <crlf>
 //  SPACE  ::=  %x20 *( %x20 )   ; space character(s)
 //  crlf   ::=  %x0D %x0A        ; "carriage return" "linefeed"
+//  TODO Test the output of this
 std::string	Message::_serialiseMsg(void)
 {
 	std::string	msg;
@@ -222,6 +224,6 @@ std::string	Message::_serialiseMsg(void)
 		msg.append(" ");
 		msg.append(_paramToString(this->_params));
 	}
-	msg.append("\n\r");
+	msg.append("\r\n");
 	return (msg);
 }
