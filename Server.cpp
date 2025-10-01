@@ -238,12 +238,7 @@ void Server::run()
 						this->_toProcess.push(nxtMessage);
 					}
 					std::cout << "Mensaje recibido de fd " << events[i].data.fd << ": " << str_buf << std::endl;
-					// HACK Loop to send to all other clients connected
-					for (std::set<int>::iterator it = _clients.begin(); it != _clients.end(); ++it)
-					{
-						if (*it != events[i].data.fd)
-							write(*it, str_buf.c_str(), str_buf.size());
-					}
+					// NOTE: No global broadcast here. Message dispatch happens via parsed commands (e.g., PRIVMSG)
 					// HACK debugging print statement below
 					//this->_printMessageQueue(this->_toProcess);
 				}
