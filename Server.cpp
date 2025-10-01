@@ -420,6 +420,43 @@ void	Server::handleJoin(Message *msg, User *usr)
         _broadcastToChannel(channel, -1, ":server NOTICE " + chan + " :" + usr->getNick() + " joined", true);
     }
 }
+
+void	Server::handlePart(Message *msg, User *usr)
+{
+    std::list<std::string> params = msg->getParams();
+    if (params.empty())
+        return ;
+    std::string chan = params.front();
+    // Robust normalisation: handle PART  #chan and PART :#chan
+    while (true)
+    {
+        if (!chan.empty() && chan[0] == ':')
+            chan.erase(0, 1);
+        while (!chan.empty() && (chan[0] == ' ' || chan[0] == '\r' || chan[0] == '\n' || chan[0] == '\t'))
+            chan.erase(0, 1);
+        if (!chan.empty() || params.size() <= 1)
+            break;
+        // Current token was empty/whitespace-only after trimming; try next param
+        params.pop_front();
+        chan = params.front();
+    }
+    if (chan.empty() || chan[0] != '#')
+        return ;
+    
+    Channel *channel = _findChannel(chan);
+    if (!channel)
+        return ;
+    
+    if (channel->removeMember(usr->getFD()))
+    {
+        usr->removeChannel(chan);
+        _broadcastToChannel(channel, -1, ":server NOTICE " + chan + " :" + usr->getNick() + " left", true);
+        
+        // If channel is empty, remove it
+        if (channel->isEmpty())
+            _removeChannel(chan);
+    }
+}
 Server::~Server(void)
 {
 	// Libera recursos si es necesario
@@ -485,6 +522,15 @@ Channel* Server::_createChannel(const std::string &name)
     return channel;
 }
 
+void Server::_removeChannel(const std::string &name)
+{
+    std::map<std::string, Channel*>::iterator it = _channels.find(name);
+    if (it != _channels.end())
+    {
+        delete it->second;
+        _channels.erase(it);
+    }
+}
 
 void	Server::_sendToFD(int fd, const std::string &text) const
 {

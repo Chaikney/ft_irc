@@ -49,6 +49,7 @@ class	Server
 
 		Channel*	_findChannel(const std::string &name) const;
 		Channel*	_createChannel(const std::string &name);
+		void		_removeChannel(const std::string &name);
 		void		_sendToFD(int fd, const std::string &text) const;
 		void		_broadcastToChannel(const std::string &chan, int from_fd, const std::string &text, bool include_sender=false) const;
 		void		_broadcastToChannel(Channel *channel, int from_fd, const std::string &text, bool include_sender=false) const;
@@ -59,6 +60,7 @@ class	Server
 		void		handleNick(Message *msg, User *usr);
 		void		handleUser(Message *msg, User *usr);
 		void		handleJoin(Message *msg, User *usr);
+		void		handlePart(Message *msg, User *usr);
 
 	public:
 					Server(int port, std::string password);
