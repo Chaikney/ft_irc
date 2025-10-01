@@ -64,6 +64,7 @@ class	Server
 		void		handleJoin(Message *msg, User *usr);
 		void		handlePart(Message *msg, User *usr);
 		void		handleNames(Message *msg, User *usr);
+		void		handleList(Message *msg, User *usr);
 		void		handleTopic(Message *msg, User *usr);
 		void		handleInvite(Message *msg, User *usr);
 		void		handleMode(Message *msg, User *usr);

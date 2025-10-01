@@ -482,6 +482,21 @@ void	Server::handleNames(Message *msg, User *usr)
         _sendToFD(usr->getFD(), line + "\r\n");
     }
 }
+
+// TODO Check this against specification: https://modern.ircdocs.horse/#list-message
+// NOTE Optionally takes parameters, should not ignore msg
+void	Server::handleList(Message *msg, User *usr)
+{
+    (void)msg;
+    for (std::map<std::string, Channel*>::const_iterator it = _channels.begin(); it != _channels.end(); ++it)
+    {
+        Channel *c = it->second;
+        std::stringstream ss;
+        ss << "322 " << c->getName() << " " << c->getMemberCount() << " :" << c->getTopic();
+        _sendToFD(usr->getFD(), ss.str() + "\r\n");
+    }
+}
+
 void	Server::handleTopic(Message *msg, User *usr)
 {
     std::list<std::string> params = msg->getParams();
