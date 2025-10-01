@@ -458,6 +458,30 @@ void	Server::handlePart(Message *msg, User *usr)
     }
 }
 
+// FIXME Does not comply with specifications of NAMES command
+// https://modern.ircdocs.horse/#names-message
+// TODO Read msg parameters and call to each named channel
+void	Server::handleNames(Message *msg, User *usr)
+{
+    (void)msg;
+    for (std::map<std::string, Channel*>::const_iterator it = _channels.begin(); it != _channels.end(); ++it)
+    {
+        const std::string &chan = it->first;
+        std::string line = "353 = " + chan + " :";
+        Channel *c = it->second;
+        const std::set<int> &members = c->getMembers();
+        for (std::set<int>::const_iterator fit = members.begin(); fit != members.end(); ++fit)
+        {
+            std::map<int, User*>::const_iterator uit = _moreClients.find(*fit);
+            if (uit != _moreClients.end() && uit->second)
+            {
+                if (fit != members.begin()) line += " ";
+                line += uit->second->getNick();
+            }
+        }
+        _sendToFD(usr->getFD(), line + "\r\n");
+    }
+}
 void	Server::handleTopic(Message *msg, User *usr)
 {
     std::list<std::string> params = msg->getParams();
