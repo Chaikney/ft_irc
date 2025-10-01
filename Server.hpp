@@ -80,5 +80,6 @@ class	Server
 //		bool		_checkPass(Message &msg) const;	//public to act as friend of Message
 		void		handlePass(Message *msg, User *usr) const;
 		void		_processQueue(void);	//public to act as friend of Message
+		bool		normaliseChanName(std::string *chan);
 };
 #endif

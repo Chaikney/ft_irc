@@ -295,21 +295,25 @@ void Server::handleKick(Message *msg, int sender_fd)
 	std::cout << "[KICK] Comando recibido de fd " << sender_fd << std::endl;
 	std::list<std::string> params = msg->getParams();
 	if (params.size() < 2)
+	{
+		// TODO Send error message
 		return ;
+	}
 	std::string chan = params.front(); params.pop_front();
 	std::string nick = params.front(); params.pop_front();
 	// Optional reason (rest of params)
 	std::string reason = "";
 	if (!params.empty())
 		reason = params.front();
-	// Normalise channel
-	if (!chan.empty() && chan[0] == ':') chan.erase(0, 1);
-	while (!chan.empty() && (chan[0] == ' ' || chan[0] == '\r' || chan[0] == '\n' || chan[0] == '\t')) chan.erase(0, 1);
-	if (chan.empty() || chan[0] != '#') return ;
-	
+	// Normalise channel name
+	if (this->normaliseChanName(&chan) == false)
+	{
+		// TODO Send error message and exit function
+		return ;
+	}
 	Channel *channel = _findChannel(chan);
-	if (!channel) return ;
-	
+	if (!channel)
+		return ;
 	// Sender must be channel operator
 	if (!channel->isOperator(sender_fd))
 	{
@@ -331,7 +335,7 @@ void Server::handleKick(Message *msg, int sender_fd)
 	}
 	// Remove target from channel
 	channel->removeMember(target->getFD());
-	target->removeChannel(chan);
+	target->removeChannel(chan);	// NOTE This depends on User storing their Channels, which they don't, currently
 	if (reason.empty()) reason = "Kicked";
 	// Notify channel and target
 	_broadcastToChannel(channel, -1, ":server KICK " + chan + " " + nick + " :" + reason, true);
@@ -447,6 +451,8 @@ void	Server::handleUser(Message *msg, User *usr)
 // [ ] The channel’s topic (with RPL_TOPIC (332) and optionally RPL_TOPICWHOTIME (333)), and no message if the channel does not have a topic.
 // [ ] A list of users currently joined to the channel (with one or more RPL_NAMREPLY (353) numerics followed by a single RPL_ENDOFNAMES (366) numeric). These RPL_NAMREPLY messages sent by the server MUST include the requesting client that has just joined the channel.
 // TODO Break out the name normalisation to a helper function
+// TODO JOIN can accept an alternative parameter of '0'
+// TODO Improve parameter handling so JOIN Can handle multiple Channels
 void	Server::handleJoin(Message *msg, User *usr)
 {
     std::list<std::string> params = msg->getParams();
@@ -456,23 +462,27 @@ void	Server::handleJoin(Message *msg, User *usr)
     // Robust normalisation: handle JOIN  #chan and JOIN :#chan
     while (true)
     {
-        if (!chan.empty() && chan[0] == ':')
-            chan.erase(0, 1);
-        while (!chan.empty() && (chan[0] == ' ' || chan[0] == '\r' || chan[0] == '\n' || chan[0] == '\t'))
-            chan.erase(0, 1);
-        if (!chan.empty() || params.size() <= 1)
-            break;
+		if (!this->normaliseChanName(&chan))
+		{
+			// TODO Send error message and stop processing message
+		}
+		else
+        // if (!chan.empty() && chan[0] == ':')
+        //     chan.erase(0, 1);
+        // while (!chan.empty() && (chan[0] == ' ' || chan[0] == '\r' || chan[0] == '\n' || chan[0] == '\t'))
+        //     chan.erase(0, 1);
+        // if (!chan.empty() || params.size() <= 1)
+        //     break;
         // Current token was empty/whitespace-only after trimming; try next param
-        params.pop_front();
-        chan = params.front();
+        // FIXME That assumption above does not hold
+			params.pop_front();
     }
-    if (chan.empty() || chan[0] != '#')
-        return ;
-    
-    Channel *channel = _findChannel(chan);
+
+    Channel *channel = this->_findChannel(chan);
     if (!channel)
-        channel = _createChannel(chan);
+        channel = this->_createChannel(chan);
     
+	// FIXME The invite handling logic does not work, "else" is incomplete
     if (channel->isInviteOnly())
     {
         if (!channel->isInvited(usr->getNick()))
@@ -492,6 +502,7 @@ void	Server::handleJoin(Message *msg, User *usr)
         // Notify channel (simple join message)
         _broadcastToChannel(channel, -1, ":server NOTICE " + chan + " :" + usr->getNick() + " joined", true);
     }
+	return ;
 }
 
 // TODO Factor out the channel name normalisation, it is repeated everywhere
@@ -931,4 +942,31 @@ bool	Server::_isNickTaken(const std::string &nick, int except_fd) const
             return (true);
     }
     return (false);
+}
+
+// Helper function, could be moved to Channel or to separate set of functions
+// Removes any leading : from the command
+// NOTE this should have already happened on Message construction
+// Remove any space characters in the name
+// (NOTE these should also have been removed in Message construction)
+// Returns TRUE if the string has been turned into a valid channel name
+// Returns FALSE if not
+// NOTE This modifies the string even if we say we can't do anything with it. Bad!
+bool	Server::normaliseChanName(std::string *chan)
+{
+	if (chan->empty())
+		return (false);
+	if (chan->find_first_of(':') == 0)
+		chan->erase(0, 1);
+	// These 3 characters are forbidden in Channel names
+	if (chan->find_first_of(" ,\a") != std::string::npos)
+		return (false);
+	// HACK Blanking this out because we should not need it and it doesn't work ATM
+	// while (!chan->empty() &&
+	// 	   (chan[0] == ' ' || chan[0] == '\r' || chan[0] == '\n' || chan[0] == '\t'))
+	// 	chan->erase(0, 1);
+	if (chan->empty() || chan->find_first_of("#&") == std::string::npos)
+		return (false) ;
+	else
+		return (true);
 }
