@@ -767,6 +767,20 @@ void	Server::_processQueue(void)
 				handleNick(do_next, do_next->getOrigin());
 			if (command.compare("USER") == 0)
 				handleUser(do_next, do_next->getOrigin());
+			if (command.compare("JOIN") == 0)
+				handleJoin(do_next, do_next->getOrigin());
+			if (command.compare("PART") == 0)
+				handlePart(do_next, do_next->getOrigin());
+			if (command.compare("NAMES") == 0)
+				handleNames(do_next, do_next->getOrigin());
+			if (command.compare("LIST") == 0)
+				handleList(do_next, do_next->getOrigin());
+			if (command.compare("TOPIC") == 0)
+				handleTopic(do_next, do_next->getOrigin());
+			if (command.compare("INVITE") == 0)
+				handleInvite(do_next, do_next->getOrigin());
+			if (command.compare("MODE") == 0)
+				handleMode(do_next, do_next->getOrigin());
 			else if (command == "KICK")
 				handleKick(do_next, do_next->getOrigin()->getFD());
 			else if (command == "PRIVMSG")
