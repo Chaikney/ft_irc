@@ -294,14 +294,52 @@ void	Server::_printMessageQueue(std::queue<Message *> toPrint) const
 // Esqueleto para el comando KICK
 void Server::handleKick(Message *msg, int sender_fd)
 {
-	// Aquí va la lógica para expulsar a un usuario de un canal
-	// Ejemplo: obtener parámetros, buscar usuario, eliminarlo del canal, notificar, etc.
-	(void) msg;
 	std::cout << "[KICK] Comando recibido de fd " << sender_fd << std::endl;
-	// Puedes acceder a los parámetros con msg->getParams()
+	std::list<std::string> params = msg->getParams();
+	if (params.size() < 2)
+		return ;
+	std::string chan = params.front(); params.pop_front();
+	std::string nick = params.front(); params.pop_front();
+	// Optional reason (rest of params)
+	std::string reason = "";
+	if (!params.empty())
+		reason = params.front();
+	// Normalise channel
+	if (!chan.empty() && chan[0] == ':') chan.erase(0, 1);
+	while (!chan.empty() && (chan[0] == ' ' || chan[0] == '\r' || chan[0] == '\n' || chan[0] == '\t')) chan.erase(0, 1);
+	if (chan.empty() || chan[0] != '#') return ;
+	
+	Channel *channel = _findChannel(chan);
+	if (!channel) return ;
+	
+	// Sender must be channel operator
+	if (!channel->isOperator(sender_fd))
+	{
+		_sendToFD(sender_fd, ":server 482 " + chan + " :You're not channel operator\r\n");
+		return ;
+	}
+	// Find target user
+	User *target = _findUserByNick(nick);
+	if (!target)
+	{
+		_sendToFD(sender_fd, ":server 401 " + nick + " :No such nick\r\n");
+		return ;
+	}
+	// Target must be member of channel
+	if (!channel->isMember(target->getFD()))
+	{
+		_sendToFD(sender_fd, ":server 441 " + nick + " " + chan + " :They aren't on that channel\r\n");
+		return ;
+	}
+	// Remove target from channel
+	channel->removeMember(target->getFD());
+	target->removeChannel(chan);
+	if (reason.empty()) reason = "Kicked";
+	// Notify channel and target
+	_broadcastToChannel(channel, -1, ":server KICK " + chan + " " + nick + " :" + reason, true);
+	_sendToFD(target->getFD(), ":server KICK " + chan + " " + nick + " :" + reason + "\r\n");
 }
 
-// Esqueleto para el comando PRIVMSG (opcional, puedes completarlo luego)
 // TODO use Server_reply for the 404
 // TODO There are further checks needed on whether a message is allowed, see docs
 // Sends a message to user(s) or channel(s)
