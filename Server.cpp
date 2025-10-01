@@ -374,6 +374,52 @@ void	Server::handleUser(Message *msg, User *usr)
 	std::cout << "User: " << newUser << ", Really: " << newRName << std::endl;
 }
 
+void	Server::handleJoin(Message *msg, User *usr)
+{
+    std::list<std::string> params = msg->getParams();
+    if (params.empty())
+        return ;
+    std::string chan = params.front();
+    // Robust normalisation: handle JOIN  #chan and JOIN :#chan
+    while (true)
+    {
+        if (!chan.empty() && chan[0] == ':')
+            chan.erase(0, 1);
+        while (!chan.empty() && (chan[0] == ' ' || chan[0] == '\r' || chan[0] == '\n' || chan[0] == '\t'))
+            chan.erase(0, 1);
+        if (!chan.empty() || params.size() <= 1)
+            break;
+        // Current token was empty/whitespace-only after trimming; try next param
+        params.pop_front();
+        chan = params.front();
+    }
+    if (chan.empty() || chan[0] != '#')
+        return ;
+    
+    Channel *channel = _findChannel(chan);
+    if (!channel)
+        channel = _createChannel(chan);
+    
+    if (channel->isInviteOnly())
+    {
+        if (!channel->isInvited(usr->getNick()))
+        {
+            _sendToFD(usr->getFD(), ":server 473 " + chan + " :Cannot join channel (+i)\r\n");
+            return ;
+        }
+        else
+        {
+            channel->removeInvite(usr->getNick());
+        }
+    }
+    
+    if (channel->addMember(usr->getFD()))
+    {
+        usr->addChannel(chan);
+        // Notify channel (simple join message)
+        _broadcastToChannel(channel, -1, ":server NOTICE " + chan + " :" + usr->getNick() + " joined", true);
+    }
+}
 Server::~Server(void)
 {
 	// Libera recursos si es necesario
@@ -424,6 +470,47 @@ std::string	Server::_getClientInput(int fd)
 
 // NOTE This works provided there is no \n at the end of the parameters
 // DONE Don't touch User if already verfified
+Channel* Server::_findChannel(const std::string &name) const
+{
+    std::map<std::string, Channel*>::const_iterator it = _channels.find(name);
+    if (it != _channels.end())
+        return it->second;
+    return NULL;
+}
+
+Channel* Server::_createChannel(const std::string &name)
+{
+    Channel *channel = new Channel(name);
+    _channels[name] = channel;
+    return channel;
+}
+
+
+void	Server::_sendToFD(int fd, const std::string &text) const
+{
+    write(fd, text.c_str(), text.size());
+}
+
+void	Server::_broadcastToChannel(const std::string &chan, int from_fd, const std::string &text, bool include_sender) const
+{
+    Channel *channel = _findChannel(chan);
+    if (channel)
+        _broadcastToChannel(channel, from_fd, text, include_sender);
+}
+
+void	Server::_broadcastToChannel(Channel *channel, int from_fd, const std::string &text, bool include_sender) const
+{
+    if (!channel)
+        return;
+    const std::set<int> &members = channel->getMembers();
+    for (std::set<int>::const_iterator fit = members.begin(); fit != members.end(); ++fit)
+    {
+        if (!include_sender && *fit == from_fd)
+            continue;
+        _sendToFD(*fit, text + "\r\n");
+    }
+}
+
 void	Server::handlePass(Message *msg, User *usr) const
 {
 	std::string	_sPass = this->_password;
