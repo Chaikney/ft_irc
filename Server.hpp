@@ -61,6 +61,7 @@ class	Server
 		void		handleUser(Message *msg, User *usr);
 		void		handleJoin(Message *msg, User *usr);
 		void		handlePart(Message *msg, User *usr);
+		void		handleTopic(Message *msg, User *usr);
 
 	public:
 					Server(int port, std::string password);

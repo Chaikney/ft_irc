@@ -457,6 +457,30 @@ void	Server::handlePart(Message *msg, User *usr)
             _removeChannel(chan);
     }
 }
+
+void	Server::handleTopic(Message *msg, User *usr)
+{
+    std::list<std::string> params = msg->getParams();
+    if (params.empty()) return ;
+    std::string chan = params.front();
+    Channel *channel = _findChannel(chan);
+    if (!channel) return ;
+    
+    if (params.size() == 1)
+    {
+        _sendToFD(usr->getFD(), ":server 332 " + chan + " :" + channel->getTopic() + "\r\n");
+        return ;
+    }
+    if (channel->isTopicProtected() && !channel->isOperator(usr->getFD()))
+    {
+        _sendToFD(usr->getFD(), ":server 482 " + chan + " :You're not channel operator\r\n");
+        return ;
+    }
+    params.pop_front();
+    std::string newTopic = params.front();
+    channel->setTopic(newTopic);
+    _broadcastToChannel(channel, -1, ":server TOPIC " + chan + " :" + newTopic, true);
+}
 Server::~Server(void)
 {
 	// Libera recursos si es necesario
