@@ -49,6 +49,8 @@ class	User
 		void				setNick(std::string nick);
 		void				setUser(std::string user);
 		void				setReal(std::string rname);
+		void				addChannel(const std::string &channel);
+		void				removeChannel(const std::string &channel);
 };
 
 // NOTE Remember to update this alongside the class members

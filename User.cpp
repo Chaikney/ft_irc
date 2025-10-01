@@ -115,3 +115,21 @@ void	User::setReal(std::string realname)
 {
 	this->_rname = realname;
 }
+
+// FIXME Implement or remove this function
+void	User::addChannel(const std::string &channel)
+{
+	// Simple implementation - just store channel name
+	// In a full implementation, this would add to a set of channels
+	(void)channel;
+	std::cerr << "User::addChannel is not implemented yet" << std::endl;
+}
+
+// FIXME Implement or remove this function
+void	User::removeChannel(const std::string &channel)
+{
+	// Simple implementation - just remove channel name
+	// In a full implementation, this would remove from a set of channels
+	(void)channel;
+	std::cerr << "User::removeChannel is not implemented yet" << std::endl;
+}
