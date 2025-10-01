@@ -501,6 +501,45 @@ void	Server::handleInvite(Message *msg, User *usr)
     if (target)
         _sendToFD(target->getFD(), ":server INVITE " + nick + " " + chan + "\r\n");
 }
+
+void	Server::handleMode(Message *msg, User *usr)
+{
+    std::list<std::string> params = msg->getParams();
+    if (params.size() < 2) return ;
+    std::string chan = params.front(); params.pop_front();
+    std::string flags = params.front(); params.pop_front();
+    Channel *channel = _findChannel(chan);
+    if (!channel) return ;
+    
+    if (!channel->isOperator(usr->getFD()))
+    {
+        _sendToFD(usr->getFD(), ":server 482 " + chan + " :You're not channel operator\r\n");
+        return ;
+    }
+    
+    bool adding = true;
+    for (size_t i = 0; i < flags.size(); ++i)
+    {
+        char f = flags[i];
+        if (f == '+') { adding = true; continue; }
+        if (f == '-') { adding = false; continue; }
+        
+        std::string param = "";
+        if (!params.empty())
+        {
+            param = params.front();
+            params.pop_front();
+        }
+        
+        if (channel->setMode(f, adding, param))
+        {
+            std::string modeStr = (adding ? "+" : "-") + std::string(1, f);
+            if (!param.empty())
+                modeStr += " " + param;
+            _broadcastToChannel(channel, -1, ":server MODE " + chan + " " + modeStr, true);
+        }
+    }
+}
 Server::~Server(void)
 {
 	// Libera recursos si es necesario
