@@ -806,14 +806,7 @@ void	Server::handlePass(Message *msg, User *usr) const
 // TODO Make this spin off thread(s) to process the command efficiently
 // NOTE How do we make sure that this is non-blocking?
 // TODO Need some kind of matching / switch-case logic here (I guess)
-// DONE First check that the User is allowed to have the MEssage processed
-// ...i.e. if no Pass, that is the only allowed action
 // NOTE This function has friend-based access to Message so it can extract the User involved
-// DONE Implement the commands needed for registration:
-// [X] CAP -- we could do this for a bonus but for just ignoring
-// [X] NICK
-// [X] USER
-// [X] PASS - partly done, make consistent
 void	Server::_processQueue(void)
 {
 	Message	*do_next;
@@ -825,12 +818,24 @@ void	Server::_processQueue(void)
 		std::cout << "Processing:" << *do_next << std::endl;
 		std::string command = do_next->getCommand();
 //		std::cout << "Comando parseado: [" << command << "]" << std::endl;
-		if (command.compare("PASS") == 0)
-			handlePass(do_next, do_next->getOrigin());
-		else if (command.compare("CAP") == 0)
+		if (command.compare("CAP") == 0)
 			std::cout << "Ignoring capability negotiation request" << std::endl;
-		// NOTE Probably KICK & PRIVMSG should change to accept a USER not FD
-		else if (do_next->_origin->isVerified())
+		// Only allow NICK/USER/PASS before registration. All others require full registration.
+		else if (!do_next->getOrigin()->isRegistered())
+		{
+			if (command.compare("PASS") == 0)
+				handlePass(do_next, do_next->getOrigin());
+			else if (command.compare("NICK") == 0)
+				handleNick(do_next, do_next->getOrigin());
+			else if (command.compare("USER") == 0)
+				handleUser(do_next, do_next->getOrigin());
+			else
+			{
+				// Send ERR_NOTREGISTERED (451) for other commands until registration completes
+				_reply(do_next->getOrigin()->getFD(), 451);
+			}
+		}
+		else if (do_next->getOrigin()->isRegistered())
 		{
 			if (command.compare("NICK") == 0)
 				handleNick(do_next, do_next->getOrigin());
@@ -850,6 +855,7 @@ void	Server::_processQueue(void)
 				handleInvite(do_next, do_next->getOrigin());
 			if (command.compare("MODE") == 0)
 				handleMode(do_next, do_next->getOrigin());
+			// FIXME KICK and PRIVMSG are inconsistent with the others, for no good reason
 			else if (command == "KICK")
 				handleKick(do_next, do_next->getOrigin()->getFD());
 			else if (command == "PRIVMSG")

@@ -43,6 +43,7 @@ class	User
 		std::string			getUser() const;
 		std::string			getReal() const;
 		bool				isVerified() const;
+		bool				isRegistered() const;
 		sockaddr_in			getAddress() const;		// NOTE This is too low-level to be public IMO
 		std::string			getHost() const;
 		void				switchVerification();
