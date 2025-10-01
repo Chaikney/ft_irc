@@ -1,6 +1,7 @@
 #include "Server.hpp"
 #include "Message.hpp"
 #include "User.hpp"
+#include "Channel.hpp"
 #include <iostream>
 #include <netinet/in.h>
 #include <sys/socket.h>
@@ -50,7 +51,7 @@ bool Server::_setNonBlocking(int fd)
 Server::Server(int port, std::string password) : _socketFD(0), _epollFD(0),
 												 _serverAddress(), _password(password),
 												 _toProcess(), _clients(), _partial_msgs(),
-												 _moreClients()
+												 _moreClients(), _channels()
 {
 	std::cout << "Server constructor with parameters called" << std::endl;
 	_socketFD = socket(AF_INET, SOCK_STREAM, 0);

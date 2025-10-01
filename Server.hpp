@@ -10,6 +10,7 @@
 
 class	Message;
 class	User;
+class	Channel;
 
 // What should this hold?
 // - port
@@ -29,6 +30,8 @@ class	Server
 		std::set<int> _clients;		// NOTE This is the fds to be sent to; may duplicate other info
 		std::map<int, std::string>	_partial_msgs;
 		std::map<int, User*>	_moreClients;	// TODO Potentially  this replaces _clients()
+		// --- Channels ---
+		std::map<std::string, Channel*>	_channels;
 
 					Server(void);	// private so not called
 					Server(const Server &irc);	// No good reason to allow copy construction of the server
