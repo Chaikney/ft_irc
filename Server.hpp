@@ -47,6 +47,8 @@ class	Server
 		void		_reply(int send_to, int msg) const;
 		bool		_isNickTaken(const std::string &nick, int except_fd = -1) const;
 
+		// --- Helpers for channels/users ---
+		User*		_findUserByNick(const std::string &nick) const;
 		Channel*	_findChannel(const std::string &name) const;
 		Channel*	_createChannel(const std::string &name);
 		void		_removeChannel(const std::string &name);

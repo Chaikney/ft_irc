@@ -588,8 +588,16 @@ std::string	Server::_getClientInput(int fd)
 	return (ret_val);
 }
 
-// NOTE This works provided there is no \n at the end of the parameters
-// DONE Don't touch User if already verfified
+User* Server::_findUserByNick(const std::string &nick) const
+{
+    for (std::map<int, User*>::const_iterator it = this->_moreClients.begin(); it != this->_moreClients.end(); ++it)
+    {
+        if (it->second && it->second->getNick() == nick)
+            return it->second;
+    }
+    return NULL;
+}
+
 Channel* Server::_findChannel(const std::string &name) const
 {
     std::map<std::string, Channel*>::const_iterator it = _channels.find(name);
