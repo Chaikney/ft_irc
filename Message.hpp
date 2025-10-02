@@ -43,13 +43,16 @@ class	Message
 					Message(const Message &irc);	// Copying a Message seems reasonable to allow
 					~Message(void);
 
+		// Turn a received string into a formatted Message for queuing
 		static Message*			makeMessage(std::string &str);
 		static Message*			makeMessage(std::string &str, User *origin);
+		// Getters
 		std::string				getTags() const;
 		std::string				getSource() const;
 		std::string				getCommand() const;
 		std::list<std::string>	getParams() const;
 		User*					getOrigin() const;
+		std::list<int>			getTargets() const;
 
 
 		// Declared as friend so it can access User._origin

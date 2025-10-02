@@ -154,7 +154,7 @@ Message	*Message::makeMessage(std::string &str, User *origin)
 	Message	*msg = new Message(str, origin);
 	return (msg);
 }
-// NOTE Must be a DEEP COPY of _params
+// NOTE Must be a DEEP COPY of _params, etc. Standard containers (probably?) take care of that for us.
 Message::Message(const Message &original): _tags(original._tags), _source(original._source),
 										   _command(original._command), _params(),
 										   _origin(original._origin), _targets(original._targets)
@@ -186,6 +186,11 @@ std::list<std::string>	Message::getParams() const
 User*	Message::getOrigin() const
 {
 	return (this->_origin);
+}
+
+std::list<int>	Message::getTargets() const
+{
+	return(this->_targets);
 }
 
 // Return the message's parameters as a string suitable to include in
