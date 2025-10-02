@@ -916,41 +916,6 @@ void	Server::_processQueue(void)
  	}
 }
 
-// Send a numeric reply in response to a command received
-// NOTE that this is more easily called if we import a
-// bunch of enums in a header, or similar.
-// TODO Decide how to handle the PARAMETERS that some messages need
-// ...call in the function? Lookup in another map? Transform in another function?
-// NOTE std::to_string() is c++17 onwards, forbidden :'(
-// NOTE We don't need to include EAGAIN because it enums the same as EWOULDBLOCK
-// void	Server::_reply(int send_to, int msg) const
-// {
-// 	std::stringstream strm;
-// 	strm << msg;
-// 	std::string msg_as_str = strm.str();
-// 	// const here is to avoid -fpermissive compiler warning
-// 	const char*		msg_buf = msg_as_str.c_str();
-// 	size_t		str_len = msg_as_str.length();
-
-// 	std::cout << "Sending:" << msg_buf << std::endl;
-// 	if (send(send_to, msg_buf, str_len, MSG_DONTWAIT) == -1)
-// 	{
-// 		// check error number and handle it
-// 		switch (errno)
-// 		{
-// 			case EWOULDBLOCK:
-// 				std::cerr << "Would block, split message or drop it" << std::endl;
-// 				break ;
-// 			default:
-// 				std::cerr << "Dunno, something else went wrong" << std::endl;
-// 		}
-// 	}
-// 	else
-// 	{
-// 		std::cout << "Server reply message sent OK" << std::endl;
-// 	}
-// }
-
 // Use the Message and code to create a reply Message to be queued
 // - source
 // - command = reply code
@@ -989,7 +954,6 @@ Message*	Server::_reply(Message &msg, int rep_code) const
 	transmit = new Message(src, cmd_as_str, params, targets);
 	return (transmit);
 }
-
 
 // Extract from message:
 // - text to be sent
