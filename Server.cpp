@@ -390,6 +390,7 @@ void	Server::handleNick(Message *msg, User *usr)
 	{
 		// send  ERR_NONICKNAMEGIVEN (431)
 		Message* err = this->makeServerReply(usr->getFD(), 431, usr->getNick());
+//		Message* err = this->_reply(msg, 431);
 		this->_toProcess.push(err);
 //		this->_reply(usr->getFD(), 431);
 //		this->_sendMessage(err);
@@ -406,13 +407,15 @@ void	Server::handleNick(Message *msg, User *usr)
 	{
 		std::cerr << "Bad characters in nickname" << std::endl;
 		// send  ERR_ERRONEUSNICKNAME (432)
-		this->_reply(usr->getFD(), 432);
+//  HACK for compilation
+//		this->_reply(usr->getFD(), 432);
 	}
 	else if (_isNickTaken(newNick, usr->getFD()))
 	{
 		std::cerr << "Nickname already in use." << std::endl;
 		// send ERR_NICKNAMEINUSE (433)
-		this->_reply(usr->getFD(), 433);
+//  HACK for compilation
+//		this->_reply(usr->getFD(), 433);
 	}
 	else
 	{
@@ -430,7 +433,8 @@ void	Server::handleUser(Message *msg, User *usr)
 	{
 		std::cerr << "Not enough parameters" << std::endl;
 		// send  ERR_NEEDMOREPARAMS (461)
-		this->_reply(usr->getFD(), 461);
+//  HACK for compilation
+//		this->_reply(usr->getFD(), 461);
 		return ;
 	}
 	std::string	newUser = _params.front();
@@ -801,8 +805,8 @@ void	Server::handlePass(Message *msg, User *usr)
 	if (_cPass.empty())
 	{
 		// ERR_NEEDMOREPARAMS
-		_reply(usr->getFD(), 461);
-		Message *err = makeServerReply(usr->getFD(), 461, "Not enough parameters");
+		Message* err = _reply(*msg, 461);
+//		Message *err = makeServerReply(usr->getFD(), 461, "Not enough parameters");
 		// FIXME Adding a to-server message causes a segfault - missing User maybe? for target or source?
 		this->_toProcess.push(err);
 //		_sendMessage(err);
@@ -814,14 +818,18 @@ void	Server::handlePass(Message *msg, User *usr)
 		if (!(usr->isVerified()))
 			usr->switchVerification();
 		else	 // ERR_ALREADYREGISTERED
-			_reply(usr->getFD(), 462);
+		{
+			Message* err = _reply(*msg, 462);
+//			_reply(usr->getFD(), 462);
+			this->_toProcess.push(err);
+		}
 		// TODO Server sends some kind of acknowledgment?
 	}
 	else
 	{
 		// TODO send ERR back client
 		// ERR_PASSWORDMISMATCH
-		_reply(usr->getFD(), 464);
+//		_reply(usr->getFD(), 464);
 		// TODO disconnect them by implementing the ERROR command
 	}
 }
@@ -874,7 +882,7 @@ void	Server::_processQueue(void)
 			else
 			{
 				// Send ERR_NOTREGISTERED (451) for other commands until registration completes
-				_reply(do_next->getOrigin()->getFD(), 451);
+//				_reply(do_next->getOrigin()->getFD(), 451);
 			}
 		}
 		else if (do_next->getOrigin()->isRegistered())
@@ -915,33 +923,67 @@ void	Server::_processQueue(void)
 // ...call in the function? Lookup in another map? Transform in another function?
 // NOTE std::to_string() is c++17 onwards, forbidden :'(
 // NOTE We don't need to include EAGAIN because it enums the same as EWOULDBLOCK
-void	Server::_reply(int send_to, int msg) const
-{
-	std::stringstream strm;
-	strm << msg;
-	std::string msg_as_str = strm.str();
-	// const here is to avoid -fpermissive compiler warning
-	const char*		msg_buf = msg_as_str.c_str();
-	size_t		str_len = msg_as_str.length();
+// void	Server::_reply(int send_to, int msg) const
+// {
+// 	std::stringstream strm;
+// 	strm << msg;
+// 	std::string msg_as_str = strm.str();
+// 	// const here is to avoid -fpermissive compiler warning
+// 	const char*		msg_buf = msg_as_str.c_str();
+// 	size_t		str_len = msg_as_str.length();
 
-	std::cout << "Sending:" << msg_buf << std::endl;
-	if (send(send_to, msg_buf, str_len, MSG_DONTWAIT) == -1)
+// 	std::cout << "Sending:" << msg_buf << std::endl;
+// 	if (send(send_to, msg_buf, str_len, MSG_DONTWAIT) == -1)
+// 	{
+// 		// check error number and handle it
+// 		switch (errno)
+// 		{
+// 			case EWOULDBLOCK:
+// 				std::cerr << "Would block, split message or drop it" << std::endl;
+// 				break ;
+// 			default:
+// 				std::cerr << "Dunno, something else went wrong" << std::endl;
+// 		}
+// 	}
+// 	else
+// 	{
+// 		std::cout << "Server reply message sent OK" << std::endl;
+// 	}
+// }
+
+// Use the Message and code to create a reply Message to be queued
+// - source
+// - command = reply code
+// - parameters: at least client (msg->usr-getNick())
+// - use a switch to add other parameters?
+Message*	Server::_reply(Message &msg, int rep_code) const
+{
+	Message*	transmit;
+	std::stringstream strm;
+	strm << rep_code;
+	std::string cmd_as_str = strm.str();
+
+	std::list<int>	targets;
+	targets.push_front(msg.getOrigin()->getFD());
+
+	std::string	src("ft_irc_server");
+
+	std::list<std::string>	params;
+	params.push_front(msg.getOrigin()->getNick());
+
+	switch (rep_code)
 	{
-		// check error number and handle it
-		switch (errno)
-		{
-			case EWOULDBLOCK:
-				std::cerr << "Would block, split message or drop it" << std::endl;
-				break ;
-			default:
-				std::cerr << "Dunno, something else went wrong" << std::endl;
-		}
+		case 461:
+			params.push_front(msg.getCommand());
+			params.push_front("Not enough parameters");
+			break;
+		default:
+			std::cerr << "Reply not handled yet:" << rep_code << std::endl;
 	}
-	else
-	{
-		std::cout << "Server reply message sent OK" << std::endl;
-	}
+	transmit = new Message(src, cmd_as_str, params, targets);
+	return (transmit);
 }
+
 
 // Extract from message:
 // - text to be sent

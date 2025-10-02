@@ -47,7 +47,7 @@ class	Server
 		bool		_isFullMsg(std::string msg) const;
 		void		_storePartial(int fd_source, std::string msg);
 		std::string	_getClientInput(int fd);
-		void		_reply(int send_to, int msg) const;
+//		void		_reply(int send_to, int msg) const;
 		bool		_isNickTaken(const std::string &nick, int except_fd = -1) const;
 		// TODO IS this in the right place?
 		Message*	makeServerReply(int target, int msg_code, std::string par) const;
@@ -88,5 +88,8 @@ class	Server
 //		bool		_checkPass(Message &msg) const;	//public to act as friend of Message
 		void		_processQueue(void);	//public to act as friend of Message
 		bool		normaliseChanName(std::string *chan);
+		// TODO Would this form work?
+		// HACK Public for freind-ing
+		Message*	_reply(Message &msg, int num_rep) const;
 };
 #endif

@@ -60,6 +60,7 @@ class	Message
 
 		// Declared as friend so it can access User._origin
 		friend	void	Server::_processQueue(void);
+		friend	Message*	_reply(Message &msg, int num_rep);
 };
 
 // TODO How can we make this return nothing when Message is absent/empty?
