@@ -197,7 +197,7 @@ std::list<int>	Message::getTargets() const
 // a transmittable form
 // NOTE The final parameter is the only one allowed to contain spaces
 // ...it must be preceded by :
-std::string	Message::_paramToString(std::list<std::string> lst)
+std::string	Message::_paramToString(std::list<std::string> lst) const
 {
 	std::string	msg;
 	int	n;
@@ -223,7 +223,7 @@ std::string	Message::_paramToString(std::list<std::string> lst)
 //  SPACE  ::=  %x20 *( %x20 )   ; space character(s)
 //  crlf   ::=  %x0D %x0A        ; "carriage return" "linefeed"
 //  TODO Test the output of this
-std::string	Message::_serialiseMsg(void)
+std::string	Message::serialiseMsg(void) const
 {
 	std::string	msg;
 	// if (!this->_tags.empty())

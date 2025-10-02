@@ -28,15 +28,16 @@ class	Message
 
 
 
+		// Constructor and overload that we may not use
 					Message(void);	// private so not called - no blank messages please
 		Message		operator=(const Message &irc);	// NOTE Not sure about assignment to a Message, this could be public
 
 		void		_stepOver(std::istringstream &strm) const;
 		void		_parseMessage(std::string text_recvd);
-		std::string	_paramToString(std::list<std::string> lst);	// NOTE Helper for making transmittable messages
-		std::string	_serialiseMsg(void);	// All the pieces into a one-line string
+		std::string	_paramToString(std::list<std::string> lst) const;	// NOTE Helper for making transmittable messages
 
 	public:
+		// Constructors of various types; review to make sure they're all needed.
 					Message(std::string raw_text);
 					Message(std::string text_recvd, User *usr);
 					Message(std::string &src, std::string &cmd, std::list<std::string> params, std::list<int> targets);
@@ -54,6 +55,8 @@ class	Message
 		User*					getOrigin() const;
 		std::list<int>			getTargets() const;
 
+		// All the pieces into a one-line string to send over a socket
+		std::string	serialiseMsg(void) const;
 
 		// Declared as friend so it can access User._origin
 		friend	void	Server::_processQueue(void);
