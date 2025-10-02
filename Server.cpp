@@ -937,13 +937,13 @@ void	Server::_reply(int send_to, int msg) const
 // TODO Safety checks needed on FD list send_to
 // TODO Properly handle the "would block" error
 // TODO Quality check on the Message serialization needed?
-void	Server::_sendMessage(Message to_send) const
+void	Server::_sendMessage(Message *to_send) const
 {
-	std::string	msg_as_str = to_send.serialiseMsg();
+	std::string	msg_as_str = to_send->serialiseMsg();
 	// const here is to avoid -fpermissive compiler warning
 	const char*	msg_buf = msg_as_str.c_str();
 	size_t			str_len = msg_as_str.length();
-	std::list<int>	send_to = to_send.getTargets();
+	std::list<int>	send_to = to_send->getTargets();
 
 	while (!send_to.empty())
 	{
@@ -964,9 +964,10 @@ void	Server::_sendMessage(Message to_send) const
 		else
 		{
 			std::cout << "Server reply message sent OK" << std::endl;
+			delete send_nxt;
 		}
-		send_to.pop_front();
 		// move through the list
+		send_to.pop_front();
 	}
 }
 

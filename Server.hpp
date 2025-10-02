@@ -21,6 +21,7 @@ class	Channel;
 // [ ] QUIT
 // [ ] ERROR
 // TODO We don't need both _clients and _moreClients, it looks stupid
+// TODO A function that adds the server "name" for the message source
 class	Server
 {
 	private:
@@ -53,7 +54,7 @@ class	Server
 		// TODO Probably don't need this one?
 		Message*	makeServerReply(int target, int msg_code) const;
 		// If this works, it is important
-		void		_sendMessage(Message to_send) const;
+		void		_sendMessage(Message *to_send) const;
 
 		// --- Helpers for channels/users ---
 		User*		_findUserByNick(const std::string &nick) const;

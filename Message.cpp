@@ -197,6 +197,7 @@ std::list<int>	Message::getTargets() const
 // a transmittable form
 // NOTE The final parameter is the only one allowed to contain spaces
 // ...it must be preceded by :
+//  FIXME A parameter of only a newline code leads to the : being added.
 std::string	Message::_paramToString(std::list<std::string> lst) const
 {
 	std::string	msg;
