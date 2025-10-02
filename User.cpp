@@ -78,6 +78,7 @@ bool	User::isVerified() const
 	return(this->_gavepass);
 }
 
+// FIXME Location of a segfault from Server Messages in the processQueue
 bool	User::isRegistered() const
 {
     return (this->_gavepass && !this->_nick.empty() && !this->_uname.empty());

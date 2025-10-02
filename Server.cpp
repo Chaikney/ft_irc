@@ -389,7 +389,10 @@ void	Server::handleNick(Message *msg, User *usr)
 	if (_params.empty())
 	{
 		// send  ERR_NONICKNAMEGIVEN (431)
-		this->_reply(usr->getFD(), 431);
+		Message* err = this->makeServerReply(usr->getFD(), 431, usr->getNick());
+		this->_toProcess.push(err);
+//		this->_reply(usr->getFD(), 431);
+//		this->_sendMessage(err);
 		return ;
 	}
 	std::string	newNick = _params.front();
@@ -799,6 +802,10 @@ void	Server::handlePass(Message *msg, User *usr)
 	{
 		// ERR_NEEDMOREPARAMS
 		_reply(usr->getFD(), 461);
+		Message *err = makeServerReply(usr->getFD(), 461, "Not enough parameters");
+		// FIXME Adding a to-server message causes a segfault - missing User maybe? for target or source?
+		this->_toProcess.push(err);
+//		_sendMessage(err);
 		return ;
 	}
 	if (_sPass.compare(_cPass.front()) == 0)
@@ -835,6 +842,9 @@ void	Server::handlePass(Message *msg, User *usr)
 // The server SHOULD then respond as though the client sent the LUSERS command and return the appropriate numerics.
 // The server MUST then respond as though the client sent it the MOTD command, i.e. it must send either the successful Message of the Day numerics or the ERR_NOMOTD (422) numeric.
 // If the user has client modes set on them automatically upon joining the network, the server SHOULD send the client the RPL_UMODEIS (221) reply or a MODE message with the client as target, preferably the former.
+// FIXED Segfaults if given a Server numeric reply - bypass the checks?
+// NOTE This is focused a lot on actions the Server must do.
+// ...sometimes all that needs to happen is to send a reply...
 void	Server::_processQueue(void)
 {
 	Message	*do_next;
@@ -846,9 +856,13 @@ void	Server::_processQueue(void)
 		std::cout << "Processing:" << *do_next << std::endl;
 		std::string command = do_next->getCommand();
 //		std::cout << "Comando parseado: [" << command << "]" << std::endl;
-		if (command.compare("CAP") == 0)
+		// HACK Perhaps separate queue would be better..?
+		if (do_next->getSource().compare("ft_irc_server") == 0)
+			this->_sendMessage(do_next);
+		else if (command.compare("CAP") == 0)
 			std::cout << "Ignoring capability negotiation request" << std::endl;
 		// Only allow NICK/USER/PASS before registration. All others require full registration.
+		// NOTE This check should not be done with Server messages.
 		else if (!do_next->getOrigin()->isRegistered())
 		{
 			if (command.compare("PASS") == 0)
@@ -964,15 +978,16 @@ void	Server::_sendMessage(Message *to_send) const
 		else
 		{
 			std::cout << "Server reply message sent OK" << std::endl;
-			delete send_nxt;
+			// this does not work here...
+//			delete send_nxt;
 		}
 		// move through the list
 		send_to.pop_front();
 	}
 }
 
-// TODO Add target to the creator - should be multiple or a list
-// TODO Parameter list also needed; only one for now
+// TODO Might need to take a Parameter list; only one for now
+// TODO Add the real client name to params, is standard
 Message*	Server::makeServerReply(int target, int msg_code, std::string par) const
 {
 	Message*	transmit;
@@ -983,10 +998,11 @@ Message*	Server::makeServerReply(int target, int msg_code, std::string par) cons
 	std::list<int>	targets;
 	targets.push_front(target);
 
+	std::string	src("ft_irc_server");
+
 	std::list<std::string>	params;
 	params.push_front(par);
-
-	std::string	src("ft_irc_server");
+	params.push_front("clientnick");	// HACK, most numeric replies have this
 
 	transmit = new Message(src, cmd_as_str, params, targets);
 	return (transmit);
