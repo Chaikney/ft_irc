@@ -48,6 +48,10 @@ class	Server
 		std::string	_getClientInput(int fd);
 		void		_reply(int send_to, int msg) const;
 		bool		_isNickTaken(const std::string &nick, int except_fd = -1) const;
+		// TODO IS this in the right place?
+		Message*	makeServerReply(int target, int msg_code, std::string par) const;
+		// TODO Probably don't need this one?
+		Message*	makeServerReply(int target, int msg_code) const;
 
 		// --- Helpers for channels/users ---
 		User*		_findUserByNick(const std::string &nick) const;

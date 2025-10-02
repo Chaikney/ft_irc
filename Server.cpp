@@ -929,6 +929,27 @@ void	Server::_reply(int send_to, int msg) const
 	}
 }
 
+// TODO Add target to the creator - should be multiple or a list
+// TODO Parameter list also needed; only one for now
+Message*	Server::makeServerReply(int target, int msg_code, std::string par) const
+{
+	Message*	transmit;
+	std::stringstream strm;
+	strm << msg_code;
+	std::string cmd_as_str = strm.str();
+
+	std::list<int>	targets;
+	targets.push_front(target);
+
+	std::list<std::string>	params;
+	params.push_front(par);
+
+	std::string	src("ft_irc_server");
+
+	transmit = new Message(src, cmd_as_str, params, targets);
+	return (transmit);
+}
+
 // Check if a nickname is already in use by any connected user
 // NOTE This might be faster/scale better if we store (and update) a SET of known nicks
 bool	Server::_isNickTaken(const std::string &nick, int except_fd) const

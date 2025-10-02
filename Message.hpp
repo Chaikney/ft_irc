@@ -14,7 +14,7 @@ class	User;
 const int	MSG_LEN = 512;
 
 // TODO Add getters for any relevant attribute
-// TODO Decide if any other information is useful to us here
+// TODO Decide if any other information is useful to us here - destination?
 // TODO We need something to check that the message is complete and logical
 class	Message
 {
@@ -23,7 +23,9 @@ class	Message
 		std::string				_source;	// TODO This might be the wrong format
 		std::string				_command;	// Could be an int instead if we convert to the numeric?
 		std::list<std::string>	_params;
-		User*					_origin;	// Link to who sent this? Allows key  info to be retrieved
+		User*					_origin;	// Link to who sent this? Allows key info to be retrieved
+		std::list<int>			_targets;	// fds where the Message shuold be sent
+
 
 
 					Message(void);	// private so not called - no blank messages please
@@ -37,6 +39,7 @@ class	Message
 	public:
 					Message(std::string raw_text);
 					Message(std::string text_recvd, User *usr);
+					Message(std::string &src, std::string &cmd, std::list<std::string> params, std::list<int> targets);
 					Message(const Message &irc);	// Copying a Message seems reasonable to allow
 					~Message(void);
 

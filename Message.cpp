@@ -17,9 +17,10 @@
 // FIXME Now the only parsing issue seems to be the final \n in cases where there are no end spaces
 // ...we should strip that out
 // TODO UNify the parsing part of these 2 constructors
+// TODO Fill targets -- if blank it is for the Server?
 Message::Message(std::string text_recvd) : _tags(""), _source(""),
 										   _command(""), _params(),
-										   _origin()
+										   _origin(), _targets()
 {
     if (text_recvd.empty())
         throw std::invalid_argument("Tried to create message with empty string");
@@ -103,7 +104,7 @@ void	Message::_parseMessage(std::string text_recvd)
 
 Message::Message(std::string text_recvd, User *usr) : _tags(""), _source(""),
 										   _command(""), _params(),
-										   _origin(usr)
+										   _origin(usr), _targets()
 {
     if (text_recvd.empty())
         throw std::invalid_argument("Tried to create message with empty string");
@@ -112,6 +113,16 @@ Message::Message(std::string text_recvd, User *usr) : _tags(""), _source(""),
     if (text_recvd.length() > MSG_LEN)
 		throw std::invalid_argument("Message too long");
 	_parseMessage(text_recvd);
+}
+
+// Constructor suited for *outward* Messages
+// i.e. has parameters, is probably a numeric reply
+// TODO Consider if this needs to take a User as well
+Message::Message(std::string &src, std::string &cmd,
+				 std::list<std::string> params, std::list<int> target) :
+	_tags(""), _source(src), _command(cmd), _params(params), _origin(), _targets(target)
+{
+	std::cout << "Outward-facing Message constructed" << std::endl;
 }
 
 // Step over any spaces in a string stream
@@ -146,7 +157,7 @@ Message	*Message::makeMessage(std::string &str, User *origin)
 // NOTE Must be a DEEP COPY of _params
 Message::Message(const Message &original): _tags(original._tags), _source(original._source),
 										   _command(original._command), _params(),
-										   _origin(original._origin)
+										   _origin(original._origin), _targets(original._targets)
 {
 	this->_params = original._params;
 }
