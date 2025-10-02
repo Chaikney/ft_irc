@@ -383,17 +383,14 @@ void Server::handlePrivmsg(Message *msg, int sender_fd)
 // Get parameters
 // Check the requested nick is valid and does not already exist
 // Set new nickname on User (will need a setter on User?)
+// FIXME IF the nick name is already in use that doesn't seem to stop registration?
 void	Server::handleNick(Message *msg, User *usr)
 {
 	std::list<std::string>	_params = msg->getParams();
 	if (_params.empty())
 	{
 		// send  ERR_NONICKNAMEGIVEN (431)
-		Message* err = this->makeServerReply(usr->getFD(), 431, usr->getNick());
-//		Message* err = this->_reply(msg, 431);
-		this->_toProcess.push(err);
-//		this->_reply(usr->getFD(), 431);
-//		this->_sendMessage(err);
+		this->_toProcess.push(_reply(*msg, 431));
 		return ;
 	}
 	std::string	newNick = _params.front();
@@ -405,17 +402,15 @@ void	Server::handleNick(Message *msg, User *usr)
 	if ((newNick.find_first_of(notLeading) == 0) ||
 		(newNick.find_first_of(forbidden) != std::string::npos))
 	{
-		std::cerr << "Bad characters in nickname" << std::endl;
 		// send  ERR_ERRONEUSNICKNAME (432)
-//  HACK for compilation
-//		this->_reply(usr->getFD(), 432);
+		this->_toProcess.push(_reply(*msg, 432));
+//		std::cerr << "Bad characters in nickname" << std::endl;
 	}
 	else if (_isNickTaken(newNick, usr->getFD()))
 	{
-		std::cerr << "Nickname already in use." << std::endl;
+//		std::cerr << "Nickname already in use." << std::endl;
 		// send ERR_NICKNAMEINUSE (433)
-//  HACK for compilation
-//		this->_reply(usr->getFD(), 433);
+		this->_toProcess.push(_reply(*msg, 433));
 	}
 	else
 	{
@@ -424,27 +419,28 @@ void	Server::handleNick(Message *msg, User *usr)
 	}
 }
 
-// FIXED Protect against empty _params!
 // TODO 3 parameters is probably OK, be less strict and fill gaps with NICK
+// FIXME IF the nick name is already in use that doesn't seem to stop registration?
+// TODO Sure there are other errors to catch here...
 void	Server::handleUser(Message *msg, User *usr)
 {
 	std::list<std::string>	_params = msg->getParams();
 	if (_params.size() != 4)
 	{
-		std::cerr << "Not enough parameters" << std::endl;
 		// send  ERR_NEEDMOREPARAMS (461)
-//  HACK for compilation
-//		this->_reply(usr->getFD(), 461);
+		std::cerr << "Not enough parameters" << std::endl;
+		this->_toProcess.push(_reply(*msg, 461));
 		return ;
 	}
 	std::string	newUser = _params.front();
-	// Skip to the final entry (used the first, ingore the middle 2)
+	// Skip to the final entry (used the first, ignore the middle 2)
 	_params.pop_front();
 	_params.pop_front();
 	_params.pop_front();
 	std::string	newRName = _params.front();
 	if (newUser.empty())
 		newUser = usr->getNick();
+	// TODO This logic looks wrong somehow? How do they have a real name to fetch?
 	if (newRName.empty())
 		newRName = usr->getReal();
 	usr->setUser(newUser);
@@ -469,7 +465,8 @@ void	Server::handleJoin(Message *msg, User *usr)
     // Robust normalisation: handle JOIN  #chan and JOIN :#chan
     while (true)
     {
-		if (!this->normaliseChanName(&chan))
+		// FIXME endless loop here!!!
+		If (!this->normaliseChanName(&chan))
 		{
 			// TODO Send error message and stop processing message
 		}
@@ -864,6 +861,7 @@ void	Server::_processQueue(void)
 		std::cout << "Processing:" << *do_next << std::endl;
 		std::string command = do_next->getCommand();
 //		std::cout << "Comando parseado: [" << command << "]" << std::endl;
+		// IF the message is from us / the server, we send it straight out
 		// HACK Perhaps separate queue would be better..?
 		if (do_next->getSource().compare(SERVERNAME) == 0)
 			this->_sendMessage(do_next);
