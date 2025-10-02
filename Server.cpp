@@ -875,9 +875,11 @@ void	Server::_processQueue(void)
 		{
 			if (command.compare("PASS") == 0)
 				handlePass(do_next, do_next->getOrigin());
-			else if (command.compare("NICK") == 0)
+			else if ((do_next->getOrigin()->isVerified()) &&
+					  (command.compare("NICK") == 0))
 				handleNick(do_next, do_next->getOrigin());
-			else if (command.compare("USER") == 0)
+			else if ((do_next->getOrigin()->isVerified()) &&
+					 (command.compare("USER") == 0))
 				handleUser(do_next, do_next->getOrigin());
 			else
 			{
