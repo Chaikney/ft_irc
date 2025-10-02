@@ -855,7 +855,7 @@ void	Server::handlePass(Message *msg, User *usr)
 // ...sometimes all that needs to happen is to send a reply...
 void	Server::_processQueue(void)
 {
-	Message	*do_next;
+	Message*	do_next;
 
 	while (this->_toProcess.empty() == false)
 	{
@@ -882,7 +882,7 @@ void	Server::_processQueue(void)
 			else
 			{
 				// Send ERR_NOTREGISTERED (451) for other commands until registration completes
-//				_reply(do_next->getOrigin()->getFD(), 451);
+				this->_toProcess.push(_reply(*do_next, 451));
 			}
 		}
 		else if (do_next->getOrigin()->isRegistered())
@@ -976,6 +976,9 @@ Message*	Server::_reply(Message &msg, int rep_code) const
 
 	switch (rep_code)
 	{
+		case 451:
+			params.push_front("You have not registered");
+			break;
 		case 461:
 			params.push_front(msg.getCommand());
 			params.push_front("Not enough parameters");
