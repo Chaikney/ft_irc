@@ -68,6 +68,7 @@ class	Server
 		// --- Manejo de comandos IRC ---
 		void        handleKick(Message *msg, int sender_fd);
 		void        handlePrivmsg(Message *msg, int sender_fd);
+		void		handlePass(Message *msg, User *usr);
 		void		handleNick(Message *msg, User *usr);
 		void		handleUser(Message *msg, User *usr);
 		void		handleJoin(Message *msg, User *usr);
@@ -85,7 +86,6 @@ class	Server
 		int			get_fd(void) const;
 		void		run(void);
 //		bool		_checkPass(Message &msg) const;	//public to act as friend of Message
-		void		handlePass(Message *msg, User *usr) const;
 		void		_processQueue(void);	//public to act as friend of Message
 		bool		normaliseChanName(std::string *chan);
 };

@@ -789,7 +789,7 @@ void	Server::_broadcastToChannel(Channel *channel, int from_fd, const std::strin
     }
 }
 
-void	Server::handlePass(Message *msg, User *usr) const
+void	Server::handlePass(Message *msg, User *usr)
 {
 	std::string	_sPass = this->_password;
 	std::list<std::string>	_cPass = msg->getParams();
