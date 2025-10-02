@@ -12,6 +12,8 @@ class	Message;
 class	User;
 class	Channel;
 
+const std::string SERVERNAME = "ft_irc";
+
 // What should this hold?
 // - port
 // - password (passed in on command line)

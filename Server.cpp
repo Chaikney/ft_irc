@@ -865,7 +865,7 @@ void	Server::_processQueue(void)
 		std::string command = do_next->getCommand();
 //		std::cout << "Comando parseado: [" << command << "]" << std::endl;
 		// HACK Perhaps separate queue would be better..?
-		if (do_next->getSource().compare("ft_irc_server") == 0)
+		if (do_next->getSource().compare(SERVERNAME) == 0)
 			this->_sendMessage(do_next);
 		else if (command.compare("CAP") == 0)
 			std::cout << "Ignoring capability negotiation request" << std::endl;
@@ -956,6 +956,9 @@ void	Server::_processQueue(void)
 // - command = reply code
 // - parameters: at least client (msg->usr-getNick())
 // - use a switch to add other parameters?
+// DONE src here should be a Server class variable
+// TODO More protection needed, i.e. on rep_code
+// TODO Consider renaming this to be more specific
 Message*	Server::_reply(Message &msg, int rep_code) const
 {
 	Message*	transmit;
@@ -966,7 +969,7 @@ Message*	Server::_reply(Message &msg, int rep_code) const
 	std::list<int>	targets;
 	targets.push_front(msg.getOrigin()->getFD());
 
-	std::string	src("ft_irc_server");
+	std::string	src(SERVERNAME);
 
 	std::list<std::string>	params;
 	params.push_front(msg.getOrigin()->getNick());
@@ -1040,7 +1043,7 @@ Message*	Server::makeServerReply(int target, int msg_code, std::string par) cons
 	std::list<int>	targets;
 	targets.push_front(target);
 
-	std::string	src("ft_irc_server");
+	std::string	src(SERVERNAME);
 
 	std::list<std::string>	params;
 	params.push_front(par);
