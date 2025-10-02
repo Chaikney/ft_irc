@@ -52,6 +52,8 @@ class	Server
 		Message*	makeServerReply(int target, int msg_code, std::string par) const;
 		// TODO Probably don't need this one?
 		Message*	makeServerReply(int target, int msg_code) const;
+		// If this works, it is important
+		void		_sendMessage(Message to_send) const;
 
 		// --- Helpers for channels/users ---
 		User*		_findUserByNick(const std::string &nick) const;

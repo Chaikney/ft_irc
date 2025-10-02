@@ -929,6 +929,47 @@ void	Server::_reply(int send_to, int msg) const
 	}
 }
 
+// Extract from message:
+// - text to be sent
+// - length of text
+// - fd to where it must be sent
+// Ensure that the message is sent correctly.
+// TODO Safety checks needed on FD list send_to
+// TODO Properly handle the "would block" error
+// TODO Quality check on the Message serialization needed?
+void	Server::_sendMessage(Message to_send) const
+{
+	std::string	msg_as_str = to_send.serialiseMsg();
+	// const here is to avoid -fpermissive compiler warning
+	const char*	msg_buf = msg_as_str.c_str();
+	size_t			str_len = msg_as_str.length();
+	std::list<int>	send_to = to_send.getTargets();
+
+	while (!send_to.empty())
+	{
+		int	send_nxt = send_to.front();
+		std::cout << "Sending:" << msg_buf << std::endl;
+		if (send(send_nxt, msg_buf, str_len, MSG_DONTWAIT) == -1)
+		{
+			// check error number and handle it
+			switch (errno)
+			{
+				case EWOULDBLOCK:
+					std::cerr << "Would block, split message or drop it" << std::endl;
+					break ;
+				default:
+					std::cerr << "Dunno, something else went wrong" << std::endl;
+			}
+		}
+		else
+		{
+			std::cout << "Server reply message sent OK" << std::endl;
+		}
+		send_to.pop_front();
+		// move through the list
+	}
+}
+
 // TODO Add target to the creator - should be multiple or a list
 // TODO Parameter list also needed; only one for now
 Message*	Server::makeServerReply(int target, int msg_code, std::string par) const
