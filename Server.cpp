@@ -385,6 +385,11 @@ void Server::handlePrivmsg(Message *msg, int sender_fd)
 // Check the requested nick is valid and does not already exist
 // Set new nickname on User (will need a setter on User?)
 // FIXME IF the nick name is already in use that doesn't seem to stop registration?
+// TODO Acknowledge successful NICK:
+// The NICK message may be sent from the server to clients to acknowledge their
+// NICK command was successful, and to inform other clients about the change of nickname.
+// In these cases, the <source> of the message will be the old nickname
+// [ [ "!" user ] "@" host ] of the user who is changing their nickname.
 void	Server::handleNick(Message *msg, User *usr)
 {
 	std::list<std::string>	_params = msg->getParams();
@@ -397,7 +402,7 @@ void	Server::handleNick(Message *msg, User *usr)
 	std::cout << "Trying to set nickname to " << newNick << std::endl;
 	// NOTE These characters are forbidden from starting the nick
 	std::string	notLeading = "#:&123456789";
-	std::string forbidden = " \b\n\r";
+	std::string	forbidden = " \b\n\r";
 
 	if ((newNick.find_first_of(notLeading) == 0) ||
 		(newNick.find_first_of(forbidden) != std::string::npos))
@@ -420,6 +425,11 @@ void	Server::handleNick(Message *msg, User *usr)
 // TODO Sure there are other errors to catch here...
 void	Server::handleUser(Message *msg, User *usr)
 {
+	if (usr->isRegistered())
+	{
+		this->_toProcess.push(_reply(*msg, ERR_ALREADYREGISTERED));
+		return ;
+	}
 	std::list<std::string>	_params = msg->getParams();
 	if (_params.size() != 4)
 	{
@@ -795,7 +805,7 @@ void	Server::handlePass(Message *msg, User *usr)
 
 	if (_cPass.empty())
 	{
-		this->toProcess.push(_reply(*msg, ERR_NEEDMOREPARAMS));
+		this->_toProcess.push(_reply(*msg, ERR_NEEDMOREPARAMS));
 		return ;
 	}
 	if (_sPass.compare(_cPass.front()) == 0)
@@ -866,7 +876,6 @@ void	Server::_processQueue(void)
 				handleUser(do_next, do_next->getOrigin());
 			else
 			{
-				// Send ERR_NOTREGISTERED (451) for other commands until registration completes
 				this->_toProcess.push(_reply(*do_next, ERR_NOTREGISTERED));
 			}
 		}
@@ -944,6 +953,9 @@ Message*	Server::_reply(Message &msg, int rep_code) const
 		case ERR_NEEDMOREPARAMS:
 			params.push_back(msg.getCommand());
 			params.push_back("Not enough parameters");
+			break;
+		case ERR_ALREADYREGISTERED:
+			params.push_back("You may not re-register");
 			break;
 		case ERR_PASSWORDMISMATCH:
 			params.push_back("Password incorrect");
