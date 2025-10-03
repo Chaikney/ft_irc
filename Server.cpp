@@ -420,7 +420,6 @@ void	Server::handleNick(Message *msg, User *usr)
 	}
 }
 
-// TODO 3 parameters is probably OK, be less strict and fill gaps with NICK
 // FIXME IF the nick name is already in use that doesn't seem to stop registration?
 // TODO Sure there are other errors to catch here...
 void	Server::handleUser(Message *msg, User *usr)
@@ -431,7 +430,7 @@ void	Server::handleUser(Message *msg, User *usr)
 		return ;
 	}
 	std::list<std::string>	_params = msg->getParams();
-	if (_params.size() != 4)
+	if ((_params.size() != 4) || (_params.front().empty()))
 	{
 		this->_toProcess.push(_reply(*msg, ERR_NEEDMOREPARAMS));
 		return ;
@@ -444,9 +443,8 @@ void	Server::handleUser(Message *msg, User *usr)
 	std::string	newRName = _params.front();
 	if (newUser.empty())
 		newUser = usr->getNick();
-	// TODO This logic looks wrong somehow? How do they have a real name to fetch?
 	if (newRName.empty())
-		newRName = usr->getReal();
+		newRName = newUser;
 	usr->setUser(newUser);
 	usr->setReal(newRName);
 	std::cout << "User: " << newUser << ", Really: " << newRName << std::endl;
