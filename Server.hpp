@@ -1,6 +1,7 @@
 #ifndef SERVER_HPP
 # define SERVER_HPP
 
+#include "ReplyEnums.hpp"	// for server numeric replies
 #include <sys/socket.h>	// socket() function
 #include <netinet/in.h>	// provides the sockaddr_in struct
 #include <string>

@@ -1,5 +1,6 @@
 #include "Server.hpp"
 #include "Message.hpp"
+#include "ReplyEnums.hpp"
 #include "User.hpp"
 #include "Channel.hpp"
 #include <iostream>
@@ -389,8 +390,7 @@ void	Server::handleNick(Message *msg, User *usr)
 	std::list<std::string>	_params = msg->getParams();
 	if (_params.empty())
 	{
-		// send  ERR_NONICKNAMEGIVEN (431)
-		this->_toProcess.push(_reply(*msg, 431));
+		this->_toProcess.push(_reply(*msg, ERR_NONICKNAMEGIVEN));
 		return ;
 	}
 	std::string	newNick = _params.front();
@@ -402,15 +402,11 @@ void	Server::handleNick(Message *msg, User *usr)
 	if ((newNick.find_first_of(notLeading) == 0) ||
 		(newNick.find_first_of(forbidden) != std::string::npos))
 	{
-		// send  ERR_ERRONEUSNICKNAME (432)
-		this->_toProcess.push(_reply(*msg, 432));
-//		std::cerr << "Bad characters in nickname" << std::endl;
+		this->_toProcess.push(_reply(*msg, ERR_ERRONEUSNICKNAME));
 	}
 	else if (_isNickTaken(newNick, usr->getFD()))
 	{
-//		std::cerr << "Nickname already in use." << std::endl;
-		// send ERR_NICKNAMEINUSE (433)
-		this->_toProcess.push(_reply(*msg, 433));
+		this->_toProcess.push(_reply(*msg, ERR_NICKNAMEINUSE));
 	}
 	else
 	{
@@ -427,9 +423,7 @@ void	Server::handleUser(Message *msg, User *usr)
 	std::list<std::string>	_params = msg->getParams();
 	if (_params.size() != 4)
 	{
-		// send  ERR_NEEDMOREPARAMS (461)
-		std::cerr << "Not enough parameters" << std::endl;
-		this->_toProcess.push(_reply(*msg, 461));
+		this->_toProcess.push(_reply(*msg, ERR_NEEDMOREPARAMS));
 		return ;
 	}
 	std::string	newUser = _params.front();
@@ -466,7 +460,7 @@ void	Server::handleJoin(Message *msg, User *usr)
     while (true)
     {
 		// FIXME endless loop here!!!
-		If (!this->normaliseChanName(&chan))
+		if (!this->normaliseChanName(&chan))
 		{
 			// TODO Send error message and stop processing message
 		}
@@ -801,12 +795,7 @@ void	Server::handlePass(Message *msg, User *usr)
 
 	if (_cPass.empty())
 	{
-		// ERR_NEEDMOREPARAMS
-		Message* err = _reply(*msg, 461);
-//		Message *err = makeServerReply(usr->getFD(), 461, "Not enough parameters");
-		// FIXME Adding a to-server message causes a segfault - missing User maybe? for target or source?
-		this->_toProcess.push(err);
-//		_sendMessage(err);
+		this->toProcess.push(_reply(*msg, ERR_NEEDMOREPARAMS));
 		return ;
 	}
 	if (_sPass.compare(_cPass.front()) == 0)
@@ -814,19 +803,15 @@ void	Server::handlePass(Message *msg, User *usr)
 		std::cout << "Password match!" << std::endl;
 		if (!(usr->isVerified()))
 			usr->switchVerification();
-		else	 // ERR_ALREADYREGISTERED
+		else
 		{
-			Message* err = _reply(*msg, 462);
-//			_reply(usr->getFD(), 462);
-			this->_toProcess.push(err);
+			this->_toProcess.push(_reply(*msg, ERR_ALREADYREGISTERED));
 		}
 		// TODO Server sends some kind of acknowledgment?
 	}
 	else
 	{
-		// TODO send ERR back client
-		// ERR_PASSWORDMISMATCH
-//		_reply(usr->getFD(), 464);
+		this->_toProcess.push(_reply(*msg, ERR_PASSWORDMISMATCH));
 		// TODO disconnect them by implementing the ERROR command
 	}
 }
@@ -882,7 +867,7 @@ void	Server::_processQueue(void)
 			else
 			{
 				// Send ERR_NOTREGISTERED (451) for other commands until registration completes
-				this->_toProcess.push(_reply(*do_next, 451));
+				this->_toProcess.push(_reply(*do_next, ERR_NOTREGISTERED));
 			}
 		}
 		else if (do_next->getOrigin()->isRegistered())
@@ -919,8 +904,8 @@ void	Server::_processQueue(void)
 // Use the Message and code to create a reply Message to be queued
 // - source
 // - command = reply code
-// - parameters: at least client (msg->usr-getNick())
-// - use a switch to add other parameters?
+// - parameters: add client by default (msg->usr-getNick())
+// - use a switch to add other parameters
 // DONE src here should be a Server class variable
 // TODO More protection needed, i.e. on rep_code
 // TODO Consider renaming this to be more specific
@@ -937,20 +922,36 @@ Message*	Server::_reply(Message &msg, int rep_code) const
 	std::string	src(SERVERNAME);
 
 	std::list<std::string>	params;
-	params.push_front(msg.getOrigin()->getNick());
+	// TODO If this returns empty, put something else there
+	params.push_back(msg.getOrigin()->getNick());
 
 	switch (rep_code)
 	{
-		case 451:
-			params.push_front("You have not registered");
+		case ERR_UNKNOWNCOMMAND:
+			params.push_back(msg.getCommand());
+			params.push_back("Command not known on this server");
 			break;
-		case 461:
-			params.push_front(msg.getCommand());
-			params.push_front("Not enough parameters");
+		case ERR_NONICKNAMEGIVEN:
+			params.push_back("No nickname given");
+			break;
+		case ERR_NICKNAMEINUSE:
+			params.push_back(msg.getParams().front());	// TODO Get the name wanted
+			params.push_back("Nickname already in use");
+			break;
+		case ERR_NOTREGISTERED:
+			params.push_back("You have not registered");
+			break;
+		case ERR_NEEDMOREPARAMS:
+			params.push_back(msg.getCommand());
+			params.push_back("Not enough parameters");
+			break;
+		case ERR_PASSWORDMISMATCH:
+			params.push_back("Password incorrect");
 			break;
 		default:
 			std::cerr << "Reply not handled yet:" << rep_code << std::endl;
 	}
+	std::cout << "Added " << params.size() << "parameters" <<std::endl;
 	transmit = new Message(src, cmd_as_str, params, targets);
 	return (transmit);
 }
@@ -1000,6 +1001,7 @@ void	Server::_sendMessage(Message *to_send) const
 
 // TODO Might need to take a Parameter list; only one for now
 // TODO Add the real client name to params, is standard
+// NOTE Is this now obsolete?
 Message*	Server::makeServerReply(int target, int msg_code, std::string par) const
 {
 	Message*	transmit;
@@ -1022,6 +1024,7 @@ Message*	Server::makeServerReply(int target, int msg_code, std::string par) cons
 
 // Check if a nickname is already in use by any connected user
 // NOTE This might be faster/scale better if we store (and update) a SET of known nicks
+// TODO Test this, does it ever return false? Very hard to read.
 bool	Server::_isNickTaken(const std::string &nick, int except_fd) const
 {
     for (std::map<int, User*>::const_iterator it = this->_moreClients.begin(); it != this->_moreClients.end(); ++it)

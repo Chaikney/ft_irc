@@ -198,6 +198,7 @@ std::list<int>	Message::getTargets() const
 // NOTE The final parameter is the only one allowed to contain spaces
 // ...it must be preceded by :
 //  FIXME A parameter of only a newline code leads to the : being added.
+//  ...careful, an empty parameter at the end is OK (I think)
 std::string	Message::_paramToString(std::list<std::string> lst) const
 {
 	std::string	msg;
