@@ -12,6 +12,7 @@ class Channel
 	private:
 		std::string					_name;
 		std::string					_topic;
+		// TODO Seems to me that these should store User* not just file descriptors....
 		std::set<int>				_members;		// User FDs
 		std::set<int>				_operators;		// User FDs with operator rights
 		std::set<std::string>		_invitedNicks;	// Invited nicks (by name)

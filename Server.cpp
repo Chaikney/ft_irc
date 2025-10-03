@@ -460,7 +460,7 @@ void	Server::handleUser(Message *msg, User *usr)
 // [ ] A JOIN message with the client as the message <source> and the channel they have joined as the first parameter of the message.
 // [ ] The channel’s topic (with RPL_TOPIC (332) and optionally RPL_TOPICWHOTIME (333)), and no message if the channel does not have a topic.
 // [ ] A list of users currently joined to the channel (with one or more RPL_NAMREPLY (353) numerics followed by a single RPL_ENDOFNAMES (366) numeric). These RPL_NAMREPLY messages sent by the server MUST include the requesting client that has just joined the channel.
-// TODO Break out the name normalisation to a helper function
+// DONE Break out the name normalisation to a helper function
 // TODO JOIN can accept an alternative parameter of '0'
 // TODO Improve parameter handling so JOIN Can handle multiple Channels
 void	Server::handleJoin(Message *msg, User *usr)
@@ -469,36 +469,27 @@ void	Server::handleJoin(Message *msg, User *usr)
     if (params.empty())
         return ;
     std::string chan = params.front();
-    // Robust normalisation: handle JOIN  #chan and JOIN :#chan
-    while (true)
-    {
-		// FIXME endless loop here!!!
-		if (!this->normaliseChanName(&chan))
-		{
-			// TODO Send error message and stop processing message
-		}
-		else
-        // if (!chan.empty() && chan[0] == ':')
-        //     chan.erase(0, 1);
-        // while (!chan.empty() && (chan[0] == ' ' || chan[0] == '\r' || chan[0] == '\n' || chan[0] == '\t'))
-        //     chan.erase(0, 1);
-        // if (!chan.empty() || params.size() <= 1)
-        //     break;
-        // Current token was empty/whitespace-only after trimming; try next param
-        // FIXME That assumption above does not hold
-			params.pop_front();
-    }
+    // If the channel name is valid, store and remove from our params
+	if (!this->normaliseChanName(&chan))
+	{
+		// Send error message and stop processing message
+		this->_toProcess.push(_reply(*msg, ERR_BADCHANMASK));
+		return ;
+	}
+	else
+    	params.pop_front();
 
+	// If the channel cannot be found, create it
     Channel *channel = this->_findChannel(chan);
     if (!channel)
         channel = this->_createChannel(chan);
     
-	// FIXME The invite handling logic does not work, "else" is incomplete
+	// NOTE This logic is odd, why remove an invite? Just to keep the list clean?
     if (channel->isInviteOnly())
     {
         if (!channel->isInvited(usr->getNick()))
         {
-            _sendToFD(usr->getFD(), ":server 473 " + chan + " :Cannot join channel (+i)\r\n");
+			this->_toProcess.push(_reply(*msg, ERR_INVITEONLYCHAN));
             return ;
         }
         else
@@ -507,9 +498,16 @@ void	Server::handleJoin(Message *msg, User *usr)
         }
     }
     
+	// TODO What is the logic needed here to JOIN someone to a channel?
     if (channel->addMember(usr->getFD()))
     {
         usr->addChannel(chan);
+		// TODO How do we do this JOIN acknowledgment thing?
+		//(is a common problem)
+		//this->_toProcess.push(_reply(*msg, JOIN));
+		this->_toProcess.push(_reply(*msg, RPL_TOPIC));
+		this->_toProcess.push(_reply(*msg, RPL_TOPICWHOTIME));	// NOTE Optional
+
         // Notify channel (simple join message)
         _broadcastToChannel(channel, -1, ":server NOTICE " + chan + " :" + usr->getNick() + " joined", true);
     }
@@ -959,6 +957,13 @@ Message*	Server::_reply(Message &msg, int rep_code) const
 			params.push_back("user_modes_here");
 			params.push_back("channel_modes_here");
 			break;
+		case RPL_TOPIC:
+			params.push_back("TODO_get_channel_name_here");
+			params.push_back("TODO_get_channel_topic_here");
+			break;
+		case RPL_TOPICWHOTIME:
+			params.push_back("TODO if we can get the channel we can get this I guess");
+			break;
 		case ERR_UNKNOWNCOMMAND:
 			params.push_back(msg.getCommand());
 			params.push_back("Command not known on this server");
@@ -982,6 +987,13 @@ Message*	Server::_reply(Message &msg, int rep_code) const
 			break;
 		case ERR_PASSWORDMISMATCH:
 			params.push_back("Password incorrect");
+			break;
+		case ERR_BADCHANMASK:
+			params.push_back("Bad channel mask (i.e. name is not valid)");
+			break;
+		case ERR_INVITEONLYCHAN:
+			params.push_back("TODO_channel_name_goes_here");
+			params.push_back("Cannot join channel (+i)");
 			break;
 		default:
 			std::cerr << "Reply not handled yet:" << rep_code << std::endl;
