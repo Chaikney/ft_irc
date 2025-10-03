@@ -448,6 +448,11 @@ void	Server::handleUser(Message *msg, User *usr)
 	usr->setUser(newUser);
 	usr->setReal(newRName);
 	std::cout << "User: " << newUser << ", Really: " << newRName << std::endl;
+	// If this all worked, send the welcome bundle
+	this->_toProcess.push(_reply(*msg, RPL_WELCOME));
+	this->_toProcess.push(_reply(*msg, RPL_YOURHOST));
+	this->_toProcess.push(_reply(*msg, RPL_CREATED));
+	this->_toProcess.push(_reply(*msg, RPL_MYINFO));
 }
 
 // FIXME This does not cause clients to realise they have joined a room :|
@@ -916,12 +921,15 @@ void	Server::_processQueue(void)
 // DONE src here should be a Server class variable
 // TODO More protection needed, i.e. on rep_code
 // TODO Consider renaming this to be more specific
+// NOTE When rep_code is < 100, it should be padded to 3 digits
 Message*	Server::_reply(Message &msg, int rep_code) const
 {
 	Message*	transmit;
 	std::stringstream strm;
 	strm << rep_code;
 	std::string cmd_as_str = strm.str();
+	if (cmd_as_str.length() == 1)
+		cmd_as_str.insert(0, 2, '0');
 
 	std::list<int>	targets;
 	targets.push_front(msg.getOrigin()->getFD());
@@ -934,6 +942,23 @@ Message*	Server::_reply(Message &msg, int rep_code) const
 
 	switch (rep_code)
 	{
+		case RPL_WELCOME:
+			params.push_back("Welcome to this network");
+			break;
+		case RPL_YOURHOST:
+			params.push_back("Your host is:" + SERVERNAME);
+			break;
+		// TODO Update this when we have uptime measuring
+		case RPL_CREATED:
+			params.push_back("Uptime is not measured (yet)");
+			break;
+		// TODO Update this when we have modes and versioning
+		case RPL_MYINFO:
+			params.push_back(SERVERNAME);
+			params.push_back("0.0.0.0.01alpha");
+			params.push_back("user_modes_here");
+			params.push_back("channel_modes_here");
+			break;
 		case ERR_UNKNOWNCOMMAND:
 			params.push_back(msg.getCommand());
 			params.push_back("Command not known on this server");
