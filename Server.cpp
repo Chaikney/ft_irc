@@ -458,7 +458,7 @@ void	Server::handleUser(Message *msg, User *usr)
 // FIXME This does not cause clients to realise they have joined a room :|
 // TODO Send acknowledgements per https://modern.ircdocs.horse/#join-message
 // [ ] A JOIN message with the client as the message <source> and the channel they have joined as the first parameter of the message.
-// [ ] The channel’s topic (with RPL_TOPIC (332) and optionally RPL_TOPICWHOTIME (333)), and no message if the channel does not have a topic.
+// [X] The channel’s topic (with RPL_TOPIC (332) and optionally RPL_TOPICWHOTIME (333)), and no message if the channel does not have a topic.
 // [ ] A list of users currently joined to the channel (with one or more RPL_NAMREPLY (353) numerics followed by a single RPL_ENDOFNAMES (366) numeric). These RPL_NAMREPLY messages sent by the server MUST include the requesting client that has just joined the channel.
 // DONE Break out the name normalisation to a helper function
 // TODO JOIN can accept an alternative parameter of '0'
@@ -514,44 +514,48 @@ void	Server::handleJoin(Message *msg, User *usr)
 	return ;
 }
 
-// TODO Factor out the channel name normalisation, it is repeated everywhere
+// DONE Factor out the channel name normalisation, it is repeated everywhere
 // TODO Unsuccessful commands will need an Error reply
 // TODO Use a standard function to craft message, not hardcoded parameters
+// TODO Will need to be able to handle *multiple* Channel PARTs
 void	Server::handlePart(Message *msg, User *usr)
 {
     std::list<std::string> params = msg->getParams();
     if (params.empty())
         return ;
     std::string chan = params.front();
-    // Robust normalisation: handle PART  #chan and PART :#chan
-    while (true)
-    {
-        if (!chan.empty() && chan[0] == ':')
-            chan.erase(0, 1);
-        while (!chan.empty() && (chan[0] == ' ' || chan[0] == '\r' || chan[0] == '\n' || chan[0] == '\t'))
-            chan.erase(0, 1);
-        if (!chan.empty() || params.size() <= 1)
-            break;
-        // Current token was empty/whitespace-only after trimming; try next param
-        params.pop_front();
-        chan = params.front();
-    }
-    if (chan.empty() || chan[0] != '#')
-        return ;
-    
+	if (!this->normaliseChanName(&chan))
+	{
+		// Send error message and stop processing message
+		this->_toProcess.push(_reply(*msg, ERR_BADCHANMASK));
+		return ;
+	}
+	else
+    	params.pop_front();
+
     Channel *channel = _findChannel(chan);
     if (!channel)
+	{
+		this->_toProcess.push(_reply(*msg, ERR_NOSUCHCHANNEL));
         return ;
+	}
     
     if (channel->removeMember(usr->getFD()))
     {
+		// TODO Send a PART confirmation to the User
         usr->removeChannel(chan);
+		// TODO Send NOTICE to that channel using Message and queue
         _broadcastToChannel(channel, -1, ":server NOTICE " + chan + " :" + usr->getNick() + " left", true);
         
         // If channel is empty, remove it
         if (channel->isEmpty())
             _removeChannel(chan);
     }
+	else
+	{
+		this->_toProcess.push(_reply(*msg, ERR_NOTONCHANNEL));
+		return ;
+	}
 }
 
 // FIXME Does not comply with specifications of NAMES command
