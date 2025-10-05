@@ -291,13 +291,13 @@ void	Server::_printMessageQueue(std::queue<Message *> toPrint) const
 // TODO isOperator() probably is based on NICK or USER not a fd? What happens if they reconnect?
 // TODO Wrong number of parameters needs an error message sent
 // TODO Unified message creation / sending not the hardcoded parameters
-void Server::handleKick(Message *msg, int sender_fd)
+void Server::handleKick(Message *msg, User *usr)
 {
-	std::cout << "[KICK] Comando recibido de fd " << sender_fd << std::endl;
+	std::cout << "[KICK] Comando recibido de fd " << usr->getFD() << std::endl;
 	std::list<std::string> params = msg->getParams();
 	if (params.size() < 2)
 	{
-		// TODO Send error message
+		this->_toProcess.push(_reply(*msg, ERR_NEEDMOREPARAMS));
 		return ;
 	}
 	std::string chan = params.front(); params.pop_front();
@@ -309,29 +309,32 @@ void Server::handleKick(Message *msg, int sender_fd)
 	// Normalise channel name
 	if (this->normaliseChanName(&chan) == false)
 	{
-		// TODO Send error message and exit function
+		this->_toProcess.push(_reply(*msg, ERR_BADCHANMASK));
 		return ;
 	}
 	Channel *channel = _findChannel(chan);
 	if (!channel)
-		return ;
-	// Sender must be channel operator
-	if (!channel->isOperator(sender_fd))
 	{
-		_sendToFD(sender_fd, ":server 482 " + chan + " :You're not channel operator\r\n");
+		this->_toProcess.push(_reply(*msg, ERR_NOSUCHCHANNEL));
+		return ;
+	}
+	// Sender must be channel operator
+	if (!channel->isOperator(usr->getFD()))
+	{
+		this->_toProcess.push(_reply(*msg, ERR_CHANOPRIVSNEEDED));
 		return ;
 	}
 	// Find target user
 	User *target = _findUserByNick(nick);
 	if (!target)
 	{
-		_sendToFD(sender_fd, ":server 401 " + nick + " :No such nick\r\n");
+		this->_toProcess.push(_reply(*msg, ERR_NOSUCHNICK));
 		return ;
 	}
 	// Target must be member of channel
 	if (!channel->isMember(target->getFD()))
 	{
-		_sendToFD(sender_fd, ":server 441 " + nick + " " + chan + " :They aren't on that channel\r\n");
+		this->_toProcess.push(_reply(*msg, ERR_USERNOTINCHANNEL));
 		return ;
 	}
 	// Remove target from channel
@@ -890,6 +893,7 @@ void	Server::_processQueue(void)
 				handleNick(do_next, do_next->getOrigin());
 			if (command.compare("USER") == 0)
 				handleUser(do_next, do_next->getOrigin());
+			// FIXME This was not caught from Konversation? At least on the 2nd time around
 			if (command.compare("JOIN") == 0)
 				handleJoin(do_next, do_next->getOrigin());
 			if (command.compare("PART") == 0)
@@ -904,9 +908,9 @@ void	Server::_processQueue(void)
 				handleInvite(do_next, do_next->getOrigin());
 			if (command.compare("MODE") == 0)
 				handleMode(do_next, do_next->getOrigin());
-			// FIXME KICK and PRIVMSG are inconsistent with the others, for no good reason
-			else if (command == "KICK")
-				handleKick(do_next, do_next->getOrigin()->getFD());
+			// FIXME PRIVMSG call is inconsistent with the others, for no good reason
+			else if (command.compare("KICK") == 0)
+				handleKick(do_next, do_next->getOrigin());
 			else if (command == "PRIVMSG")
 				handlePrivmsg(do_next, do_next->getOrigin()->getFD());
 		}
@@ -961,6 +965,7 @@ Message*	Server::_reply(Message &msg, int rep_code) const
 			params.push_back("user_modes_here");
 			params.push_back("channel_modes_here");
 			break;
+		// NOTE catching this message needs an overload with Channel
 		case RPL_TOPIC:
 			params.push_back("TODO_get_channel_name_here");
 			params.push_back("TODO_get_channel_topic_here");
@@ -998,6 +1003,9 @@ Message*	Server::_reply(Message &msg, int rep_code) const
 		case ERR_INVITEONLYCHAN:
 			params.push_back("TODO_channel_name_goes_here");
 			params.push_back("Cannot join channel (+i)");
+			break;
+		case ERR_CHANOPRIVSNEEDED:
+			params.push_back("You're not channel operator");
 			break;
 		default:
 			std::cerr << "Reply not handled yet:" << rep_code << std::endl;
