@@ -3,7 +3,6 @@
 #include <netinet/in.h>
 #include <unistd.h>
 
-// FIXME Parameters needed to create a User from nothing?
 // Start with blank names, password FALSE
 // ...but the connection information?
 // The first thing we see is a file descriptor I think. What else in the socket

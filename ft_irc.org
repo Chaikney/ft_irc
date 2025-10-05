@@ -884,3 +884,8 @@ From lsof manual:
 
 
 [[file:~/Documents/00_WorkInProgress/2023_04_42UrdulizCurso/ft_irc/Server.cpp::// ...or a place to store it if it is not.]]
+* [ ] Sending out non-numeric server replies
+Possibly an overload or similar method to Server::_reply
+Has to have the same ease of use, but can skip the numeric SWITCH-CASE forest for the parameters. (Although then maybe it needs the if-then matching mess for the parameters...)
+* [ ] Overload Server::_reply so it can take a Channel* ?
+This would allow the replies to include channel names, and possibly would be good for the needed "list of channels" parameter handling that JOIN and PART (and others?) need.

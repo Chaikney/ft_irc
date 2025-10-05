@@ -916,11 +916,12 @@ void	Server::_processQueue(void)
 				handleInvite(do_next, do_next->getOrigin());
 			if (command.compare("MODE") == 0)
 				handleMode(do_next, do_next->getOrigin());
-			// FIXME PRIVMSG call is inconsistent with the others, for no good reason
 			else if (command.compare("KICK") == 0)
 				handleKick(do_next, do_next->getOrigin());
 			else if (command == "PRIVMSG")
-				handlePrivmsg(do_next, do_next->getOrigin()->getFD());
+				handlePrivmsg(do_next, do_next->getOrigin());
+			else
+				this->_toProcess.push(_reply(*do_next, ERR_UNKNOWNCOMMAND));
 		}
 		// deleting the Message here seems to reduce "still reachable" type leaks
 		delete do_next;
