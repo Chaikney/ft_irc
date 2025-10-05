@@ -350,13 +350,16 @@ void Server::handleKick(Message *msg, User *usr)
 // TODO There are further checks needed on whether a message is allowed, see docs
 // Sends a message to user(s) or channel(s)
 // https://modern.ircdocs.horse/#privmsg-message
-void Server::handlePrivmsg(Message *msg, int sender_fd)
+void Server::handlePrivmsg(Message *msg, User *usr)
 {
 	// Aquí va la lógica para enviar mensajes privados o a canales
-	std::cout << "[PRIVMSG] Comando recibido de fd " << sender_fd << " " << msg << std::endl;
+	std::cout << "[PRIVMSG] Comando recibido de fd " << usr->getFD() << " " << msg << std::endl;
 	std::list<std::string> params = msg->getParams();
 	if (params.size() < 2)
+	{
+		this->_toProcess.push(_reply(*msg, ERR_NEEDMOREPARAMS));
 		return ;
+	}
 	std::string target = params.front();
 	params.pop_front();
 	std::string text = params.front();
@@ -367,19 +370,24 @@ void Server::handlePrivmsg(Message *msg, int sender_fd)
 		Channel *channel = _findChannel(target);
 		if (!channel)
 			return ;
-		if (!channel->isMember(sender_fd))
+		// TODO Faster to find Channel membership directly with User? Or not?
+		if (!channel->isMember(usr->getFD()))
 		{
 			// 404 ERR_CANNOTSENDTOCHAN
-			_sendToFD(sender_fd, ":server 404 " + target + " :Cannot send to channel\r\n");
+			this->_toProcess.push(_reply(*msg, ERR_CANNOTSENDTOCHAN));
+//			_sendToFD(sender_fd, ":server 404 " + target + " :Cannot send to channel\r\n");
 			return ;
 		}
-		_broadcastToChannel(channel, sender_fd, text, false);
+		_broadcastToChannel(channel, usr->getFD(), text, false);
 	}
 	else
-	{
+	{	// For individual user
+		// TODO Need to change the text format e.g. source, or not?
 		User *to = _findUserByNick(target);
 		if (to)
 			_sendToFD(to->getFD(), text + "\r\n");
+		else
+			this->_toProcess.push(_reply(*msg, ERR_NOSUCHNICK));
 	}
 }
 

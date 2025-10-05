@@ -68,8 +68,8 @@ class	Server
 		void		_broadcastToChannel(Channel *channel, int from_fd, const std::string &text, bool include_sender=false) const;
 
 		// --- Manejo de comandos IRC ---
-		void        handleKick(Message *msg, int sender_fd);
-		void        handlePrivmsg(Message *msg, int sender_fd);
+		void        	handleKick(Message *msg, User *usr);
+		void        	handlePrivmsg(Message *msg, User *usr);
 		void		handlePass(Message *msg, User *usr);
 		void		handleNick(Message *msg, User *usr);
 		void		handleUser(Message *msg, User *usr);
