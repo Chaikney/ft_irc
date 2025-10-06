@@ -88,5 +88,6 @@ class	Server
 		bool		normaliseChanName(std::string *chan);
 		// HACK Public to be friend with message origin (user)
 		Message*	_reply(Message &msg, int num_rep) const;
+		Message*	_reply(Message &msg, int num_rep, Channel *chan) const;
 };
 #endif

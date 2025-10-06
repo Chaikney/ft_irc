@@ -516,7 +516,7 @@ void	Server::handleJoin(Message *msg, User *usr)
     {
         if (!channel->isInvited(usr->getNick()))
         {
-			this->_toProcess.push(_reply(*msg, ERR_INVITEONLYCHAN));
+			this->_toProcess.push(_reply(*msg, ERR_INVITEONLYCHAN, channel));
             return ;
         }
         else
@@ -532,8 +532,8 @@ void	Server::handleJoin(Message *msg, User *usr)
 		// TODO How do we do this JOIN acknowledgment thing?
 		//(is a common problem)
 		//this->_toProcess.push(_reply(*msg, JOIN));
-		this->_toProcess.push(_reply(*msg, RPL_TOPIC));
-		this->_toProcess.push(_reply(*msg, RPL_TOPICWHOTIME));	// NOTE Optional
+		this->_toProcess.push(_reply(*msg, RPL_TOPIC, channel));
+		this->_toProcess.push(_reply(*msg, RPL_TOPICWHOTIME, channel));	// NOTE Optional
 
         // Notify channel (simple join message)
         _broadcastToChannel(channel, -1, ":server NOTICE " + chan + " :" + usr->getNick() + " joined", true);
@@ -991,13 +991,6 @@ Message*	Server::_reply(Message &msg, int rep_code) const
 			params.push_back("channel_modes_here");
 			break;
 		// NOTE catching this message needs an overload with Channel
-		case RPL_TOPIC:
-			params.push_back("TODO_get_channel_name_here");
-			params.push_back("TODO_get_channel_topic_here");
-			break;
-		case RPL_TOPICWHOTIME:
-			params.push_back("TODO if we can get the channel we can get this I guess");
-			break;
 		case ERR_UNKNOWNCOMMAND:
 			params.push_back(msg.getCommand());
 			params.push_back("Command not known on this server");
@@ -1025,12 +1018,50 @@ Message*	Server::_reply(Message &msg, int rep_code) const
 		case ERR_BADCHANMASK:
 			params.push_back("Bad channel mask (i.e. name is not valid)");
 			break;
-		case ERR_INVITEONLYCHAN:
-			params.push_back("TODO_channel_name_goes_here");
-			params.push_back("Cannot join channel (+i)");
-			break;
 		case ERR_CHANOPRIVSNEEDED:
 			params.push_back("You're not channel operator");
+			break;
+		default:
+			std::cerr << "Reply not handled yet:" << rep_code << std::endl;
+	}
+	std::cout << "Added " << params.size() << "parameters" <<std::endl;
+	transmit = new Message(src, cmd_as_str, params, targets);
+	return (transmit);
+}
+
+// Channel-including overload of the _reply method above.
+// Needed for replies which refer to Channel characteristics (e.g. TOPIC)
+// TODO The first part of this repeats from above and should be consolidated
+// No padding needed for these commands though
+Message*	Server::_reply(Message &msg, int rep_code, Channel *chan) const
+{
+	Message*	transmit;
+	std::stringstream strm;
+	strm << rep_code;
+	std::string cmd_as_str = strm.str();
+
+	std::list<int>	targets;
+	targets.push_front(msg.getOrigin()->getFD());
+
+	std::string	src(SERVERNAME);
+
+	std::list<std::string>	params;
+	// TODO If this returns empty, put something else there
+	params.push_back(msg.getOrigin()->getNick());
+
+	switch (rep_code)
+	{
+	// NOTE catching this message needs an overload with Channel
+		case RPL_TOPIC:
+			params.push_back(chan->getName());
+			params.push_back(chan->getTopic());
+			break;
+		case RPL_TOPICWHOTIME:
+			params.push_back("TODO if we can get the channel we can get this I guess");
+			break;
+		case ERR_INVITEONLYCHAN:
+			params.push_back(chan->getName());
+			params.push_back("Cannot join channel (+i)");
 			break;
 		default:
 			std::cerr << "Reply not handled yet:" << rep_code << std::endl;
