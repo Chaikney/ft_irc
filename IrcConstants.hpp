@@ -1,0 +1,107 @@
+#ifndef IRC_CONSTANTS_HPP
+# define IRC_CONSTANTS_HPP
+
+// General Errors (OBLIGATORIOS)
+# define ERR_NOSUCHNICK 401
+# define ERR_NOSUCHCHANNEL 403
+# define ERR_CANNOTSENDTOCHAN 404
+# define ERR_TOOMANYCHANNELS 405
+# define ERR_NORECIPIENT 411
+# define ERR_NOTEXTTOSEND 412
+# define ERR_UNKNOWNCOMMAND 421
+
+// Registration Errors (OBLIGATORIOS)
+# define ERR_NONICKNAMEGIVEN 431
+# define ERR_ERRONEUSNICKNAME 432
+# define ERR_NICKNAMEINUSE 433
+# define ERR_NICKCOLLISION 436
+# define ERR_UNAVAILRESOURCE 437
+# define ERR_NOTREGISTERED 451
+# define ERR_NEEDMOREPARAMS 461
+# define ERR_ALREADYREGISTRED 462
+# define ERR_PASSWDMISMATCH 464
+# define ERR_YOUREBANNEDCREEP 465
+
+// Channel Errors
+# define ERR_USERNOTINCHANNEL 441
+# define ERR_NOTONCHANNEL 442
+# define ERR_USERONCHANNEL 443
+# define ERR_KEYSET 467
+# define ERR_CHANNELISFULL 471
+# define ERR_UNKNOWNMODE 472
+# define ERR_INVITEONLYCHAN 473
+# define ERR_BANNEDFROMCHAN 474
+# define ERR_BADCHANNELKEY 475
+# define ERR_BADCHANMASK 476
+# define ERR_NOCHANMODES 477
+# define ERR_BANLISTFULL 478
+
+// Permission Errors
+# define ERR_NOPRIVILEGES 481
+# define ERR_CHANOPRIVSNEEDED 482
+# define ERR_UNIQOPPRIVSNEEDED 485
+
+// User Mode Errors
+# define ERR_UMODEUNKNOWNFLAG 501
+
+
+// Welcome Replies (OBLIGATORIOS)
+# define RPL_WELCOME 001
+# define RPL_YOURHOST 002
+# define RPL_CREATED 003
+# define RPL_MYINFO 004
+
+// Away Replies (OBLIGATORIOS)
+# define RPL_AWAY 301
+# define RPL_UNAWAY 305
+# define RPL_NOWAWAY 306
+
+// List Replies
+# define RPL_LISTSTART 321
+# define RPL_LIST 322
+# define RPL_LISTEND 323
+
+// Channel Mode Replies
+# define RPL_CHANNELMODEIS 324
+# define RPL_CREATIONTIME 329
+
+// Topic Replies
+# define RPL_NOTOPIC 331
+# define RPL_TOPIC 332
+# define RPL_TOPICWHOTIME 333
+
+// Invite Replies
+# define RPL_INVITING 341
+
+// Names Replies
+# define RPL_NAMREPLY 353
+# define RPL_ENDOFNAMES 366
+
+
+# define CMD_PASS "PASS"
+# define CMD_NICK "NICK"
+# define CMD_USER "USER"
+# define CMD_JOIN "JOIN"
+# define CMD_PART "PART"
+# define CMD_TOPIC "TOPIC"
+# define CMD_NAMES "NAMES"
+# define CMD_LIST "LIST"
+# define CMD_INVITE "INVITE"
+# define CMD_KICK "KICK"
+# define CMD_MODE "MODE"
+# define CMD_PRIVMSG "PRIVMSG"
+# define CMD_NOTICE "NOTICE"
+# define CMD_PING "PING"
+# define CMD_PONG "PONG"
+# define CMD_QUIT "QUIT"
+# define CMD_ERROR "ERROR"
+
+
+// Common message prefixes
+# define MSG_PREFIX_SERVER ":ft_irc"
+# define MSG_PREFIX_USER ":"
+
+// Message terminators
+# define MSG_TERMINATOR "\r\n"
+
+#endif

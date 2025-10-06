@@ -28,6 +28,7 @@ class	Server
 		int         _epollFD;
 		sockaddr_in _serverAddress;
 		std::string _password;
+		std::string _creationTime;
 		std::queue<Message *>	_toProcess;
 		std::set<int> _clients;		// NOTE This is the fds to be sent to; may duplicate other info
 		std::map<int, std::string>	_partial_msgs;
@@ -46,7 +47,18 @@ class	Server
 		bool		_isFullMsg(std::string msg) const;
 		void		_storePartial(int fd_source, std::string msg);
 		std::string	_getClientInput(int fd);
-		void		_reply(int send_to, int msg) const;
+		void		_reply(int send_to, int msg_code, const std::string &params = "") const;
+		User*		_findUserByFD(int fd) const;
+		std::string	_getChannelTopic(const std::string &channelName) const;
+		std::string	_getChannelMembers(const std::string &channelName) const;
+		size_t		_getChannelMemberCount(const std::string &channelName) const;
+		std::string	_getLastInvitedUser() const;
+		std::string	_getServerCreationDate() const;
+		std::string	_getUserRealName(const std::string &nick) const;
+		std::string	_getUserChannels(const std::string &nick) const;
+		std::string	_getChannelModeString(const std::string &channelName) const;
+		std::string	_getTopicSetter(const std::string &channelName) const;
+		std::string	_getTopicTime(const std::string &channelName) const;
 		bool		_isNickTaken(const std::string &nick, int except_fd = -1) const;
 
 		// --- Helpers for channels/users ---
@@ -59,7 +71,7 @@ class	Server
 		void		_broadcastToChannel(Channel *channel, int from_fd, const std::string &text, bool include_sender=false) const;
 
 		// --- Manejo de comandos IRC ---
-		void        handleKick(Message *msg, int sender_fd);
+		void        handleKick(Message *msg, User *usr);
 		void        handlePrivmsg(Message *msg, int sender_fd);
 		void		handleNick(Message *msg, User *usr);
 		void		handleUser(Message *msg, User *usr);
@@ -78,8 +90,9 @@ class	Server
 		int			get_fd(void) const;
 		void		run(void);
 //		bool		_checkPass(Message &msg) const;	//public to act as friend of Message
-		void		handlePass(Message *msg, User *usr) const;
+		void		handlePass(Message *msg, User *usr);
 		void		_processQueue(void);	//public to act as friend of Message
 		bool		normaliseChanName(std::string *chan);
+		void		sendWelcomeMessages(User *user);
 };
 #endif

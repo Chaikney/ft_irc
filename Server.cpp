@@ -2,6 +2,7 @@
 #include "Message.hpp"
 #include "User.hpp"
 #include "Channel.hpp"
+#include "IrcConstants.hpp"
 #include <iostream>
 #include <netinet/in.h>
 #include <sys/socket.h>
@@ -51,10 +52,17 @@ bool Server::_setNonBlocking(int fd)
 // FIXED There are no try/catch blocks for the thrown exceptions
 Server::Server(int port, std::string password) : _socketFD(0), _epollFD(0),
 												 _serverAddress(), _password(password),
-												 _toProcess(), _clients(), _partial_msgs(),
+												 _creationTime(), _toProcess(), _clients(), _partial_msgs(),
 												 _moreClients(), _channels()
 {
 	std::cout << "Server constructor with parameters called" << std::endl;
+	
+	// Set creation time
+	time_t now = time(0);
+	struct tm *timeinfo = localtime(&now);
+	char buffer[80];
+	strftime(buffer, sizeof(buffer), "%a %b %d %Y at %H:%M:%S %Z", timeinfo);
+	_creationTime = std::string(buffer);
 	_socketFD = socket(AF_INET, SOCK_STREAM, 0);
 	if (_socketFD == -1)
 	{
@@ -290,56 +298,89 @@ void	Server::_printMessageQueue(std::queue<Message *> toPrint) const
 // TODO isOperator() probably is based on NICK or USER not a fd? What happens if they reconnect?
 // TODO Wrong number of parameters needs an error message sent
 // TODO Unified message creation / sending not the hardcoded parameters
-void Server::handleKick(Message *msg, int sender_fd)
+void Server::handleKick(Message *msg, User *usr)
 {
-	std::cout << "[KICK] Comando recibido de fd " << sender_fd << std::endl;
 	std::list<std::string> params = msg->getParams();
 	if (params.size() < 2)
 	{
-		// TODO Send error message
+		this->_reply(usr->getFD(), ERR_NEEDMOREPARAMS, "KICK");
 		return ;
 	}
-	std::string chan = params.front(); params.pop_front();
-	std::string nick = params.front(); params.pop_front();
-	// Optional reason (rest of params)
+	
+	std::string chan = params.front();
+	params.pop_front();
+	std::string nick = params.front();
+	params.pop_front();
+	
+	// Get reason if provided
 	std::string reason = "";
 	if (!params.empty())
-		reason = params.front();
-	// Normalise channel name
-	if (this->normaliseChanName(&chan) == false)
 	{
-		// TODO Send error message and exit function
+		reason = params.front();
+		if (!reason.empty() && reason[0] == ':')
+			reason.erase(0, 1);
+	}
+	if (reason.empty())
+		reason = usr->getNick(); // Default reason is kicker's nick
+	
+	// Normalize channel name
+	if (!this->normaliseChanName(&chan))
+	{
+		this->_reply(usr->getFD(), ERR_NOSUCHCHANNEL, chan);
 		return ;
 	}
+	
 	Channel *channel = _findChannel(chan);
 	if (!channel)
-		return ;
-	// Sender must be channel operator
-	if (!channel->isOperator(sender_fd))
 	{
-		_sendToFD(sender_fd, ":server 482 " + chan + " :You're not channel operator\r\n");
+		this->_reply(usr->getFD(), ERR_NOSUCHCHANNEL, chan);
 		return ;
 	}
+	
+	// Check if sender is on channel
+	if (!channel->isMember(usr->getFD()))
+	{
+		this->_reply(usr->getFD(), ERR_NOTONCHANNEL, chan);
+		return ;
+	}
+	
+	// Sender must be channel operator
+	if (!channel->isOperator(usr->getFD()))
+	{
+		this->_reply(usr->getFD(), ERR_CHANOPRIVSNEEDED, chan);
+		return ;
+	}
+	
 	// Find target user
 	User *target = _findUserByNick(nick);
 	if (!target)
 	{
-		_sendToFD(sender_fd, ":server 401 " + nick + " :No such nick\r\n");
+		this->_reply(usr->getFD(), ERR_NOSUCHNICK, nick);
 		return ;
 	}
+	
 	// Target must be member of channel
 	if (!channel->isMember(target->getFD()))
 	{
-		_sendToFD(sender_fd, ":server 441 " + nick + " " + chan + " :They aren't on that channel\r\n");
+		this->_reply(usr->getFD(), ERR_USERNOTINCHANNEL, nick + " " + chan);
 		return ;
 	}
+	
+	// Cannot kick yourself
+	if (target->getFD() == usr->getFD())
+	{
+		this->_reply(usr->getFD(), ERR_USERNOTINCHANNEL, nick + " " + chan);
+		return ;
+	}
+	
 	// Remove target from channel
 	channel->removeMember(target->getFD());
-	target->removeChannel(chan);	// NOTE This depends on User storing their Channels, which they don't, currently
-	if (reason.empty()) reason = "Kicked";
-	// Notify channel and target
-	_broadcastToChannel(channel, -1, ":server KICK " + chan + " " + nick + " :" + reason, true);
-	_sendToFD(target->getFD(), ":server KICK " + chan + " " + nick + " :" + reason + "\r\n");
+	target->removeChannel(chan);
+	
+	// Send KICK message to channel and target
+	std::string kickMsg = ":" + usr->getNick() + " KICK " + chan + " " + nick + " :" + reason;
+	_broadcastToChannel(channel, -1, kickMsg, true);
+	_sendToFD(target->getFD(), kickMsg + MSG_TERMINATOR);
 }
 
 // TODO use Server_reply for the 404
@@ -348,34 +389,65 @@ void Server::handleKick(Message *msg, int sender_fd)
 // https://modern.ircdocs.horse/#privmsg-message
 void Server::handlePrivmsg(Message *msg, int sender_fd)
 {
-	// Aquí va la lógica para enviar mensajes privados o a canales
-	std::cout << "[PRIVMSG] Comando recibido de fd " << sender_fd << " " << msg << std::endl;
-	std::list<std::string> params = msg->getParams();
-	if (params.size() < 2)
+	User *sender = _findUserByFD(sender_fd);
+	if (!sender)
 		return ;
+		
+	std::list<std::string> params = msg->getParams();
+	if (params.empty())
+	{
+		this->_reply(sender_fd, ERR_NORECIPIENT, "PRIVMSG");
+		return ;
+	}
+	
+	if (params.size() < 2)
+	{
+		this->_reply(sender_fd, ERR_NOTEXTTOSEND);
+		return ;
+	}
+	
 	std::string target = params.front();
 	params.pop_front();
 	std::string text = params.front();
+	
+	if (text.empty())
+	{
+		this->_reply(sender_fd, ERR_NOTEXTTOSEND);
+		return ;
+	}
+	
 	// Channel message
 	if (!target.empty() && target[0] == '#')
 	{
-		// Only allow if sender is member of the channel
 		Channel *channel = _findChannel(target);
 		if (!channel)
-			return ;
-		if (!channel->isMember(sender_fd))
 		{
-			// 404 ERR_CANNOTSENDTOCHAN
-			_sendToFD(sender_fd, ":server 404 " + target + " :Cannot send to channel\r\n");
+			this->_reply(sender_fd, ERR_NOSUCHCHANNEL, target);
 			return ;
 		}
-		_broadcastToChannel(channel, sender_fd, text, false);
+		if (!channel->isMember(sender_fd))
+		{
+			this->_reply(sender_fd, ERR_CANNOTSENDTOCHAN, target);
+			return ;
+		}
+		
+		// Send PRIVMSG to channel
+		std::string privmsg = ":" + sender->getNick() + " PRIVMSG " + target + " :" + text;
+		_broadcastToChannel(channel, sender_fd, privmsg, true);
 	}
 	else
 	{
+		// Private message to user
 		User *to = _findUserByNick(target);
-		if (to)
-			_sendToFD(to->getFD(), text + "\r\n");
+		if (!to)
+		{
+			this->_reply(sender_fd, ERR_NOSUCHNICK, target);
+			return ;
+		}
+		
+		// Send PRIVMSG to user
+		std::string privmsg = ":" + sender->getNick() + " PRIVMSG " + target + " :" + text;
+		_sendToFD(to->getFD(), privmsg + MSG_TERMINATOR);
 	}
 }
 
@@ -389,7 +461,7 @@ void	Server::handleNick(Message *msg, User *usr)
 	if (_params.empty())
 	{
 		// send  ERR_NONICKNAMEGIVEN (431)
-		this->_reply(usr->getFD(), 431);
+		this->_reply(usr->getFD(), ERR_NONICKNAMEGIVEN);
 		return ;
 	}
 	std::string	newNick = _params.front();
@@ -403,18 +475,24 @@ void	Server::handleNick(Message *msg, User *usr)
 	{
 		std::cerr << "Bad characters in nickname" << std::endl;
 		// send  ERR_ERRONEUSNICKNAME (432)
-		this->_reply(usr->getFD(), 432);
+		this->_reply(usr->getFD(), ERR_ERRONEUSNICKNAME, newNick);
 	}
 	else if (_isNickTaken(newNick, usr->getFD()))
 	{
 		std::cerr << "Nickname already in use." << std::endl;
 		// send ERR_NICKNAMEINUSE (433)
-		this->_reply(usr->getFD(), 433);
+		this->_reply(usr->getFD(), ERR_NICKNAMEINUSE, newNick);
 	}
 	else
 	{
 		std::cout << "setting nickname to " << newNick << std::endl;
 		usr->setNick(newNick);
+		
+		// Check if user is now fully registered and send welcome messages
+		if (usr->isRegistered())
+		{
+			sendWelcomeMessages(usr);
+		}
 	}
 }
 
@@ -427,7 +505,7 @@ void	Server::handleUser(Message *msg, User *usr)
 	{
 		std::cerr << "Not enough parameters" << std::endl;
 		// send  ERR_NEEDMOREPARAMS (461)
-		this->_reply(usr->getFD(), 461);
+		this->_reply(usr->getFD(), ERR_NEEDMOREPARAMS, "USER");
 		return ;
 	}
 	std::string	newUser = _params.front();
@@ -443,6 +521,12 @@ void	Server::handleUser(Message *msg, User *usr)
 	usr->setUser(newUser);
 	usr->setReal(newRName);
 	std::cout << "User: " << newUser << ", Really: " << newRName << std::endl;
+	
+	// Check if user is now fully registered and send welcome messages
+	if (usr->isRegistered())
+	{
+		sendWelcomeMessages(usr);
+	}
 }
 
 // FIXME This does not cause clients to realise they have joined a room :|
@@ -457,37 +541,49 @@ void	Server::handleJoin(Message *msg, User *usr)
 {
     std::list<std::string> params = msg->getParams();
     if (params.empty())
-        return ;
-    std::string chan = params.front();
-    // Robust normalisation: handle JOIN  #chan and JOIN :#chan
-    while (true)
     {
-		if (!this->normaliseChanName(&chan))
-		{
-			// TODO Send error message and stop processing message
-		}
-		else
-        // if (!chan.empty() && chan[0] == ':')
-        //     chan.erase(0, 1);
-        // while (!chan.empty() && (chan[0] == ' ' || chan[0] == '\r' || chan[0] == '\n' || chan[0] == '\t'))
-        //     chan.erase(0, 1);
-        // if (!chan.empty() || params.size() <= 1)
-        //     break;
-        // Current token was empty/whitespace-only after trimming; try next param
-        // FIXME That assumption above does not hold
-			params.pop_front();
+        this->_reply(usr->getFD(), ERR_NEEDMOREPARAMS, "JOIN");
+        return ;
+    }
+    
+    std::string chan = params.front();
+    // Normalize channel name
+    if (!this->normaliseChanName(&chan))
+    {
+        this->_reply(usr->getFD(), ERR_NOSUCHCHANNEL, chan);
+        return ;
     }
 
     Channel *channel = this->_findChannel(chan);
     if (!channel)
         channel = this->_createChannel(chan);
     
-	// FIXME The invite handling logic does not work, "else" is incomplete
+    // Check if user is already on channel
+    if (channel->isMember(usr->getFD()))
+    {
+        return ; // Already on channel
+    }
+    
+    // Check if channel is full
+    if (channel->getUserLimit() > 0 && channel->getMemberCount() >= (size_t)channel->getUserLimit())
+    {
+        this->_reply(usr->getFD(), ERR_CHANNELISFULL, chan);
+        return ;
+    }
+    
+    // Check if user is banned
+    if (channel->isBanned(usr->getNick()))
+    {
+        this->_reply(usr->getFD(), ERR_BANNEDFROMCHAN, chan);
+        return ;
+    }
+    
+    // Check if channel is invite only
     if (channel->isInviteOnly())
     {
         if (!channel->isInvited(usr->getNick()))
         {
-            _sendToFD(usr->getFD(), ":server 473 " + chan + " :Cannot join channel (+i)\r\n");
+            this->_reply(usr->getFD(), ERR_INVITEONLYCHAN, chan);
             return ;
         }
         else
@@ -496,13 +592,29 @@ void	Server::handleJoin(Message *msg, User *usr)
         }
     }
     
+    // Add user to channel
     if (channel->addMember(usr->getFD()))
     {
         usr->addChannel(chan);
-        // Notify channel (simple join message)
-        _broadcastToChannel(channel, -1, ":server NOTICE " + chan + " :" + usr->getNick() + " joined", true);
+        
+        // Send JOIN message to all channel members
+        std::string join_msg = ":" + usr->getNick() + " JOIN :" + chan;
+        _broadcastToChannel(channel, usr->getFD(), join_msg, true);
+        
+        // Send topic if exists
+        if (!channel->getTopic().empty())
+        {
+            this->_reply(usr->getFD(), RPL_TOPIC, chan);
+        }
+        else
+        {
+            this->_reply(usr->getFD(), RPL_NOTOPIC, chan);
+        }
+        
+        // Send names list
+        this->_reply(usr->getFD(), RPL_NAMREPLY, chan);
+        this->_reply(usr->getFD(), RPL_ENDOFNAMES, chan);
     }
-	return ;
 }
 
 // TODO Factor out the channel name normalisation, it is repeated everywhere
@@ -512,32 +624,51 @@ void	Server::handlePart(Message *msg, User *usr)
 {
     std::list<std::string> params = msg->getParams();
     if (params.empty())
-        return ;
-    std::string chan = params.front();
-    // Robust normalisation: handle PART  #chan and PART :#chan
-    while (true)
     {
-        if (!chan.empty() && chan[0] == ':')
-            chan.erase(0, 1);
-        while (!chan.empty() && (chan[0] == ' ' || chan[0] == '\r' || chan[0] == '\n' || chan[0] == '\t'))
-            chan.erase(0, 1);
-        if (!chan.empty() || params.size() <= 1)
-            break;
-        // Current token was empty/whitespace-only after trimming; try next param
-        params.pop_front();
-        chan = params.front();
-    }
-    if (chan.empty() || chan[0] != '#')
+        this->_reply(usr->getFD(), ERR_NEEDMOREPARAMS, "PART");
         return ;
+    }
+    
+    std::string chan = params.front();
+    // Normalize channel name
+    if (!this->normaliseChanName(&chan))
+    {
+        this->_reply(usr->getFD(), ERR_NOSUCHCHANNEL, chan);
+        return ;
+    }
     
     Channel *channel = _findChannel(chan);
     if (!channel)
+    {
+        this->_reply(usr->getFD(), ERR_NOSUCHCHANNEL, chan);
         return ;
+    }
+    
+    // Check if user is on channel
+    if (!channel->isMember(usr->getFD()))
+    {
+        this->_reply(usr->getFD(), ERR_NOTONCHANNEL, chan);
+        return ;
+    }
+    
+    // Get reason if provided
+    std::string reason = "";
+    if (params.size() > 1)
+    {
+        reason = params.back();
+        if (!reason.empty() && reason[0] == ':')
+            reason.erase(0, 1);
+    }
     
     if (channel->removeMember(usr->getFD()))
     {
         usr->removeChannel(chan);
-        _broadcastToChannel(channel, -1, ":server NOTICE " + chan + " :" + usr->getNick() + " left", true);
+        
+        // Send PART message to all channel members
+        std::string part_msg = ":" + usr->getNick() + " PART " + chan;
+        if (!reason.empty())
+            part_msg += " :" + reason;
+        _broadcastToChannel(channel, -1, part_msg, true);
         
         // If channel is empty, remove it
         if (channel->isEmpty())
@@ -550,24 +681,36 @@ void	Server::handlePart(Message *msg, User *usr)
 // TODO Read msg parameters and call to each named channel
 void	Server::handleNames(Message *msg, User *usr)
 {
-    (void)msg;
-    for (std::map<std::string, Channel*>::const_iterator it = _channels.begin(); it != _channels.end(); ++it)
+    std::list<std::string> params = msg->getParams();
+    
+    if (params.empty())
     {
-        const std::string &chan = it->first;
-        std::string line = "353 = " + chan + " :";
-        Channel *c = it->second;
-        const std::set<int> &members = c->getMembers();
-        for (std::set<int>::const_iterator fit = members.begin(); fit != members.end(); ++fit)
+        // List all visible channels
+        for (std::map<std::string, Channel*>::const_iterator it = _channels.begin(); it != _channels.end(); ++it)
         {
-            std::map<int, User*>::const_iterator uit = _moreClients.find(*fit);
-            if (uit != _moreClients.end() && uit->second)
+            const std::string &chan = it->first;
+            this->_reply(usr->getFD(), RPL_NAMREPLY, chan);
+        }
+    }
+    else
+    {
+        // List specific channels
+        for (std::list<std::string>::const_iterator it = params.begin(); it != params.end(); ++it)
+        {
+            std::string chan = *it;
+            if (this->normaliseChanName(&chan))
             {
-                if (fit != members.begin()) line += " ";
-                line += uit->second->getNick();
+                Channel *channel = _findChannel(chan);
+                if (channel)
+                {
+                    this->_reply(usr->getFD(), RPL_NAMREPLY, chan);
+                }
             }
         }
-        _sendToFD(usr->getFD(), line + "\r\n");
     }
+    
+    // Send end of names
+    this->_reply(usr->getFD(), RPL_ENDOFNAMES, "");
 }
 
 // TODO Check this against specification: https://modern.ircdocs.horse/#list-message
@@ -578,92 +721,233 @@ void	Server::handleList(Message *msg, User *usr)
     for (std::map<std::string, Channel*>::const_iterator it = _channels.begin(); it != _channels.end(); ++it)
     {
         Channel *c = it->second;
-        std::stringstream ss;
-        ss << "322 " << c->getName() << " " << c->getMemberCount() << " :" << c->getTopic();
-        _sendToFD(usr->getFD(), ss.str() + "\r\n");
+        this->_reply(usr->getFD(), RPL_LIST, c->getName());
     }
+    // Send end of list
+    this->_reply(usr->getFD(), RPL_LISTEND);
 }
 
 void	Server::handleTopic(Message *msg, User *usr)
 {
     std::list<std::string> params = msg->getParams();
-    if (params.empty()) return ;
+    if (params.empty())
+    {
+        this->_reply(usr->getFD(), ERR_NEEDMOREPARAMS, "TOPIC");
+        return ;
+    }
+    
     std::string chan = params.front();
+    // Normalize channel name
+    if (!this->normaliseChanName(&chan))
+    {
+        this->_reply(usr->getFD(), ERR_NOSUCHCHANNEL, chan);
+        return ;
+    }
+    
     Channel *channel = _findChannel(chan);
-    if (!channel) return ;
+    if (!channel)
+    {
+        this->_reply(usr->getFD(), ERR_NOSUCHCHANNEL, chan);
+        return ;
+    }
+    
+    // Check if user is on channel
+    if (!channel->isMember(usr->getFD()))
+    {
+        this->_reply(usr->getFD(), ERR_NOTONCHANNEL, chan);
+        return ;
+    }
     
     if (params.size() == 1)
     {
-        _sendToFD(usr->getFD(), ":server 332 " + chan + " :" + channel->getTopic() + "\r\n");
+        // Send current topic
+        if (channel->getTopic().empty()) {
+            this->_reply(usr->getFD(), RPL_NOTOPIC, chan);
+        } else {
+            this->_reply(usr->getFD(), RPL_TOPIC, chan);
+        }
         return ;
     }
     if (channel->isTopicProtected() && !channel->isOperator(usr->getFD()))
     {
-        _sendToFD(usr->getFD(), ":server 482 " + chan + " :You're not channel operator\r\n");
+        this->_reply(usr->getFD(), ERR_CHANOPRIVSNEEDED, chan);
         return ;
     }
     params.pop_front();
     std::string newTopic = params.front();
+    if (!newTopic.empty() && newTopic[0] == ':')
+        newTopic.erase(0, 1);
     channel->setTopic(newTopic);
-    _broadcastToChannel(channel, -1, ":server TOPIC " + chan + " :" + newTopic, true);
+    
+    // Send TOPIC message to all channel members
+    std::string topicMsg = ":" + usr->getNick() + " TOPIC " + chan + " :" + newTopic;
+    _broadcastToChannel(channel, -1, topicMsg, true);
 }
 
 void	Server::handleInvite(Message *msg, User *usr)
 {
     std::list<std::string> params = msg->getParams();
-    if (params.size() < 2) return ;
-    std::string nick = params.front(); params.pop_front();
-    std::string chan = params.front();
-    Channel *channel = _findChannel(chan);
-    if (!channel) return ;
-    
-    if (!channel->isOperator(usr->getFD()))
+    if (params.size() < 2)
     {
-        _sendToFD(usr->getFD(), ":server 482 " + chan + " :You're not channel operator\r\n");
+        this->_reply(usr->getFD(), ERR_NEEDMOREPARAMS, "INVITE");
         return ;
     }
-    channel->addInvite(nick);
+    
+    std::string nick = params.front();
+    params.pop_front();
+    std::string chan = params.front();
+    
+    // Normalize channel name
+    if (!this->normaliseChanName(&chan))
+    {
+        this->_reply(usr->getFD(), ERR_NOSUCHCHANNEL, chan);
+        return ;
+    }
+    
+    Channel *channel = _findChannel(chan);
+    if (!channel)
+    {
+        this->_reply(usr->getFD(), ERR_NOSUCHCHANNEL, chan);
+        return ;
+    }
+    
+    // Check if user is on channel
+    if (!channel->isMember(usr->getFD()))
+    {
+        this->_reply(usr->getFD(), ERR_NOTONCHANNEL, chan);
+        return ;
+    }
+    
+    // Check if user is channel operator
+    if (!channel->isOperator(usr->getFD()))
+    {
+        this->_reply(usr->getFD(), ERR_CHANOPRIVSNEEDED, chan);
+        return ;
+    }
+    
+    // Find target user
     User *target = _findUserByNick(nick);
-    if (target)
-        _sendToFD(target->getFD(), ":server INVITE " + nick + " " + chan + "\r\n");
+    if (!target)
+    {
+        this->_reply(usr->getFD(), ERR_NOSUCHNICK, nick);
+        return ;
+    }
+    
+    // Check if target is already on channel
+    if (channel->isMember(target->getFD()))
+    {
+        this->_reply(usr->getFD(), ERR_USERONCHANNEL, nick + " " + chan);
+        return ;
+    }
+    
+    // Add invite and send messages
+    channel->addInvite(nick);
+    
+    // Send RPL_INVITING to inviter
+    this->_reply(usr->getFD(), RPL_INVITING, nick + " " + chan);
+    
+    // Send INVITE message to target
+    std::string inviteMsg = ":" + usr->getNick() + " INVITE " + nick + " " + chan;
+    _sendToFD(target->getFD(), inviteMsg + MSG_TERMINATOR);
 }
 
 void	Server::handleMode(Message *msg, User *usr)
 {
     std::list<std::string> params = msg->getParams();
-    if (params.size() < 2) return ;
-    std::string chan = params.front(); params.pop_front();
-    std::string flags = params.front(); params.pop_front();
-    Channel *channel = _findChannel(chan);
-    if (!channel) return ;
-    
-    if (!channel->isOperator(usr->getFD()))
+    if (params.empty())
     {
-        _sendToFD(usr->getFD(), ":server 482 " + chan + " :You're not channel operator\r\n");
+        this->_reply(usr->getFD(), ERR_NEEDMOREPARAMS, "MODE");
         return ;
     }
     
-    bool adding = true;
-    for (size_t i = 0; i < flags.size(); ++i)
+    std::string target = params.front();
+    params.pop_front();
+    
+    // Channel mode
+    if (!target.empty() && target[0] == '#')
     {
-        char f = flags[i];
-        if (f == '+') { adding = true; continue; }
-        if (f == '-') { adding = false; continue; }
-        
-        std::string param = "";
-        if (!params.empty())
+        std::string chan = target;
+        // Normalize channel name
+        if (!this->normaliseChanName(&chan))
         {
-            param = params.front();
-            params.pop_front();
+            this->_reply(usr->getFD(), ERR_NOSUCHCHANNEL, chan);
+            return ;
         }
         
-        if (channel->setMode(f, adding, param))
+        Channel *channel = _findChannel(chan);
+        if (!channel)
         {
-            std::string modeStr = (adding ? "+" : "-") + std::string(1, f);
-            if (!param.empty())
-                modeStr += " " + param;
-            _broadcastToChannel(channel, -1, ":server MODE " + chan + " " + modeStr, true);
+            this->_reply(usr->getFD(), ERR_NOSUCHCHANNEL, chan);
+            return ;
         }
+        
+        // Check if user is on channel
+        if (!channel->isMember(usr->getFD()))
+        {
+            this->_reply(usr->getFD(), ERR_NOTONCHANNEL, chan);
+            return ;
+        }
+        
+        // If no mode flags provided, show current modes
+        if (params.empty())
+        {
+            this->_reply(usr->getFD(), RPL_CHANNELMODEIS, chan);
+            return ;
+        }
+        
+        // Check if user is channel operator
+        if (!channel->isOperator(usr->getFD()))
+        {
+            this->_reply(usr->getFD(), ERR_CHANOPRIVSNEEDED, chan);
+            return ;
+        }
+        
+        std::string flags = params.front();
+        params.pop_front();
+        
+        bool adding = true;
+        std::string modeStr = "";
+        bool modeChanged = false;
+        
+        for (size_t i = 0; i < flags.size(); ++i)
+        {
+            char f = flags[i];
+            if (f == '+') { adding = true; continue; }
+            if (f == '-') { adding = false; continue; }
+            
+            std::string param = "";
+            if (!params.empty())
+            {
+                param = params.front();
+                params.pop_front();
+            }
+            
+            if (channel->setMode(f, adding, param))
+            {
+                modeStr += (adding ? "+" : "-") + std::string(1, f);
+                if (!param.empty())
+                    modeStr += " " + param;
+                modeChanged = true;
+            }
+            else
+            {
+                // Mode not supported or invalid
+                this->_reply(usr->getFD(), ERR_UNKNOWNMODE, std::string(1, f));
+                return ;
+            }
+        }
+        
+        // Broadcast mode change to channel
+        if (modeChanged)
+        {
+            std::string modeMsg = ":" + usr->getNick() + " MODE " + chan + " " + modeStr;
+            _broadcastToChannel(channel, -1, modeMsg, true);
+        }
+    }
+    else
+    {
+        // User mode (not implemented for ft_irc)
+        this->_reply(usr->getFD(), ERR_UMODEUNKNOWNFLAG);
     }
 }
 
@@ -736,7 +1020,7 @@ User* Server::_findUserByNick(const std::string &nick) const
         if (it->second && it->second->getNick() == nick)
             return it->second;
     }
-    return NULL;
+    return 0;
 }
 
 Channel* Server::_findChannel(const std::string &name) const
@@ -744,7 +1028,7 @@ Channel* Server::_findChannel(const std::string &name) const
     std::map<std::string, Channel*>::const_iterator it = _channels.find(name);
     if (it != _channels.end())
         return it->second;
-    return NULL;
+    return 0;
 }
 
 Channel* Server::_createChannel(const std::string &name)
@@ -789,7 +1073,7 @@ void	Server::_broadcastToChannel(Channel *channel, int from_fd, const std::strin
     }
 }
 
-void	Server::handlePass(Message *msg, User *usr) const
+void	Server::handlePass(Message *msg, User *usr)
 {
 	std::string	_sPass = this->_password;
 	std::list<std::string>	_cPass = msg->getParams();
@@ -798,7 +1082,7 @@ void	Server::handlePass(Message *msg, User *usr) const
 	if (_cPass.empty())
 	{
 		// ERR_NEEDMOREPARAMS
-		_reply(usr->getFD(), 461);
+		_reply(usr->getFD(), ERR_NEEDMOREPARAMS, "PASS");
 		return ;
 	}
 	if (_sPass.compare(_cPass.front()) == 0)
@@ -807,14 +1091,16 @@ void	Server::handlePass(Message *msg, User *usr) const
 		if (!(usr->isVerified()))
 			usr->switchVerification();
 		else	 // ERR_ALREADYREGISTERED
-			_reply(usr->getFD(), 462);
+		{
+			_reply(usr->getFD(), ERR_ALREADYREGISTRED);
+		}
 		// TODO Server sends some kind of acknowledgment?
 	}
 	else
 	{
 		// TODO send ERR back client
 		// ERR_PASSWORDMISMATCH
-		_reply(usr->getFD(), 464);
+		_reply(usr->getFD(), ERR_PASSWDMISMATCH);
 		// TODO disconnect them by implementing the ERROR command
 	}
 }
@@ -854,13 +1140,25 @@ void	Server::_processQueue(void)
 			if (command.compare("PASS") == 0)
 				handlePass(do_next, do_next->getOrigin());
 			else if (command.compare("NICK") == 0)
-				handleNick(do_next, do_next->getOrigin());
+			{
+				// NICK only allowed after PASS
+				if (do_next->getOrigin()->isVerified())
+					handleNick(do_next, do_next->getOrigin());
+				else
+					_reply(do_next->getOrigin()->getFD(), ERR_NOTREGISTERED);
+			}
 			else if (command.compare("USER") == 0)
-				handleUser(do_next, do_next->getOrigin());
+			{
+				// USER only allowed after PASS
+				if (do_next->getOrigin()->isVerified())
+					handleUser(do_next, do_next->getOrigin());
+				else
+					_reply(do_next->getOrigin()->getFD(), ERR_NOTREGISTERED);
+			}
 			else
 			{
 				// Send ERR_NOTREGISTERED (451) for other commands until registration completes
-				_reply(do_next->getOrigin()->getFD(), 451);
+				_reply(do_next->getOrigin()->getFD(), ERR_NOTREGISTERED);
 			}
 		}
 		else if (do_next->getOrigin()->isRegistered())
@@ -885,7 +1183,7 @@ void	Server::_processQueue(void)
 				handleMode(do_next, do_next->getOrigin());
 			// FIXME KICK and PRIVMSG are inconsistent with the others, for no good reason
 			else if (command == "KICK")
-				handleKick(do_next, do_next->getOrigin()->getFD());
+				handleKick(do_next, do_next->getOrigin());
 			else if (command == "PRIVMSG")
 				handlePrivmsg(do_next, do_next->getOrigin()->getFD());
 		}
@@ -897,36 +1195,314 @@ void	Server::_processQueue(void)
 // Send a numeric reply in response to a command received
 // NOTE that this is more easily called if we import a
 // bunch of enums in a header, or similar.
-// TODO Decide how to handle the PARAMETERS that some messages need
-// ...call in the function? Lookup in another map? Transform in another function?
-// NOTE std::to_string() is c++17 onwards, forbidden :'(
-// NOTE We don't need to include EAGAIN because it enums the same as EWOULDBLOCK
-void	Server::_reply(int send_to, int msg) const
+// Improved _reply function that sends IRC messages directly
+void	Server::_reply(int send_to, int msg_code, const std::string &params) const
 {
+	std::string message;
 	std::stringstream strm;
-	strm << msg;
-	std::string msg_as_str = strm.str();
-	// const here is to avoid -fpermissive compiler warning
-	const char*		msg_buf = msg_as_str.c_str();
-	size_t		str_len = msg_as_str.length();
-
-	std::cout << "Sending:" << msg_buf << std::endl;
-	if (send(send_to, msg_buf, str_len, MSG_DONTWAIT) == -1)
-	{
-		// check error number and handle it
-		switch (errno)
+	
+	// Build the IRC message based on the numeric code
+	switch (msg_code) {
+		// General Errors (OBLIGATORIOS)
+		case ERR_NOSUCHNICK:
+			message = params + " :No such nick/channel";
+			break;
+		case ERR_NOSUCHCHANNEL:
+			message = params + " :No such channel";
+			break;
+		case ERR_CANNOTSENDTOCHAN:
+			message = params + " :Cannot send to channel";
+			break;
+		case ERR_TOOMANYCHANNELS:
+			message = params + " :You have joined too many channels";
+			break;
+		case ERR_NORECIPIENT:
+			message = ":No recipient given (" + params + ")";
+			break;
+		case ERR_NOTEXTTOSEND:
+			message = ":No text to send";
+			break;
+		case ERR_UNKNOWNCOMMAND:
+			message = params + " :Unknown command";
+			break;
+			
+		// Registration Errors
+		case ERR_NONICKNAMEGIVEN:
+			message = ":No nickname given";
+			break;
+		case ERR_ERRONEUSNICKNAME:
+			message = params + " :Erroneous nickname";
+			break;
+		case ERR_NICKNAMEINUSE:
+			message = params + " :Nickname is already in use";
+			break;
+		case ERR_NICKCOLLISION:
+			message = params + " :Nickname collision KILL from <user>@<host>";
+			break;
+		case ERR_UNAVAILRESOURCE:
+			message = params + " :Nick/channel is temporarily unavailable";
+			break;
+		case ERR_NOTREGISTERED:
+			message = ":You have not registered";
+			break;
+		case ERR_NEEDMOREPARAMS:
+			message = params + " :Not enough parameters";
+			break;
+		case ERR_ALREADYREGISTRED:
+			message = ":Unauthorized command (already registered)";
+			break;
+		case ERR_PASSWDMISMATCH:
+			message = ":Password incorrect";
+			break;
+			
+		// Channel Errors
+		case ERR_USERNOTINCHANNEL:
+			message = params + " :They aren't on that channel";
+			break;
+		case ERR_NOTONCHANNEL:
+			message = params + " :You're not on that channel";
+			break;
+		case ERR_USERONCHANNEL:
+			message = params + " :is already on channel";
+			break;
+		case ERR_CHANNELISFULL:
+			message = params + " :Cannot join channel (+l)";
+			break;
+		case ERR_INVITEONLYCHAN:
+			message = params + " :Cannot join channel (+i)";
+			break;
+		case ERR_BANNEDFROMCHAN:
+			message = params + " :Cannot join channel (+b)";
+			break;
+		case ERR_BADCHANNELKEY:
+			message = params + " :Cannot join channel (+k)";
+			break;
+		case ERR_CHANOPRIVSNEEDED:
+			message = params + " :You're not channel operator";
+			break;
+		case ERR_UNKNOWNMODE:
+			message = params + " :is unknown mode char to me for <channel>";
+			break;
+			
+		// Welcome Replies (001-004)
+		case RPL_WELCOME:
+			message = "Welcome to the Internet Relay Network " + params;
+			break;
+		case RPL_YOURHOST:
+			message = "Your host is ft_irc, running version 1.0";
+			break;
+		case RPL_CREATED:
+			message = "This server was created " + _creationTime;
+			break;
+		case RPL_MYINFO:
+			message = "ft_irc 1.0 +itkl";
+			break;
+			
+		// Away Replies (OBLIGATORIOS)
+		case RPL_AWAY:
+			message = params + " :is away";
+			break;
+		case RPL_UNAWAY:
+			message = ":You are no longer marked as being away";
+			break;
+		case RPL_NOWAWAY:
+			message = ":You have been marked as being away";
+			break;
+			
+		// List Replies
+		case RPL_LIST:
 		{
-			case EWOULDBLOCK:
-				std::cerr << "Would block, split message or drop it" << std::endl;
-				break ;
-			default:
-				std::cerr << "Dunno, something else went wrong" << std::endl;
+			std::stringstream count_stream;
+			count_stream << _getChannelMemberCount(params);
+			message = params + " " + count_stream.str() + " :" + _getChannelTopic(params);
+			break;
+		}
+		case RPL_LISTEND:
+			message = ":End of /LIST";
+			break;
+			
+		// Channel Mode Replies
+		case RPL_CHANNELMODEIS:
+			message = params + " " + _getChannelModeString(params);
+			break;
+			
+		// Topic Replies
+		case RPL_NOTOPIC:
+			message = params + " :No topic is set";
+			break;
+		case RPL_TOPIC:
+			message = params + " :" + _getChannelTopic(params);
+			break;
+		case RPL_TOPICWHOTIME:
+			message = params + " " + _getTopicSetter(params) + " " + _getTopicTime(params);
+			break;
+			
+		// Invite Replies
+		case RPL_INVITING:
+			message = params + " " + _getLastInvitedUser();
+			break;
+			
+		// Names Replies
+		case RPL_NAMREPLY:
+			message = "= " + params + " :" + _getChannelMembers(params);
+			break;
+		case RPL_ENDOFNAMES:
+			message = params + " :End of /NAMES list";
+			break;
+			
+		default:
+		{
+			std::stringstream code_stream;
+			code_stream << msg_code;
+			message = ":" + code_stream.str();
+			break;
 		}
 	}
-	else
-	{
-		std::cout << "Server reply message sent OK" << std::endl;
+	
+	// Create the full IRC message
+	strm << MSG_PREFIX_SERVER << " " << msg_code << " " << message << MSG_TERMINATOR;
+	
+	// Send directly to the user
+	_sendToFD(send_to, strm.str());
+}
+
+// Helper function to find user by FD
+User* Server::_findUserByFD(int fd) const
+{
+	std::map<int, User*>::const_iterator it = _moreClients.find(fd);
+	if (it != _moreClients.end()) {
+		return it->second;
 	}
+	return 0;
+}
+
+// Helper function to get channel topic
+std::string Server::_getChannelTopic(const std::string &channelName) const
+{
+	Channel* channel = _findChannel(channelName);
+	if (channel) {
+		return channel->getTopic();
+	}
+	return "";
+}
+
+// Helper function to get channel members as string
+std::string Server::_getChannelMembers(const std::string &channelName) const
+{
+	Channel* channel = _findChannel(channelName);
+	if (!channel) {
+		return "";
+	}
+	
+	std::string members;
+	const std::set<int>& member_fds = channel->getMembers();
+	
+	for (std::set<int>::const_iterator it = member_fds.begin(); it != member_fds.end(); ++it) {
+		User* user = _findUserByFD(*it);
+		if (user) {
+			if (channel->isOperator(*it)) {
+				members += "@";
+			}
+			members += user->getNick() + " ";
+		}
+	}
+	
+	return members;
+}
+
+// Helper function to get channel member count
+size_t Server::_getChannelMemberCount(const std::string &channelName) const
+{
+	Channel* channel = _findChannel(channelName);
+	if (channel) {
+		return channel->getMemberCount();
+	}
+	return 0;
+}
+
+// Helper function to get last invited user (simplified)
+std::string Server::_getLastInvitedUser() const
+{
+	// This would need to be tracked in your server state
+	// For now, return a placeholder
+	return "user";
+}
+
+// Helper function to get server creation date
+std::string Server::_getServerCreationDate() const
+{
+	return _creationTime;
+}
+
+// Helper function to get user real name
+std::string Server::_getUserRealName(const std::string &nick) const
+{
+	User* user = _findUserByNick(nick);
+	if (user) {
+		return user->getReal();
+	}
+	return "Unknown";
+}
+
+// Helper function to get user channels
+std::string Server::_getUserChannels(const std::string &nick) const
+{
+	User* user = _findUserByNick(nick);
+	if (!user) {
+		return "";
+	}
+	
+	std::string channels;
+	// This would need to be implemented in User class
+	// For now, return empty string
+	return channels;
+}
+
+// Helper function to get channel mode string
+std::string Server::_getChannelModeString(const std::string &channelName) const
+{
+	Channel* channel = _findChannel(channelName);
+	if (channel) {
+		return channel->getModeString();
+	}
+	return "";
+}
+
+// Helper function to get topic setter
+std::string Server::_getTopicSetter(const std::string &channelName) const
+{
+	(void)channelName; // Suppress unused parameter warning
+	// This would need to be tracked in Channel class
+	// For now, return a placeholder
+	return "admin";
+}
+
+// Helper function to get topic time
+std::string Server::_getTopicTime(const std::string &channelName) const
+{
+	(void)channelName; // Suppress unused parameter warning
+	// This would need to be tracked in Channel class
+	// For now, return a placeholder
+	return "1234567890";
+}
+
+// Function to send welcome messages when user completes registration
+void Server::sendWelcomeMessages(User *user)
+{
+	if (!user) return;
+	
+	// Send RPL_WELCOME
+	std::string welcome_msg = user->getNick() + "!" + user->getUser() + "@" + user->getHost();
+	_reply(user->getFD(), RPL_WELCOME, welcome_msg);
+	
+	// Send RPL_YOURHOST
+	_reply(user->getFD(), RPL_YOURHOST);
+	
+	// Send RPL_CREATED
+	_reply(user->getFD(), RPL_CREATED);
+	
+	// Send RPL_MYINFO
+	_reply(user->getFD(), RPL_MYINFO);
 }
 
 // Check if a nickname is already in use by any connected user
