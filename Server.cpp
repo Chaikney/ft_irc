@@ -570,7 +570,8 @@ void	Server::handlePart(Message *msg, User *usr)
 
     if (channel->removeMember(usr->getFD()))
     {
-		// TODO Send a PART confirmation to the User
+		// Send a PART confirmation to the User
+		this->_toProcess.push(_replyNonNumeric(*msg, channel));
         usr->removeChannel(chan);
 		// TODO Send NOTICE to that channel using Message and queue
         _broadcastToChannel(channel, -1, ":server NOTICE " + chan + " :" + usr->getNick() + " left", true);
@@ -1080,6 +1081,7 @@ Message*	Server::_reply(Message &msg, int rep_code, Channel *chan) const
 // ...how would you get the channel name?
 // NOTE targets is a LIST so we can expand sending to multiple clients
 // ...that is maybe not needed now?
+// NOTE For this to work with PART you have to include the Reason, final parameter
 Message*	Server::_replyNonNumeric(Message &msg, Channel *chan) const
 {
 	Message*	transmit;
@@ -1088,10 +1090,11 @@ Message*	Server::_replyNonNumeric(Message &msg, Channel *chan) const
 
 	std::list<std::string>	params;
 	params.push_back(chan->getName());
+	if (cmd_as_str.compare("PART") == 0)
+		params.push_back((msg.getParams().back()));
 
 	std::list<int>	targets;
 	targets.push_front(msg.getOrigin()->getFD());
-
 
 	transmit = new Message(src, cmd_as_str, params, targets);
 	std::cout << "Non-numeric reply composed" << std::endl;
