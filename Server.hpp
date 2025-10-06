@@ -56,6 +56,8 @@ class	Server
 
 		// NOTE AS now, only works for Channel-related replies
 		Message*	_replyNonNumeric(Message &msg, Channel *chan) const;
+		//  NOTE UNlless I find a reason User, this can be cut away
+		Message*	_replyNonNumeric(Message &msg, User *usr) const;
 
 		// --- Helpers for channels/users ---
 		User*		_findUserByNick(const std::string &nick) const;

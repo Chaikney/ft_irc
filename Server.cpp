@@ -435,15 +435,19 @@ void	Server::handleNick(Message *msg, User *usr)
 		(newNick.find_first_of(forbidden) != std::string::npos))
 	{
 		this->_toProcess.push(_reply(*msg, ERR_ERRONEUSNICKNAME));
+		return;
 	}
 	else if (_isNickTaken(newNick, usr->getFD()))
 	{
 		this->_toProcess.push(_reply(*msg, ERR_NICKNAMEINUSE));
+		return;
 	}
 	else
 	{
 		std::cout << "setting nickname to " << newNick << std::endl;
 		usr->setNick(newNick);
+		this->_toProcess.push(_replyNonNumeric(*msg, usr));
+
 	}
 }
 
@@ -831,6 +835,7 @@ void	Server::_broadcastToChannel(Channel *channel, int from_fd, const std::strin
     }
 }
 
+// TODO Add ERROR call here when that is implmented
 void	Server::handlePass(Message *msg, User *usr)
 {
 	std::string	_sPass = this->_password;
@@ -851,7 +856,6 @@ void	Server::handlePass(Message *msg, User *usr)
 		{
 			this->_toProcess.push(_reply(*msg, ERR_ALREADYREGISTERED));
 		}
-		// TODO Server sends some kind of acknowledgment?
 	}
 	else
 	{
@@ -1101,6 +1105,29 @@ Message*	Server::_replyNonNumeric(Message &msg, Channel *chan) const
 	std::cout << transmit->serialiseMsg() << std::endl;
 	return (transmit);
 }
+
+// Test case for this is NICK and similar commands
+// FIXME Does not work how do we get the user name?
+Message*	Server::_replyNonNumeric(Message &msg, User *usr) const
+{
+	Message*	transmit;
+	(void) usr;	// dumb HACK
+	std::string	src = msg.getOrigin()->getNick();
+	std::string cmd_as_str = msg.getCommand();
+
+	std::list<std::string>	params;
+	params.push_back(msg.getParams().back());
+
+	std::list<int>	targets;
+	targets.push_front(msg.getOrigin()->getFD());
+
+	transmit = new Message(src, cmd_as_str, params, targets);
+	std::cout << "Non-numeric reply composed" << std::endl;
+	std::cout << *transmit << std::endl;
+	std::cout << transmit->serialiseMsg() << std::endl;
+	return (transmit);
+}
+
 
 // Extract from message:
 // - text to be sent

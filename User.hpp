@@ -6,6 +6,7 @@
 #include <iostream>
 
 // TODO Decide if any other information is useful to us here
+// TODO A method to return a list of the User's channel memberships will help direct messages
 // TODO Add a last seen timestamp (what format?) to allow for timeouts
 // TODO Decide how to store MODEs
 // TODO Add more constructors as appropriate
