@@ -198,6 +198,7 @@ void Server::run()
 	{
 		// n is the number of fds ready for action
 		int n = epoll_wait(_epollFD, events, MAX_EVENTS, -1);
+		// TODO Should the epoll wait error be an exception?
 		if (n == -1)
 		{
 			std::cerr << "epoll_wait error" << std::endl;
@@ -231,18 +232,33 @@ void Server::run()
 					else	// Parse into Message and queue for further action
 					{
 						// With a complete message, must delete partials
+						// If there are multiple messages here, parse them *all*
 						this->_partial_msgs[events[i].data.fd].erase();
 						std::cout << "Can be parsed" << std::endl;
+						// NOTE What does the User line do here? Document it.
+						// ....What happens if not found in _moreClients?
 						User*	msgFrom =  this->_moreClients[events[i].data.fd];
-						Message	*nxtMessage = Message::makeMessage(str_buf, msgFrom);
-						this->_toProcess.push(nxtMessage);
+						while (this->_isFullMsg(str_buf))
+						{
+							Message	*nxtMessage = Message::makeMessage(str_buf, msgFrom);
+							this->_toProcess.push(nxtMessage);
+							// Strip some text from str_buf
+//							std::cout << "strbuf before:" << str_buf << std::endl;
+							str_buf.erase(0, str_buf.find_first_of('\n'));
+							str_buf.erase(0,1);	// HACK To get rid of the \n at the start now?
+							// if (!str_buf.empty())
+							// 	std::cout << "strbuf after:" << str_buf << std::endl;
+							// else
+							// 	std::cout << "strbuf emptied" << std::endl;
+						}
 					}
 					std::cout << "Mensaje recibido de fd " << events[i].data.fd << ": " << str_buf << std::endl;
-					// NOTE: No global broadcast here. Message dispatch happens via parsed commands (e.g., PRIVMSG)
 					// HACK debugging print statement below
 					//this->_printMessageQueue(this->_toProcess);
 				}
 				// TODO Work out how to handle / merge the 2 different exceptions.
+				// - cant parse message- silently ignore or send ERR_NOTENOUGH PARAMS type reply
+				// - connection dodgy - is that what they are?
 				catch (std::exception &e)
 				{
 					std::cerr << e.what() <<std::endl;
