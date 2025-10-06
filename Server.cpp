@@ -29,9 +29,10 @@
 
 
 // Helper para poner un socket en modo no bloqueante
+// Set socket to non-blocking by:
 // Get the existing flags for the newly-accepted clientSocket
 // Add non-blocking to those existing client flags
-// TODO Check everywhere for fcntl calls which should be replaced by this
+// Returns FALSE if this fails, caller to handle that
 bool Server::_setNonBlocking(int fd)
 {
 	int flags = fcntl(fd, F_GETFL, 0);
@@ -49,7 +50,6 @@ bool Server::_setNonBlocking(int fd)
 // - listen on fd
 // - Create epoll fd
 // - Add socket fd to epoll's listening set
-// FIXED There are no try/catch blocks for the thrown exceptions
 Server::Server(int port, std::string password) : _socketFD(0), _epollFD(0),
 												 _serverAddress(), _password(password),
 												 _toProcess(), _clients(), _partial_msgs(),
@@ -63,12 +63,11 @@ Server::Server(int port, std::string password) : _socketFD(0), _epollFD(0),
 	}
 	std::cout << "Created a socket listening at fd " << _socketFD << std::endl;
 
-	// Set socket to non-blocking by:
-	// Get the existing flags for the newly-created Socket
-	// FIXME use helper function?
-	int flags = fcntl(_socketFD, F_GETFL, 0);
-	// Add non-blocking to those existing client flags
-	fcntl(_socketFD, F_SETFL, flags | O_NONBLOCK);
+	if (!_setNonBlocking((_socketFD)))
+	{
+		close (_socketFD);
+		throw std::runtime_error("Cannot make socket nonblocking");
+	}
 
 	_serverAddress.sin_family = AF_INET;
 	_serverAddress.sin_port = htons(port);
@@ -126,7 +125,6 @@ void	Server::_addNewClient()
 		if (clientSocket == -1)
 			throw std::runtime_error("Could not get client socket");
 		std::cout << "Nuevo cliente conectado, fd: " << clientSocket << std::endl;
-		// Hacer el socket del cliente no bloqueante
 		if (!_setNonBlocking(clientSocket))
 		{
 			close (clientSocket);
