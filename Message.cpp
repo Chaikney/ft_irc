@@ -149,8 +149,13 @@ Message	*Message::makeMessage(std::string &str)
 	return (msg);
 }
 
+// Make ONE Message from a provided string.
+// If there are multiples in the string (i.e. more than one \n) that is a problem for
+// the caller to solve.
 Message	*Message::makeMessage(std::string &str, User *origin)
 {
+	// HACK debug
+//	std::cout << "Attemtping to make Message from:" << str << std::endl;
 	Message	*msg = new Message(str, origin);
 	return (msg);
 }

@@ -54,6 +54,9 @@ class	Server
 		// If this works, it is important
 		void		_sendMessage(Message *to_send) const;
 
+		// NOTE AS now, only works for Channel-related replies
+		Message*	_replyNonNumeric(Message &msg, Channel *chan) const;
+
 		// --- Helpers for channels/users ---
 		User*		_findUserByNick(const std::string &nick) const;
 		Channel*	_findChannel(const std::string &name) const;

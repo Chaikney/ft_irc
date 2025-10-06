@@ -532,6 +532,7 @@ void	Server::handleJoin(Message *msg, User *usr)
 		// TODO How do we do this JOIN acknowledgment thing?
 		//(is a common problem)
 		//this->_toProcess.push(_reply(*msg, JOIN));
+		this->_toProcess.push(_replyNonNumeric(*msg, channel));
 		this->_toProcess.push(_reply(*msg, RPL_TOPIC, channel));
 		this->_toProcess.push(_reply(*msg, RPL_TOPICWHOTIME, channel));	// NOTE Optional
 
@@ -1069,6 +1070,33 @@ Message*	Server::_reply(Message &msg, int rep_code, Channel *chan) const
 	}
 	std::cout << "Added " << params.size() << "parameters" <<std::endl;
 	transmit = new Message(src, cmd_as_str, params, targets);
+	return (transmit);
+}
+
+// Return a Message in reply to a command, but a non-numeric one
+// i.e. typically this will be the same command back to the place it came from
+// Take JOIN as an example to test this
+// https://modern.ircdocs.horse/#join-message
+// ...how would you get the channel name?
+// NOTE targets is a LIST so we can expand sending to multiple clients
+// ...that is maybe not needed now?
+Message*	Server::_replyNonNumeric(Message &msg, Channel *chan) const
+{
+	Message*	transmit;
+	std::string	src = msg.getOrigin()->getNick();
+	std::string cmd_as_str = msg.getCommand();
+
+	std::list<std::string>	params;
+	params.push_back(chan->getName());
+
+	std::list<int>	targets;
+	targets.push_front(msg.getOrigin()->getFD());
+
+
+	transmit = new Message(src, cmd_as_str, params, targets);
+	std::cout << "Non-numeric reply composed" << std::endl;
+	std::cout << *transmit << std::endl;
+	std::cout << transmit->serialiseMsg() << std::endl;
 	return (transmit);
 }
 
