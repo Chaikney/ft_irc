@@ -888,9 +888,8 @@ void	Server::_processQueue(void)
 		std::cout << "Processing:" << *do_next << std::endl;
 		std::string command = do_next->getCommand();
 //		std::cout << "Comando parseado: [" << command << "]" << std::endl;
-		// IF the message is from us / the server, we send it straight out
-		// HACK Perhaps separate queue would be better..?
-		if (do_next->getSource().compare(SERVERNAME) == 0)
+		// NOTE No origin => message is from us / the server, we send it straight out
+		if (!do_next->getOrigin())
 			this->_sendMessage(do_next);
 		else if (command.compare("CAP") == 0)
 			std::cout << "Ignoring capability negotiation request" << std::endl;
