@@ -916,22 +916,21 @@ void	Server::_processQueue(void)
 		{
 			if (command.compare("NICK") == 0)
 				handleNick(do_next, do_next->getOrigin());
-			if (command.compare("USER") == 0)
+			else if (command.compare("USER") == 0)
 				handleUser(do_next, do_next->getOrigin());
-			// FIXME This was not caught from Konversation? At least on the 2nd time around
-			if (command.compare("JOIN") == 0)
+			else if (command.compare("JOIN") == 0)
 				handleJoin(do_next, do_next->getOrigin());
-			if (command.compare("PART") == 0)
+			else if (command.compare("PART") == 0)
 				handlePart(do_next, do_next->getOrigin());
-			if (command.compare("NAMES") == 0)
+			else if (command.compare("NAMES") == 0)
 				handleNames(do_next, do_next->getOrigin());
-			if (command.compare("LIST") == 0)
+			else if (command.compare("LIST") == 0)
 				handleList(do_next, do_next->getOrigin());
-			if (command.compare("TOPIC") == 0)
+			else if (command.compare("TOPIC") == 0)
 				handleTopic(do_next, do_next->getOrigin());
-			if (command.compare("INVITE") == 0)
+			else if (command.compare("INVITE") == 0)
 				handleInvite(do_next, do_next->getOrigin());
-			if (command.compare("MODE") == 0)
+			else if (command.compare("MODE") == 0)
 				handleMode(do_next, do_next->getOrigin());
 			else if (command.compare("KICK") == 0)
 				handleKick(do_next, do_next->getOrigin());
@@ -940,7 +939,7 @@ void	Server::_processQueue(void)
 			else
 				this->_toProcess.push(_reply(*do_next, ERR_UNKNOWNCOMMAND));
 		}
-		// deleting the Message here seems to reduce "still reachable" type leaks
+		// NOTE deleting the Message here seems to reduce "still reachable" type leaks
 		delete do_next;
  	}
 }
