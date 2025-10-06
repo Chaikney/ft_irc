@@ -51,10 +51,6 @@ class	Server
 		void		_storePartial(int fd_source, std::string msg);
 		std::string	_getClientInput(int fd);
 		bool		_isNickTaken(const std::string &nick, int except_fd = -1) const;
-		// TODO IS this in the right place?
-		Message*	makeServerReply(int target, int msg_code, std::string par) const;
-		// TODO Probably don't need this one?
-		Message*	makeServerReply(int target, int msg_code) const;
 		// If this works, it is important
 		void		_sendMessage(Message *to_send) const;
 

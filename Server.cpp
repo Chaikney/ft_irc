@@ -75,7 +75,7 @@ Server::Server(int port, std::string password) : _socketFD(0), _epollFD(0),
 
 	std::cout << "Binding...";
 	// FIXME If we throw here, the program ends with uncleared memory
-	if (bind(_socketFD, (struct sockaddr *)&_serverAddress, sizeof(_serverAddress)) == -1) 
+	if (bind(_socketFD, (struct sockaddr *)&_serverAddress, sizeof(_serverAddress)) == -1)
 	{
 		close(_socketFD);
 		throw std::runtime_error("Binding failed");
@@ -83,7 +83,7 @@ Server::Server(int port, std::string password) : _socketFD(0), _epollFD(0),
 	std::cout << " Socket successfully bound" << std::endl;
 
 	std::cout << "Listening..." << std::endl;
-	if (listen(_socketFD, 5) == -1) 
+	if (listen(_socketFD, 5) == -1)
 	{
 		close(_socketFD);
 		throw std::runtime_error("Listening set up failed");
@@ -101,7 +101,7 @@ Server::Server(int port, std::string password) : _socketFD(0), _epollFD(0),
 	struct epoll_event ev;
 	ev.events = EPOLLIN;
 	ev.data.fd = _socketFD;
-	if (epoll_ctl(_epollFD, EPOLL_CTL_ADD, _socketFD, &ev) == -1) 
+	if (epoll_ctl(_epollFD, EPOLL_CTL_ADD, _socketFD, &ev) == -1)
 	{
 		close(_socketFD);
 		close(_epollFD);
@@ -145,6 +145,7 @@ void	Server::_addNewClient()
 		}
 		else
 		{
+			// TODO Is this needed or does it duplicate the _moreClients pieces?
 			this->_clients.insert(newUser->getFD());
 		}
 	}
@@ -166,6 +167,7 @@ void	Server::_removeClient(struct epoll_event &goodbye)
 	std::cout << "Cliente desconectado, fd: " << goodbye.data.fd << std::endl;
 	close(goodbye.data.fd);
 	epoll_ctl(_epollFD, EPOLL_CTL_DEL, goodbye.data.fd, NULL);
+	// TODO Is this duplication? It is not used anywhere as far as I can tell
 	_clients.erase(goodbye.data.fd);
 	this->_partial_msgs.erase(goodbye.data.fd);
 	// Free and forget the User instance if present
@@ -508,7 +510,7 @@ void	Server::handleJoin(Message *msg, User *usr)
     Channel *channel = this->_findChannel(chan);
     if (!channel)
         channel = this->_createChannel(chan);
-    
+
 	// NOTE This logic is odd, why remove an invite? Just to keep the list clean?
     if (channel->isInviteOnly())
     {
@@ -522,7 +524,7 @@ void	Server::handleJoin(Message *msg, User *usr)
             channel->removeInvite(usr->getNick());
         }
     }
-    
+
 	// TODO What is the logic needed here to JOIN someone to a channel?
     if (channel->addMember(usr->getFD()))
     {
@@ -564,14 +566,14 @@ void	Server::handlePart(Message *msg, User *usr)
 		this->_toProcess.push(_reply(*msg, ERR_NOSUCHCHANNEL));
         return ;
 	}
-    
+
     if (channel->removeMember(usr->getFD()))
     {
 		// TODO Send a PART confirmation to the User
         usr->removeChannel(chan);
 		// TODO Send NOTICE to that channel using Message and queue
         _broadcastToChannel(channel, -1, ":server NOTICE " + chan + " :" + usr->getNick() + " left", true);
-        
+
         // If channel is empty, remove it
         if (channel->isEmpty())
             _removeChannel(chan);
@@ -629,7 +631,7 @@ void	Server::handleTopic(Message *msg, User *usr)
     std::string chan = params.front();
     Channel *channel = _findChannel(chan);
     if (!channel) return ;
-    
+
     if (params.size() == 1)
     {
         _sendToFD(usr->getFD(), ":server 332 " + chan + " :" + channel->getTopic() + "\r\n");
@@ -654,7 +656,7 @@ void	Server::handleInvite(Message *msg, User *usr)
     std::string chan = params.front();
     Channel *channel = _findChannel(chan);
     if (!channel) return ;
-    
+
     if (!channel->isOperator(usr->getFD()))
     {
         _sendToFD(usr->getFD(), ":server 482 " + chan + " :You're not channel operator\r\n");
@@ -674,27 +676,27 @@ void	Server::handleMode(Message *msg, User *usr)
     std::string flags = params.front(); params.pop_front();
     Channel *channel = _findChannel(chan);
     if (!channel) return ;
-    
+
     if (!channel->isOperator(usr->getFD()))
     {
         _sendToFD(usr->getFD(), ":server 482 " + chan + " :You're not channel operator\r\n");
         return ;
     }
-    
+
     bool adding = true;
     for (size_t i = 0; i < flags.size(); ++i)
     {
         char f = flags[i];
         if (f == '+') { adding = true; continue; }
         if (f == '-') { adding = false; continue; }
-        
+
         std::string param = "";
         if (!params.empty())
         {
             param = params.front();
             params.pop_front();
         }
-        
+
         if (channel->setMode(f, adding, param))
         {
             std::string modeStr = (adding ? "+" : "-") + std::string(1, f);
@@ -709,14 +711,14 @@ Server::~Server(void)
 {
 	// Libera recursos si es necesario
 	std::cout << "Server destructor called." << std::endl;
-	
+
 	// Clean up channels
 	for (std::map<std::string, Channel*>::iterator it = _channels.begin(); it != _channels.end(); ++it)
 	{
 		delete it->second;
 	}
 	_channels.clear();
-	
+
 	// Clean up users
 	for (std::map<int, User*>::iterator it = _moreClients.begin(); it != _moreClients.end(); ++it)
 	{
@@ -1046,13 +1048,13 @@ Message*	Server::_reply(Message &msg, int rep_code) const
 // TODO Safety checks needed on FD list send_to
 // TODO Properly handle the "would block" error
 // TODO Quality check on the Message serialization needed?
-void	Server::_sendMessage(Message *to_send) const
+void	Server::_sendMessage(Message *msg_to_send) const
 {
-	std::string	msg_as_str = to_send->serialiseMsg();
+	std::string	msg_as_str = msg_to_send->serialiseMsg();
 	// const here is to avoid -fpermissive compiler warning
 	const char*	msg_buf = msg_as_str.c_str();
 	size_t			str_len = msg_as_str.length();
-	std::list<int>	send_to = to_send->getTargets();
+	std::list<int>	send_to = msg_to_send->getTargets();
 
 	while (!send_to.empty())
 	{
@@ -1073,35 +1075,10 @@ void	Server::_sendMessage(Message *to_send) const
 		else
 		{
 			std::cout << "Server reply message sent OK" << std::endl;
-			// this does not work here...
-//			delete send_nxt;
 		}
-		// move through the list
+		// move through the list - does this handle memory OK?
 		send_to.pop_front();
 	}
-}
-
-// TODO Might need to take a Parameter list; only one for now
-// TODO Add the real client name to params, is standard
-// NOTE Is this now obsolete?
-Message*	Server::makeServerReply(int target, int msg_code, std::string par) const
-{
-	Message*	transmit;
-	std::stringstream strm;
-	strm << msg_code;
-	std::string cmd_as_str = strm.str();
-
-	std::list<int>	targets;
-	targets.push_front(target);
-
-	std::string	src(SERVERNAME);
-
-	std::list<std::string>	params;
-	params.push_front(par);
-	params.push_front("clientnick");	// HACK, most numeric replies have this
-
-	transmit = new Message(src, cmd_as_str, params, targets);
-	return (transmit);
 }
 
 // Check if a nickname is already in use by any connected user
