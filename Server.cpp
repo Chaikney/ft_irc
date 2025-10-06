@@ -990,7 +990,9 @@ Message*	Server::_reply(Message &msg, int rep_code) const
 			params.push_back("user_modes_here");
 			params.push_back("channel_modes_here");
 			break;
-		// NOTE catching this message needs an overload with Channel
+		case ERR_NOSUCHNICK:
+			params.push_back(msg.getParams().front());	// HACK Careless assumption here
+			params.push_back("No such nick or channel found");
 		case ERR_UNKNOWNCOMMAND:
 			params.push_back(msg.getCommand());
 			params.push_back("Command not known on this server");
