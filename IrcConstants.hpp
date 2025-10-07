@@ -44,6 +44,10 @@
 // User Mode Errors
 # define ERR_UMODEUNKNOWNFLAG 501
 
+// PING/PONG Errors
+# define ERR_NOORIGIN 409
+# define ERR_NOSUCHSERVER 402
+
 
 // Welcome Replies (OBLIGATORIOS)
 # define RPL_WELCOME 001

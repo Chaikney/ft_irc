@@ -578,6 +578,22 @@ void	Server::handleJoin(Message *msg, User *usr)
         return ;
     }
     
+    // Check if channel has password
+    if (channel->hasPassword())
+    {
+        if (params.size() < 2)
+        {
+            this->_reply(usr->getFD(), ERR_NEEDMOREPARAMS, "JOIN");
+            return ;
+        }
+        std::string password = params.back();
+        if (password != channel->getPassword())
+        {
+            this->_reply(usr->getFD(), ERR_BADCHANNELKEY, chan);
+            return ;
+        }
+    }
+    
     // Check if channel is invite only
     if (channel->isInviteOnly())
     {
@@ -718,6 +734,8 @@ void	Server::handleNames(Message *msg, User *usr)
 void	Server::handleList(Message *msg, User *usr)
 {
     (void)msg;
+    // Send list start
+    this->_reply(usr->getFD(), RPL_LISTSTART);
     for (std::map<std::string, Channel*>::const_iterator it = _channels.begin(); it != _channels.end(); ++it)
     {
         Channel *c = it->second;
@@ -951,6 +969,127 @@ void	Server::handleMode(Message *msg, User *usr)
     }
 }
 
+void	Server::handlePing(Message *msg, User *usr)
+{
+    std::list<std::string> params = msg->getParams();
+    if (params.empty())
+    {
+        this->_reply(usr->getFD(), ERR_NOORIGIN);
+        return ;
+    }
+    
+    std::string origin = params.front();
+    if (origin.empty())
+    {
+        this->_reply(usr->getFD(), ERR_NOORIGIN);
+        return ;
+    }
+    
+    // Send PONG response
+    std::string pongMsg = ":" + std::string(MSG_PREFIX_SERVER).substr(1) + " PONG " + std::string(MSG_PREFIX_SERVER).substr(1) + " :" + origin;
+    _sendToFD(usr->getFD(), pongMsg + MSG_TERMINATOR);
+}
+
+void	Server::handlePong(Message *msg, User *usr)
+{
+    std::list<std::string> params = msg->getParams();
+    if (params.empty())
+    {
+        this->_reply(usr->getFD(), ERR_NOORIGIN);
+        return ;
+    }
+    
+    // PONG is typically just acknowledged, no specific response needed
+    // The server can use this to verify the client is still alive
+    (void)params; // Suppress unused parameter warning
+    (void)usr;    // Suppress unused parameter warning
+}
+
+void	Server::handleQuit(Message *msg, User *usr)
+{
+    std::list<std::string> params = msg->getParams();
+    std::string reason = "";
+    
+    if (!params.empty())
+    {
+        reason = params.front();
+        if (!reason.empty() && reason[0] == ':')
+            reason.erase(0, 1);
+    }
+    
+    if (reason.empty())
+        reason = "Quit: " + usr->getNick();
+    else
+        reason = "Quit: " + reason;
+    
+    // Send QUIT message to all channels the user is on
+    std::string quitMsg = ":" + usr->getNick() + " QUIT :" + reason;
+    
+    // Get all channels the user is on and broadcast QUIT message
+    for (std::map<std::string, Channel*>::iterator it = _channels.begin(); it != _channels.end(); ++it)
+    {
+        Channel *channel = it->second;
+        if (channel->isMember(usr->getFD()))
+        {
+            _broadcastToChannel(channel, usr->getFD(), quitMsg, false);
+            channel->removeMember(usr->getFD());
+        }
+    }
+    
+    // Remove user from server
+    _clients.erase(usr->getFD());
+    _partial_msgs.erase(usr->getFD());
+    _moreClients.erase(usr->getFD());
+    
+    // Close the connection
+    close(usr->getFD());
+    epoll_ctl(_epollFD, EPOLL_CTL_DEL, usr->getFD(), NULL);
+    
+    // Delete user object
+    delete usr;
+}
+
+void	Server::handleError(Message *msg, User *usr)
+{
+    std::list<std::string> params = msg->getParams();
+    std::string errorMsg = "";
+    
+    if (!params.empty())
+    {
+        errorMsg = params.front();
+        if (!errorMsg.empty() && errorMsg[0] == ':')
+            errorMsg.erase(0, 1);
+    }
+    
+    if (errorMsg.empty())
+        errorMsg = "Connection closed by client";
+    
+    // Log the error
+    std::cerr << "ERROR from " << usr->getNick() << ": " << errorMsg << std::endl;
+    
+    // Remove user from all channels
+    for (std::map<std::string, Channel*>::iterator it = _channels.begin(); it != _channels.end(); ++it)
+    {
+        Channel *channel = it->second;
+        if (channel->isMember(usr->getFD()))
+        {
+            channel->removeMember(usr->getFD());
+        }
+    }
+    
+    // Remove user from server
+    _clients.erase(usr->getFD());
+    _partial_msgs.erase(usr->getFD());
+    _moreClients.erase(usr->getFD());
+    
+    // Close the connection
+    close(usr->getFD());
+    epoll_ctl(_epollFD, EPOLL_CTL_DEL, usr->getFD(), NULL);
+    
+    // Delete user object
+    delete usr;
+}
+
 Server::~Server(void)
 {
 	// Libera recursos si es necesario
@@ -1181,6 +1320,14 @@ void	Server::_processQueue(void)
 				handleInvite(do_next, do_next->getOrigin());
 			if (command.compare("MODE") == 0)
 				handleMode(do_next, do_next->getOrigin());
+			else if (command.compare("PING") == 0)
+				handlePing(do_next, do_next->getOrigin());
+			else if (command.compare("PONG") == 0)
+				handlePong(do_next, do_next->getOrigin());
+			else if (command.compare("QUIT") == 0)
+				handleQuit(do_next, do_next->getOrigin());
+			else if (command.compare("ERROR") == 0)
+				handleError(do_next, do_next->getOrigin());
 			// FIXME KICK and PRIVMSG are inconsistent with the others, for no good reason
 			else if (command == "KICK")
 				handleKick(do_next, do_next->getOrigin());
@@ -1284,6 +1431,39 @@ void	Server::_reply(int send_to, int msg_code, const std::string &params) const
 			message = params + " :is unknown mode char to me for <channel>";
 			break;
 			
+		// PING/PONG Errors
+		case ERR_NOORIGIN:
+			message = ":No origin specified";
+			break;
+		case ERR_NOSUCHSERVER:
+			message = params + " :No such server";
+			break;
+			
+		// Additional Channel Errors
+		case ERR_YOUREBANNEDCREEP:
+			message = ":You are banned from this server";
+			break;
+		case ERR_KEYSET:
+			message = params + " :Channel key already set";
+			break;
+		case ERR_BADCHANMASK:
+			message = params + " :Bad channel mask";
+			break;
+		case ERR_NOCHANMODES:
+			message = params + " :Channel doesn't support modes";
+			break;
+		case ERR_BANLISTFULL:
+			message = params + " :Channel ban list is full";
+			break;
+			
+		// Permission Errors
+		case ERR_NOPRIVILEGES:
+			message = ":Permission Denied- You're not an IRC operator";
+			break;
+		case ERR_UNIQOPPRIVSNEEDED:
+			message = ":You're not the original channel operator";
+			break;
+			
 		// Welcome Replies (001-004)
 		case RPL_WELCOME:
 			message = "Welcome to the Internet Relay Network " + params;
@@ -1310,6 +1490,9 @@ void	Server::_reply(int send_to, int msg_code, const std::string &params) const
 			break;
 			
 		// List Replies
+		case RPL_LISTSTART:
+			message = "Channel :Users  Name";
+			break;
 		case RPL_LIST:
 		{
 			std::stringstream count_stream;
@@ -1324,6 +1507,9 @@ void	Server::_reply(int send_to, int msg_code, const std::string &params) const
 		// Channel Mode Replies
 		case RPL_CHANNELMODEIS:
 			message = params + " " + _getChannelModeString(params);
+			break;
+		case RPL_CREATIONTIME:
+			message = params + " " + _getChannelCreationTime(params);
 			break;
 			
 		// Topic Replies
@@ -1479,6 +1665,15 @@ std::string Server::_getTopicSetter(const std::string &channelName) const
 
 // Helper function to get topic time
 std::string Server::_getTopicTime(const std::string &channelName) const
+{
+	(void)channelName; // Suppress unused parameter warning
+	// This would need to be tracked in Channel class
+	// For now, return a placeholder
+	return "1234567890";
+}
+
+// Helper function to get channel creation time
+std::string Server::_getChannelCreationTime(const std::string &channelName) const
 {
 	(void)channelName; // Suppress unused parameter warning
 	// This would need to be tracked in Channel class

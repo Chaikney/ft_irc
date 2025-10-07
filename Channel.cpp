@@ -2,6 +2,7 @@
 #include "User.hpp"
 #include <iostream>
 #include <cstdlib>
+#include <sstream>
 
 Channel::Channel(void) : _name(""), _topic(""), _members(), _operators(), _invitedNicks(),
 						_topicProtected(false), _inviteOnly(false), _password(""),
@@ -272,7 +273,10 @@ bool Channel::setMode(char mode, bool add, const std::string &param)
 			{
 				if (param.empty())
 					return false;
-				_userLimit = atoi(param.c_str());
+				std::istringstream iss(param);
+				iss >> _userLimit;
+				if (iss.fail() || _userLimit <= 0)
+					return false;
 			}
 			else
 				_userLimit = 0;

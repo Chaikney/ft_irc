@@ -16,10 +16,10 @@ class	Channel;
 // - port
 // - password (passed in on command line)
 // TODO Commands to implement:
-// [ ] PING
-// [ ] PONG
-// [ ] QUIT
-// [ ] ERROR
+// [x] PING
+// [x] PONG
+// [x] QUIT
+// [x] ERROR
 // TODO We don't need both _clients and _moreClients, it looks stupid
 class	Server
 {
@@ -59,6 +59,7 @@ class	Server
 		std::string	_getChannelModeString(const std::string &channelName) const;
 		std::string	_getTopicSetter(const std::string &channelName) const;
 		std::string	_getTopicTime(const std::string &channelName) const;
+		std::string	_getChannelCreationTime(const std::string &channelName) const;
 		bool		_isNickTaken(const std::string &nick, int except_fd = -1) const;
 
 		// --- Helpers for channels/users ---
@@ -82,6 +83,10 @@ class	Server
 		void		handleTopic(Message *msg, User *usr);
 		void		handleInvite(Message *msg, User *usr);
 		void		handleMode(Message *msg, User *usr);
+		void		handlePing(Message *msg, User *usr);
+		void		handlePong(Message *msg, User *usr);
+		void		handleQuit(Message *msg, User *usr);
+		void		handleError(Message *msg, User *usr);
 
 	public:
 					Server(int port, std::string password);
