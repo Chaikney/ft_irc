@@ -23,7 +23,9 @@ Message::Message(std::string text_recvd) : _tags(""), _source(""),
 {
     if (text_recvd.empty())
         throw std::invalid_argument("Tried to create message with empty string");
-    if (text_recvd.length() < 3)
+    // Minimum message length is just CRLF (2 characters)
+    // But we need at least a command, so minimum is around 5 characters (e.g., "PING\r\n")
+    if (text_recvd.length() < 2)
         throw std::invalid_argument("Message too short");
     if (text_recvd.length() > MSG_LEN)
 		throw std::invalid_argument("Message too long");
@@ -126,7 +128,9 @@ Message::Message(std::string text_recvd, User *usr) : _tags(""), _source(""),
 {
     if (text_recvd.empty())
         throw std::invalid_argument("Tried to create message with empty string");
-    if (text_recvd.length() < 3)
+    // Minimum message length is just CRLF (2 characters)
+    // But we need at least a command, so minimum is around 5 characters (e.g., "PING\r\n")
+    if (text_recvd.length() < 2)
         throw std::invalid_argument("Message too short");
     if (text_recvd.length() > MSG_LEN)
 		throw std::invalid_argument("Message too long");

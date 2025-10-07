@@ -287,7 +287,14 @@ void Server::run()
 				catch (std::exception &e)
 				{
 					std::cerr << "Error processing client " << events[i].data.fd << ": " << e.what() << std::endl;
-					_removeClient(events[i]);
+					// Don't disconnect client for command errors, just log and continue
+					// Only disconnect for serious connection issues
+					if (std::string(e.what()).find("disconnected") != std::string::npos ||
+						std::string(e.what()).find("Failed to read") != std::string::npos)
+					{
+						_removeClient(events[i]);
+					}
+					// For other errors (like invalid commands), just continue
 				}
 				// catch (std::exception &e)
 				// {
@@ -507,7 +514,7 @@ void	Server::handleNick(Message *msg, User *usr)
 	}
 	
 	// Security: Check for forbidden characters
-	std::string	notLeading = "#:&123456789";
+	std::string	notLeading = "#:&@123456789";
 	std::string forbidden = " \b\n\r\0";
 	
 	// Security: Additional validation for special characters
@@ -525,10 +532,12 @@ void	Server::handleNick(Message *msg, User *usr)
 		(newNick.find_first_of(forbidden) != std::string::npos))
 	{
 		this->_reply(usr->getFD(), ERR_ERRONEUSNICKNAME, newNick);
+		return;
 	}
 	else if (_isNickTaken(newNick, usr->getFD()))
 	{
 		this->_reply(usr->getFD(), ERR_NICKNAMEINUSE, newNick);
+		return;
 	}
 	else
 	{
@@ -785,14 +794,37 @@ void	Server::handleNames(Message *msg, User *usr)
 // NOTE Optionally takes parameters, should not ignore msg
 void	Server::handleList(Message *msg, User *usr)
 {
-    (void)msg;
+    std::list<std::string> params = msg->getParams();
+    
     // Send list start
     this->_reply(usr->getFD(), RPL_LISTSTART);
-    for (std::map<std::string, Channel*>::const_iterator it = _channels.begin(); it != _channels.end(); ++it)
+    
+    if (params.empty())
     {
-        Channel *c = it->second;
-        this->_reply(usr->getFD(), RPL_LIST, c->getName());
+        // List all channels
+        for (std::map<std::string, Channel*>::const_iterator it = _channels.begin(); it != _channels.end(); ++it)
+        {
+            Channel *c = it->second;
+            this->_reply(usr->getFD(), RPL_LIST, c->getName());
+        }
     }
+    else
+    {
+        // List specific channels
+        for (std::list<std::string>::const_iterator it = params.begin(); it != params.end(); ++it)
+        {
+            std::string chan = *it;
+            if (this->normaliseChanName(&chan))
+            {
+                Channel *channel = _findChannel(chan);
+                if (channel)
+                {
+                    this->_reply(usr->getFD(), RPL_LIST, channel->getName());
+                }
+            }
+        }
+    }
+    
     // Send end of list
     this->_reply(usr->getFD(), RPL_LISTEND);
 }
@@ -1399,6 +1431,8 @@ void	Server::_processQueue(void)
 		}
 		else if (do_next->getOrigin()->isRegistered())
 		{
+			if (command.compare("PASS") == 0)
+				_reply(do_next->getOrigin()->getFD(), ERR_ALREADYREGISTRED);
 			if (command.compare("NICK") == 0)
 				handleNick(do_next, do_next->getOrigin());
 			if (command.compare("USER") == 0)
@@ -1417,19 +1451,24 @@ void	Server::_processQueue(void)
 				handleInvite(do_next, do_next->getOrigin());
 			if (command.compare("MODE") == 0)
 				handleMode(do_next, do_next->getOrigin());
-			else if (command.compare("PING") == 0)
+			if (command.compare("PING") == 0)
 				handlePing(do_next, do_next->getOrigin());
-			else if (command.compare("PONG") == 0)
+			if (command.compare("PONG") == 0)
 				handlePong(do_next, do_next->getOrigin());
-			else if (command.compare("QUIT") == 0)
+			if (command.compare("QUIT") == 0)
 				handleQuit(do_next, do_next->getOrigin());
-			else if (command.compare("ERROR") == 0)
+			if (command.compare("ERROR") == 0)
 				handleError(do_next, do_next->getOrigin());
 			// FIXME KICK and PRIVMSG are inconsistent with the others, for no good reason
-			else if (command == "KICK")
+			if (command == "KICK")
 				handleKick(do_next, do_next->getOrigin());
-			else if (command == "PRIVMSG")
+			if (command == "PRIVMSG")
 				handlePrivmsg(do_next, do_next->getOrigin()->getFD());
+			else
+			{
+				// Unknown command - send error but don't disconnect
+				_reply(do_next->getOrigin()->getFD(), ERR_UNKNOWNCOMMAND, command);
+			}
 		}
 		// deleting the Message here seems to reduce "still reachable" type leaks
 		delete do_next;
@@ -1526,6 +1565,9 @@ void	Server::_reply(int send_to, int msg_code, const std::string &params) const
 			break;
 		case ERR_UNKNOWNMODE:
 			message = params + " :is unknown mode char to me for <channel>";
+			break;
+		case ERR_UMODEUNKNOWNFLAG:
+			message = ":Unknown MODE flag";
 			break;
 			
 		// PING/PONG Errors
@@ -1637,7 +1679,7 @@ void	Server::_reply(int send_to, int msg_code, const std::string &params) const
 		{
 			std::stringstream code_stream;
 			code_stream << msg_code;
-			message = ":" + code_stream.str();
+			message = ":Unknown numeric code " + code_stream.str();
 			break;
 		}
 	}
