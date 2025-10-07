@@ -1464,7 +1464,14 @@ void	Server::_processQueue(void)
 				handleKick(do_next, do_next->getOrigin());
 			if (command == "PRIVMSG")
 				handlePrivmsg(do_next, do_next->getOrigin()->getFD());
-			else
+			
+			// Check if command was not handled by any of the above
+			if (command != "PASS" && command != "NICK" && command != "USER" && 
+				command != "JOIN" && command != "PART" && command != "NAMES" && 
+				command != "LIST" && command != "TOPIC" && command != "INVITE" && 
+				command != "MODE" && command != "PING" && command != "PONG" && 
+				command != "QUIT" && command != "ERROR" && command != "KICK" && 
+				command != "PRIVMSG")
 			{
 				// Unknown command - send error but don't disconnect
 				_reply(do_next->getOrigin()->getFD(), ERR_UNKNOWNCOMMAND, command);
