@@ -7,50 +7,14 @@
 #include <sstream>
 
 
-// HACK temp test "suite" for Message creation
-void	runMessageParsingTests(void)
-{
-	Message	*test_msg;
-	std::string	test_str;
-
-	test_str = "NICK pants and socks";
-	test_msg = Message::makeMessage(test_str);
-	std::cout << *test_msg << std::endl;
-	delete test_msg;
-	test_str = "    ";
-	test_msg = Message::makeMessage(test_str);
-	std::cout << test_msg << std::endl;
-	delete test_msg;
-	test_str = (":not valid is it");
-	test_msg = Message::makeMessage(test_str);
-	std::cout << *test_msg << std::endl;
-	delete test_msg;
-	test_str = ("@tag :source command and then a long list of parameters");
-	test_msg = Message::makeMessage(test_str);
-	std::cout << *test_msg << std::endl;
-	delete test_msg;
-	test_str = ("@tag :source command :and then a long list of parameters treated as one");
-	test_msg = Message::makeMessage(test_str);
-	std::cout << *test_msg << std::endl;
-	delete test_msg;
-}
-
-
-// TO DO parse command line arguments
-// - port number
-// - password
-// Check that port number is valid (1-65535)
-// Check that password is non-empty
+// Parse command line arguments
+// - port number (1-65535)
+// - password (non-empty, valid characters)
 // Create a Server instance with those arguments
-// TODO Add signal handlers to cleanly exit on SIGINT and SIGTERM
-// DONE Add error handling for invalid arguments
-// DONE Add error handling for Server constructor problems
 int	main(int argc, char **argv)
 {
 	std::string password;
 	int port_num;
-	runMessageParsingTests();	// HACK for debugging remove later
-//	exit(EXIT_SUCCESS);
 	try
 	{
 		if (argc < 3)
@@ -64,9 +28,13 @@ int	main(int argc, char **argv)
 			throw std::invalid_argument("Password cannot be empty");
 		if (password.length() > 32)
 			throw std::invalid_argument("Password is longer than 32 characters.");
+		
+		// Security: Enhanced password validation
 		for (size_t i = 0; i < password.length(); ++i)
 		{
-			if (password[i] < 33 || password[i] > 126 || password[i] == 44 || password[i] == 58 || password[i] == 92 || password[i] == 39 || password[i] == 34)
+			char c = password[i];
+			// Allow only printable ASCII characters except forbidden ones
+			if (c < 33 || c > 126 || c == ',' || c == ':' || c == '\\' || c == '\'' || c == '"' || c == ' ')
 				throw std::invalid_argument("Password contains invalid character");
 		}
 		std::cout << "calling server constructor" << std::endl;

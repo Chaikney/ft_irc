@@ -27,6 +27,25 @@ Message::Message(std::string text_recvd) : _tags(""), _source(""),
         throw std::invalid_argument("Message too short");
     if (text_recvd.length() > MSG_LEN)
 		throw std::invalid_argument("Message too long");
+	
+	// Security: Validate message ends with CRLF
+	if (text_recvd.length() < 2 || 
+		text_recvd[text_recvd.length() - 2] != '\r' || 
+		text_recvd[text_recvd.length() - 1] != '\n')
+	{
+		throw std::invalid_argument("Message must end with CRLF");
+	}
+	
+	// Security: Check for illegal characters
+	for (size_t i = 0; i < text_recvd.length(); ++i)
+	{
+		char c = text_recvd[i];
+		if (c == '\0' || (c < 32 && c != '\r' && c != '\n' && c != '\t'))
+		{
+			throw std::invalid_argument("Message contains illegal characters");
+		}
+	}
+	
 	_parseMessage(text_recvd);
 }
 
@@ -95,7 +114,7 @@ void	Message::_parseMessage(std::string text_recvd)
             std::getline(strm, tmp, ' ');
 			_stepOver(strm);
         }
-//		std::cout << "Adding param:" << tmp << std::endl;	// HACK to debug
+		// Parameter added successfully
 		stripFinalNewline(&tmp);
         this->_params.push_back(tmp);
 	}

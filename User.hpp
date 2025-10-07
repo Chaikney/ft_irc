@@ -4,6 +4,7 @@
 #include <netinet/in.h>		// Needed for sockaddr_in
 #include <string>
 #include <iostream>
+#include <set>
 
 // TODO Decide if any other information is useful to us here
 // TODO Add a last seen timestamp (what format?) to allow for timeouts
@@ -25,6 +26,7 @@ class	User
 		bool					_gavepass;
 		sockaddr_in				_address;	// has sin_port and sin_addr
 		std::string				_host;		// readable socket address for use in messages
+		std::set<std::string>	_channels;	// channels the user is on
 		// int _mode;	// How do we store / manage this?
 		// time_t	last_seen;	// to refer to in case of partial registration
 

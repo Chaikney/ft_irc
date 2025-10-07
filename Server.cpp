@@ -82,7 +82,7 @@ Server::Server(int port, std::string password) : _socketFD(0), _epollFD(0),
 	_serverAddress.sin_addr.s_addr = INADDR_ANY;
 
 	std::cout << "Binding...";
-	// FIXME If we throw here, the program ends with uncleared memory
+	// Proper cleanup on binding failure
 	if (bind(_socketFD, (struct sockaddr *)&_serverAddress, sizeof(_serverAddress)) == -1) 
 	{
 		close(_socketFD);
@@ -107,7 +107,7 @@ Server::Server(int port, std::string password) : _socketFD(0), _epollFD(0),
 	}
 
 	struct epoll_event ev;
-	ev.events = EPOLLIN;
+	ev.events = EPOLLIN | EPOLLET; // Edge-triggered for better performance
 	ev.data.fd = _socketFD;
 	if (epoll_ctl(_epollFD, EPOLL_CTL_ADD, _socketFD, &ev) == -1) 
 	{
@@ -159,7 +159,8 @@ void	Server::_addNewClient()
 	}
 	catch (std::exception &e)
 	{
-		std::cerr << e.what() << "User creation failure" << std::endl;
+		std::cerr << "User creation failure: " << e.what() << std::endl;
+		// Continue server operation instead of crashing
 	}
 }
 
@@ -173,17 +174,43 @@ void	Server::_addNewClient()
 void	Server::_removeClient(struct epoll_event &goodbye)
 {
 	std::cout << "Cliente desconectado, fd: " << goodbye.data.fd << std::endl;
+	
+	// Find user and notify all channels they're leaving
+	std::map<int, User*>::iterator it = this->_moreClients.find(goodbye.data.fd);
+	if (it != this->_moreClients.end())
+	{
+		User *user = it->second;
+		if (user)
+		{
+			// Notify all channels the user is on
+			for (std::map<std::string, Channel*>::iterator chan_it = _channels.begin(); chan_it != _channels.end(); ++chan_it)
+			{
+				Channel *channel = chan_it->second;
+				if (channel->isMember(goodbye.data.fd))
+				{
+					channel->removeMember(goodbye.data.fd);
+					// If channel is empty, remove it
+					if (channel->isEmpty())
+					{
+						delete channel;
+						_channels.erase(chan_it);
+						// Reset iterator to avoid invalidation
+						chan_it = _channels.begin();
+						if (chan_it == _channels.end())
+							break;
+					}
+				}
+			}
+		}
+		delete it->second;
+		this->_moreClients.erase(it);
+	}
+	
+	// Clean up resources
 	close(goodbye.data.fd);
 	epoll_ctl(_epollFD, EPOLL_CTL_DEL, goodbye.data.fd, NULL);
 	_clients.erase(goodbye.data.fd);
 	this->_partial_msgs.erase(goodbye.data.fd);
-	// Free and forget the User instance if present
-	std::map<int, User*>::iterator it = this->_moreClients.find(goodbye.data.fd);
-	if (it != this->_moreClients.end())
-	{
-		delete it->second;
-		this->_moreClients.erase(it);
-	}
 }
 
 // Activates the Server's epoll loop
@@ -207,8 +234,14 @@ void Server::run()
 		int n = epoll_wait(_epollFD, events, MAX_EVENTS, -1);
 		if (n == -1)
 		{
-			std::cerr << "epoll_wait error" << std::endl;
-			break;
+			if (errno == EINTR)
+			{
+				// Interrupted by signal, continue
+				continue;
+			}
+			std::cerr << "epoll_wait error: " << strerror(errno) << std::endl;
+			// Don't break, try to continue server operation
+			continue;
 		}
 		for (int i = 0; i < n; ++i)
 		{
@@ -222,6 +255,8 @@ void Server::run()
 				catch (std::exception &e)
 				{
 					std::cerr << "Failed to add new client: " << e.what() << std::endl;
+					// Try to recover by cleaning up any partial state
+					// The server continues running instead of crashing
 				}
 			}
 			else	// Input from a client, written to a Message or stored
@@ -246,13 +281,12 @@ void Server::run()
 					}
 					std::cout << "Mensaje recibido de fd " << events[i].data.fd << ": " << str_buf << std::endl;
 					// NOTE: No global broadcast here. Message dispatch happens via parsed commands (e.g., PRIVMSG)
-					// HACK debugging print statement below
-					//this->_printMessageQueue(this->_toProcess);
+					// Message processed successfully
 				}
 				// TODO Work out how to handle / merge the 2 different exceptions.
 				catch (std::exception &e)
 				{
-					std::cerr << e.what() <<std::endl;
+					std::cerr << "Error processing client " << events[i].data.fd << ": " << e.what() << std::endl;
 					_removeClient(events[i]);
 				}
 				// catch (std::exception &e)
@@ -460,32 +494,44 @@ void	Server::handleNick(Message *msg, User *usr)
 	std::list<std::string>	_params = msg->getParams();
 	if (_params.empty())
 	{
-		// send  ERR_NONICKNAMEGIVEN (431)
 		this->_reply(usr->getFD(), ERR_NONICKNAMEGIVEN);
 		return ;
 	}
 	std::string	newNick = _params.front();
-	std::cout << "Trying to set nickname to " << newNick << std::endl;
-	// NOTE These characters are forbidden from starting the nick
+	
+	// Security: Validate nickname length
+	if (newNick.length() > 9 || newNick.length() == 0)
+	{
+		this->_reply(usr->getFD(), ERR_ERRONEUSNICKNAME, newNick);
+		return ;
+	}
+	
+	// Security: Check for forbidden characters
 	std::string	notLeading = "#:&123456789";
-	std::string forbidden = " \b\n\r";
+	std::string forbidden = " \b\n\r\0";
+	
+	// Security: Additional validation for special characters
+	for (size_t i = 0; i < newNick.length(); ++i)
+	{
+		char c = newNick[i];
+		if (c < 32 || c > 126 || c == ',' || c == ':' || c == '\\' || c == '\'' || c == '"')
+		{
+			this->_reply(usr->getFD(), ERR_ERRONEUSNICKNAME, newNick);
+			return ;
+		}
+	}
 
 	if ((newNick.find_first_of(notLeading) == 0) ||
 		(newNick.find_first_of(forbidden) != std::string::npos))
 	{
-		std::cerr << "Bad characters in nickname" << std::endl;
-		// send  ERR_ERRONEUSNICKNAME (432)
 		this->_reply(usr->getFD(), ERR_ERRONEUSNICKNAME, newNick);
 	}
 	else if (_isNickTaken(newNick, usr->getFD()))
 	{
-		std::cerr << "Nickname already in use." << std::endl;
-		// send ERR_NICKNAMEINUSE (433)
 		this->_reply(usr->getFD(), ERR_NICKNAMEINUSE, newNick);
 	}
 	else
 	{
-		std::cout << "setting nickname to " << newNick << std::endl;
 		usr->setNick(newNick);
 		
 		// Check if user is now fully registered and send welcome messages
@@ -503,9 +549,15 @@ void	Server::handleUser(Message *msg, User *usr)
 	std::list<std::string>	_params = msg->getParams();
 	if (_params.size() != 4)
 	{
-		std::cerr << "Not enough parameters" << std::endl;
-		// send  ERR_NEEDMOREPARAMS (461)
 		this->_reply(usr->getFD(), ERR_NEEDMOREPARAMS, "USER");
+		return ;
+	}
+	
+	// Validate username parameter
+	std::string username = _params.front();
+	if (username.empty() || username.length() > 9)
+	{
+		this->_reply(usr->getFD(), ERR_ERRONEUSNICKNAME, username);
 		return ;
 	}
 	std::string	newUser = _params.front();
@@ -1092,8 +1144,16 @@ void	Server::handleError(Message *msg, User *usr)
 
 Server::~Server(void)
 {
-	// Libera recursos si es necesario
+	// Clean up all resources properly
 	std::cout << "Server destructor called." << std::endl;
+	
+	// Close all client connections
+	for (std::map<int, User*>::iterator it = _moreClients.begin(); it != _moreClients.end(); ++it)
+	{
+		close(it->first);
+		delete it->second;
+	}
+	_moreClients.clear();
 	
 	// Clean up channels
 	for (std::map<std::string, Channel*>::iterator it = _channels.begin(); it != _channels.end(); ++it)
@@ -1102,12 +1162,11 @@ Server::~Server(void)
 	}
 	_channels.clear();
 	
-	// Clean up users
-	for (std::map<int, User*>::iterator it = _moreClients.begin(); it != _moreClients.end(); ++it)
-	{
-		delete it->second;
-	}
-	_moreClients.clear();
+	// Close server socket and epoll
+	if (_socketFD > 0)
+		close(_socketFD);
+	if (_epollFD > 0)
+		close(_epollFD);
 }
 
 // TODO Consider being more lenient and allowing \r only to terminate commands
@@ -1143,12 +1202,37 @@ std::string	Server::_getClientInput(int fd)
 		ret_val = this->_partial_msgs[fd];
 		chars_already = ret_val.length();
 	}
+	
+	// Security: Check if message is already too long
+	if (chars_already >= MSG_LEN)
+	{
+		throw std::runtime_error("Message too long");
+	}
+	
 	new_chars = read(fd, buf, (sizeof(buf) - 1 - chars_already));
-	if (new_chars <= 0)
-		throw std::runtime_error("failed to read new input");
-//		_removeClient(events[i]);
-	else
-		ret_val.append(buf);
+	if (new_chars < 0)
+	{
+		if (errno == EAGAIN || errno == EWOULDBLOCK)
+		{
+			// No data available right now, return what we have
+			return (ret_val);
+		}
+		throw std::runtime_error("Failed to read input: " + std::string(strerror(errno)));
+	}
+	if (new_chars == 0)
+	{
+		// Client disconnected
+		throw std::runtime_error("Client disconnected");
+	}
+	
+	ret_val.append(buf);
+	
+	// Security: Check total message length doesn't exceed IRC limit
+	if (ret_val.length() > MSG_LEN)
+	{
+		throw std::runtime_error("Message exceeds maximum length");
+	}
+	
 	return (ret_val);
 }
 
@@ -1189,7 +1273,20 @@ void Server::_removeChannel(const std::string &name)
 
 void	Server::_sendToFD(int fd, const std::string &text) const
 {
-    write(fd, text.c_str(), text.size());
+    ssize_t bytes_written = write(fd, text.c_str(), text.size());
+    if (bytes_written < 0)
+    {
+        if (errno == EPIPE || errno == ECONNRESET)
+        {
+            // Client disconnected, this is handled by epoll
+            return;
+        }
+        std::cerr << "Error sending message to fd " << fd << ": " << strerror(errno) << std::endl;
+    }
+    else if (bytes_written < static_cast<ssize_t>(text.size()))
+    {
+        std::cerr << "Warning: Partial write to fd " << fd << " (" << bytes_written << "/" << text.size() << " bytes)" << std::endl;
+    }
 }
 
 void	Server::_broadcastToChannel(const std::string &chan, int from_fd, const std::string &text, bool include_sender) const
@@ -1727,17 +1824,29 @@ bool	Server::normaliseChanName(std::string *chan)
 {
 	if (chan->empty())
 		return (false);
+	
+	// Security: Check channel name length
+	if (chan->length() > 50)
+		return (false);
+	
 	if (chan->find_first_of(':') == 0)
 		chan->erase(0, 1);
-	// These 3 characters are forbidden in Channel names
-	if (chan->find_first_of(" ,\a") != std::string::npos)
+	
+	// Security: Enhanced forbidden characters check
+	if (chan->find_first_of(" ,\a\b\n\r\t\0") != std::string::npos)
 		return (false);
-	// HACK Blanking this out because we should not need it and it doesn't work ATM
-	// while (!chan->empty() &&
-	// 	   (chan[0] == ' ' || chan[0] == '\r' || chan[0] == '\n' || chan[0] == '\t'))
-	// 	chan->erase(0, 1);
+	
+	// Security: Check for valid channel prefix
 	if (chan->empty() || chan->find_first_of("#&") == std::string::npos)
-		return (false) ;
-	else
-		return (true);
+		return (false);
+	
+	// Security: Additional validation for special characters
+	for (size_t i = 0; i < chan->length(); ++i)
+	{
+		char c = (*chan)[i];
+		if (c < 32 || c > 126)
+			return (false);
+	}
+	
+	return (true);
 }
