@@ -4,9 +4,11 @@
 #include <netinet/in.h>		// Needed for sockaddr_in
 #include <string>
 #include <iostream>
+#include <ctime>
 
 // TODO Decide if any other information is useful to us here
-// TODO Add a last seen timestamp (what format?) to allow for timeouts
+// DONE Add a last seen timestamp (what format?) to allow for timeouts
+// TODO Add getter for time in appropriate format (string?)
 // TODO Decide how to store MODEs
 // TODO Add more constructors as appropriate
 // TODO Decide how to store server info
@@ -26,7 +28,7 @@ class	User
 		sockaddr_in				_address;	// has sin_port and sin_addr
 		std::string				_host;		// readable socket address for use in messages
 		// int _mode;	// How do we store / manage this?
-		// time_t	last_seen;	// to refer to in case of partial registration
+		time_t					last_seen;	// to refer to in case of partial registration
 
 		User		operator=(const User &irc);	// NOTE Not sure about assignment to a User, this could be public
 
@@ -52,9 +54,11 @@ class	User
 		void				setReal(std::string rname);
 		void				addChannel(const std::string &channel);
 		void				removeChannel(const std::string &channel);
+		void				updateTime(void);
 };
 
 // NOTE Remember to update this alongside the class members
+// TODO Add a last_seen entry
 inline std::ostream&	operator<<(std::ostream &out, const User &usr)
 {
 	std::string				tmp;

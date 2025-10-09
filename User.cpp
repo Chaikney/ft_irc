@@ -7,7 +7,7 @@
 // ...but the connection information?
 // The first thing we see is a file descriptor I think. What else in the socket
 User::User(void) : _fd(-1), _nick(""), _uname(""), _rname(""),
-				   _gavepass(false), _address(), _host()
+				   _gavepass(false), _address(), _host(), last_seen()
 {
 	std::cerr << "Cannot create User instance without a socket fd" << std::endl;
 }
@@ -16,7 +16,7 @@ User::User(void) : _fd(-1), _nick(""), _uname(""), _rname(""),
 // TODO Catch more possible problems with the creation
 // NOTE Cannot get hostname so taking the IP addr
 User::User(int fd) : _fd(fd), _nick(""), _uname(""), _rname(""),
-					 _gavepass(false), _address(), _host()
+					 _gavepass(false), _address(), _host(), last_seen()
 {
 	socklen_t	addr_size = INET_ADDRSTRLEN;	// I only made this for getsockname and I guess error checking
 	char	ip_addr[INET_ADDRSTRLEN];
@@ -28,6 +28,7 @@ User::User(int fd) : _fd(fd), _nick(""), _uname(""), _rname(""),
 	}
 	inet_ntop(AF_INET, &_address.sin_addr, ip_addr, INET_ADDRSTRLEN);
 	this->_host = ip_addr;
+	time(&last_seen);
 	// HACK debug statements that can be removed
 	std::cout << "User created for fd:" << fd << std::endl;
 	std::cout << "IP Address: " << this->_host << std::endl;
@@ -49,7 +50,8 @@ User	*User::makeUser(int fd)
 
 User::User(const User &original): _fd(original._fd), _nick(original._nick), _uname(original._uname),
 										   _rname(original._rname), _gavepass(original._gavepass),
-								  _address(original._address), _host(original._host)
+								  _address(original._address), _host(original._host),
+								  last_seen(original.last_seen)
 {}
 
 int	User::getFD() const
@@ -137,4 +139,11 @@ void	User::removeChannel(const std::string &channel)
 	// In a full implementation, this would remove from a set of channels
 	(void)channel;
 	std::cerr << "User::removeChannel is not implemented yet" << std::endl;
+}
+
+// Method to be triggered by Server when we receive a message from the user
+// This way, we can set away or disconnect clients that we never hear from.
+void	User::updateTime(void)
+{
+	this->last_seen = time(0);
 }

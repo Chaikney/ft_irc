@@ -922,6 +922,7 @@ void	Server::_processQueue(void)
 		// NOTE This check should not be done with Server messages.
 		else if (!do_next->getOrigin()->isRegistered())
 		{
+			do_next->getOrigin()->updateTime();
 			if (command.compare("PASS") == 0)
 				handlePass(do_next, do_next->getOrigin());
 			else if ((do_next->getOrigin()->isVerified()) &&
@@ -937,6 +938,7 @@ void	Server::_processQueue(void)
 		}
 		else if (do_next->getOrigin()->isRegistered())
 		{
+			do_next->getOrigin()->updateTime();
 			if (command.compare("NICK") == 0)
 				handleNick(do_next, do_next->getOrigin());
 			else if (command.compare("USER") == 0)
