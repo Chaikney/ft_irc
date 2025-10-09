@@ -53,7 +53,7 @@ bool Server::_setNonBlocking(int fd)
 Server::Server(int port, std::string password) : _socketFD(0), _epollFD(0),
 												 _serverAddress(), _password(password),
 												 _toProcess(), _clients(), _partial_msgs(),
-												 _moreClients(), _channels()
+												 _moreClients(), _channels(), _creationTime()
 {
 	std::cout << "Server constructor with parameters called" << std::endl;
 	_socketFD = socket(AF_INET, SOCK_STREAM, 0);
@@ -107,6 +107,7 @@ Server::Server(int port, std::string password) : _socketFD(0), _epollFD(0),
 		close(_epollFD);
 		throw std::runtime_error("Could not add server input to epoll set.");
 	}
+	this->_creationTime = time(0);
 }
 
 // What needs to be done when we get the first contact from a new client
@@ -1008,7 +1009,7 @@ Message*	Server::_reply(Message &msg, int rep_code) const
 			break;
 		// TODO Update this when we have uptime measuring
 		case RPL_CREATED:
-			params.push_back("Uptime is not measured (yet)");
+			params.push_back(this->getCreation());
 			break;
 		// TODO Update this when we have modes and versioning
 		case RPL_MYINFO:
@@ -1233,4 +1234,25 @@ bool	Server::normaliseChanName(std::string *chan)
 		return (false) ;
 	else
 		return (true);
+}
+
+// FIXME This should be of the type "4 days, 3 hours 10 minutes 15 seconds"
+std::string	Server::getUptime(void) const
+{
+	time_t	uptime = difftime(time(0), this->_creationTime);
+	struct tm *timeinfo = localtime(&uptime);
+	char buffer[80];
+	strftime(buffer, sizeof(buffer), "%a %b %d %Y at %H:%M:%S %Z", timeinfo);
+	return (std::string(buffer));
+}
+
+std::string	Server::getCreation(void) const
+{
+	time_t	cretime = this->_creationTime;
+	struct tm *timeinfo = localtime(&cretime);
+	std::string	creationmsg = "Server running since: ";
+	char buffer[80];
+	strftime(buffer, sizeof(buffer), "%a %b %d %Y at %H:%M:%S %Z", timeinfo);
+	creationmsg.append(buffer);
+	return (creationmsg);
 }

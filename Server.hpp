@@ -8,6 +8,7 @@
 #include <queue>// Messages to be processed
 #include <set>	// FDs of clients to be sent to
 #include <map>	// dictionary of partial messages
+#include <ctime>
 
 class	Message;
 class	User;
@@ -36,8 +37,8 @@ class	Server
 		std::set<int> _clients;		// NOTE This is the fds to be sent to; may duplicate other info
 		std::map<int, std::string>	_partial_msgs;
 		std::map<int, User*>	_moreClients;	// TODO Potentially  this replaces _clients()
-		// --- Channels ---
 		std::map<std::string, Channel*>	_channels;
+		time_t		_creationTime;	// TODO SHould this be const, static? It gets set once and never changes.
 
 					Server(void);	// private so not called
 					Server(const Server &irc);	// No good reason to allow copy construction of the server
@@ -95,5 +96,7 @@ class	Server
 		// HACK Public to be friend with message origin (user)
 		Message*	_reply(Message &msg, int num_rep) const;
 		Message*	_reply(Message &msg, int num_rep, Channel *chan) const;
+		std::string	getUptime(void) const;
+		std::string	getCreation(void) const;
 };
 #endif
