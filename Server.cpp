@@ -709,6 +709,29 @@ void	Server::handleMode(Message *msg, User *usr)
     }
 }
 
+// Client says PING <token> then we return PONG <token>
+// As PONG only comes back in reponse to PING,
+// if we don't *send* a PING then there's no need to handle PONG
+// TODO Use usr to update a "last seen" value for AWAY, autodisconnects, etc
+void	Server::handlePing(Message *msg, User *usr)
+{
+	(void) usr;
+    std::list<std::string> params = msg->getParams();
+    if (params.empty())
+    {
+        this->_toProcess.push(this->_reply(*msg, ERR_NEEDMOREPARAMS));
+        return ;
+    }
+    std::string origin = params.front();
+    if (origin.empty())
+    {
+        this->_toProcess.push(this->_reply(*msg, ERR_NOORIGIN));
+        return ;
+    }
+	// HACK send NULL for lack of overload, dangerous!
+	this->_toProcess.push(_replyNonNumeric(*msg));
+}
+
 Server::~Server(void)
 {
 	// Libera recursos si es necesario
@@ -936,6 +959,8 @@ void	Server::_processQueue(void)
 				handleKick(do_next, do_next->getOrigin());
 			else if (command == "PRIVMSG")
 				handlePrivmsg(do_next, do_next->getOrigin());
+			else if (command == "PING")
+				handlePing(do_next, do_next->getOrigin());
 			else
 				this->_toProcess.push(_reply(*do_next, ERR_UNKNOWNCOMMAND));
 		}
@@ -1070,6 +1095,27 @@ Message*	Server::_reply(Message &msg, int rep_code, Channel *chan) const
 			std::cerr << "Reply not handled yet:" << rep_code << std::endl;
 	}
 	std::cout << "Added " << params.size() << "parameters" <<std::endl;
+	transmit = new Message(src, cmd_as_str, params, targets);
+	return (transmit);
+}
+
+// Simplest possible reply construction,
+// This is for commands like PING where we don't need to refer to channel or user
+// No source
+Message*	Server::_replyNonNumeric(Message &msg) const
+{
+	Message*	transmit;
+	std::string	src;
+	std::string cmd_as_str = msg.getCommand();
+	std::list<int>	targets;
+	targets.push_front(msg.getOrigin()->getFD());
+	std::list<std::string>	params;
+	if (cmd_as_str.compare("PING") == 0)
+	{
+		cmd_as_str = "PONG";
+		params.push_back(SERVERNAME);
+		params.push_back((msg.getParams().back()));
+	}
 	transmit = new Message(src, cmd_as_str, params, targets);
 	return (transmit);
 }
