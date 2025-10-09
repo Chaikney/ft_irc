@@ -14,7 +14,8 @@ class	Message;
 class	User;
 class	Channel;
 
-const std::string SERVERNAME = "ft_irc";
+const std::string SERVERNAME	= "ft_irc";
+const std::string VERSION	= "0.0.2";	// NOTE Increment this when we get bored
 
 // What should this hold?
 // - port

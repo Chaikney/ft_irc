@@ -1014,7 +1014,7 @@ Message*	Server::_reply(Message &msg, int rep_code) const
 		// TODO Update this when we have modes and versioning
 		case RPL_MYINFO:
 			params.push_back(SERVERNAME);
-			params.push_back("0.0.0.0.01alpha");
+			params.push_back(VERSION);
 			params.push_back("user_modes_here");
 			params.push_back("channel_modes_here");
 			break;
