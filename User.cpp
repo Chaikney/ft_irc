@@ -148,6 +148,26 @@ void	User::updateTime(void)
 	this->last_seen = time(0);
 }
 
+// NOTE Could be overloaded with a Channel to shape the info
+// <flags> contains the following characters, in this order:
+// Away status: the letter H ('H', 0x48) to indicate that the user is here,
+// or the letter G ('G', 0x47) to indicate that the user is gone.
+// Optionally, a literal asterisk character ('*', 0x2A) to indicate that
+// the user is a server operator.
+// Optionally, the highest channel membership prefix that the client has in <channel>, if the client has one.
+// Optionally, one or more user mode characters and other arbitrary server-specific flags.
+std::string	User::getFlags(void) const
+{
+	std::string	flags;
+	if (this->_isAway)
+		flags.append("G");
+	else
+		flags.append("H");
+	if (this->_isServerOp)
+		flags.append("*");
+	return (flags);
+}
+
 // Returns a list of parameters for use in the WHOREPLY command
 // https://modern.ircdocs.horse/#rplwhoreply-352
 // NOTE That the caller should use them with other pieces to make a full reply
@@ -159,7 +179,7 @@ std::list<std::string>	User::getWhoReply(void) const
 	params.push_back(this->getHost());
 //	params.push_back(SERVER);	// FIXME this is not available
 	params.push_back(this->getNick());
-	params.push_back("FLAGS_HERE");
+	params.push_back(this->getFlags());
 	params.push_back("HOPCOUNT_IS_NONSENSE");
 	params.push_back(this->getReal());
 	return (params);

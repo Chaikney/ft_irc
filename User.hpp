@@ -59,10 +59,12 @@ class	User
 		void				removeChannel(const std::string &channel);
 		void				updateTime(void);
 		std::list<std::string>	getWhoReply(void) const;
+		std::string			getFlags(void) const;
 };
 
 // NOTE Remember to update this alongside the class members
 // TODO Add a last_seen entry
+// TODO Add flags output, isAway, Server Op
 inline std::ostream&	operator<<(std::ostream &out, const User &usr)
 {
 	std::string				tmp;
