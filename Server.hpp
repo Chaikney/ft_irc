@@ -84,6 +84,7 @@ class	Server
 		void		handleInvite(Message *msg, User *usr);
 		void		handleMode(Message *msg, User *usr);
 		void		handlePing(Message *msg, User *usr);
+		void		handleWho(Message *msg, User *usr);
 
 	public:
 					Server(int port, std::string password);

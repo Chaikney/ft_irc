@@ -903,6 +903,10 @@ void	Server::handlePass(Message *msg, User *usr)
 // FIXED Segfaults if given a Server numeric reply - bypass the checks?
 // NOTE This is focused a lot on actions the Server must do.
 // ...sometimes all that needs to happen is to send a reply...
+// TODO implement WHO command
+// TODO implement USERHOST command
+// https://modern.ircdocs.horse/#userhost-message
+// TODO implement QUIT command (port from branch)
 void	Server::_processQueue(void)
 {
 	Message*	do_next;
@@ -964,12 +968,38 @@ void	Server::_processQueue(void)
 				handlePrivmsg(do_next, do_next->getOrigin());
 			else if (command == "PING")
 				handlePing(do_next, do_next->getOrigin());
+			else if (command == "WHO")
+				handleWho(do_next, do_next->getOrigin());
 			else
 				this->_toProcess.push(_reply(*do_next, ERR_UNKNOWNCOMMAND));
 		}
 		// NOTE deleting the Message here seems to reduce "still reachable" type leaks
 		delete do_next;
  	}
+}
+
+// The parameter is either a NICK or a Channel name (we can ignore wildcards)
+// Reply with multiple 352 terminated by RPL_ENDOFWHO (315)
+void	Server::handleWho(Message *msg, User *usr)
+{
+	std::string	mask = msg->getParams().front();
+	(void) usr;	// HACK for compilation
+	if (mask.empty())
+	{
+		this->_toProcess.push(_reply(*msg, ERR_NEEDMOREPARAMS));
+		return ;
+	}
+	if (mask.find_first_of("#&") == 0)
+	{
+		std::cerr << "WHO for channels not implemented yet" << std::endl;
+		// treat as Channel. Return all members of that Channel
+	}
+	else // treating it as a NICK
+	{
+		std::cerr << "WHO not implemented yet" << std::endl;
+	}
+	// send final 315
+	this->_toProcess.push(_reply(*msg, RPL_ENDOFWHO));
 }
 
 // Use the Message and code to create a reply Message to be queued
