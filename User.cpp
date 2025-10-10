@@ -147,3 +147,20 @@ void	User::updateTime(void)
 {
 	this->last_seen = time(0);
 }
+
+// Returns a list of parameters for use in the WHOREPLY command
+// https://modern.ircdocs.horse/#rplwhoreply-352
+// NOTE That the caller should use them with other pieces to make a full reply
+// TODO Check whether this should return a pointer or reference instead
+std::list<std::string>	User::getWhoReply(void) const
+{
+	std::list<std::string>	params;
+	params.push_back(this->getUser());
+	params.push_back(this->getHost());
+//	params.push_back(SERVER);	// FIXME this is not available
+	params.push_back(this->getNick());
+	params.push_back("FLAGS_HERE");
+	params.push_back("HOPCOUNT_IS_NONSENSE");
+	params.push_back(this->getReal());
+	return (params);
+}

@@ -5,6 +5,7 @@
 #include <string>
 #include <iostream>
 #include <ctime>
+#include <list>	// Returned by getWhoReply()
 
 // TODO Decide if any other information is useful to us here
 // DONE Add a last seen timestamp (what format?) to allow for timeouts
@@ -55,6 +56,7 @@ class	User
 		void				addChannel(const std::string &channel);
 		void				removeChannel(const std::string &channel);
 		void				updateTime(void);
+		std::list<std::string>	getWhoReply(void) const;
 };
 
 // NOTE Remember to update this alongside the class members
