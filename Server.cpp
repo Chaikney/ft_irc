@@ -349,13 +349,13 @@ void Server::handleKick(Message *msg, User *usr)
 		return ;
 	}
 	// Target must be member of channel
-	if (!channel->isMember(target->getFD()))
+	if (!channel->isMember(target))
 	{
 		this->_toProcess.push(_reply(*msg, ERR_USERNOTINCHANNEL));
 		return ;
 	}
 	// Remove target from channel
-	channel->removeMember(target->getFD());
+	channel->removeMember(target);
 	target->removeChannel(chan);	// NOTE This depends on User storing their Channels, which they don't, currently
 	if (reason.empty()) reason = "Kicked";
 	// Notify channel and target
@@ -388,7 +388,7 @@ void Server::handlePrivmsg(Message *msg, User *usr)
 		if (!channel)
 			return ;
 		// TODO Faster to find Channel membership directly with User? Or not?
-		if (!channel->isMember(usr->getFD()))
+		if (!channel->isMember(usr))
 		{
 			// 404 ERR_CANNOTSENDTOCHAN
 			this->_toProcess.push(_reply(*msg, ERR_CANNOTSENDTOCHAN));
@@ -527,7 +527,7 @@ void	Server::handleJoin(Message *msg, User *usr)
     }
 
 	// TODO What is the logic needed here to JOIN someone to a channel?
-    if (channel->addMember(usr->getFD()))
+    if (channel->addMember(usr))
     {
         usr->addChannel(chan);
 		// TODO How do we do this JOIN acknowledgment thing?
@@ -569,7 +569,7 @@ void	Server::handlePart(Message *msg, User *usr)
         return ;
 	}
 
-    if (channel->removeMember(usr->getFD()))
+    if (channel->removeMember(usr))
     {
 		// Send a PART confirmation to the User
 		this->_toProcess.push(_replyNonNumeric(*msg, channel));
@@ -591,27 +591,28 @@ void	Server::handlePart(Message *msg, User *usr)
 // FIXME Does not comply with specifications of NAMES command
 // https://modern.ircdocs.horse/#names-message
 // TODO Read msg parameters and call to each named channel
-void	Server::handleNames(Message *msg, User *usr)
-{
-    (void)msg;
-    for (std::map<std::string, Channel*>::const_iterator it = _channels.begin(); it != _channels.end(); ++it)
-    {
-        const std::string &chan = it->first;
-        std::string line = "353 = " + chan + " :";
-        Channel *c = it->second;
-        const std::set<int> &members = c->getMembers();
-        for (std::set<int>::const_iterator fit = members.begin(); fit != members.end(); ++fit)
-        {
-            std::map<int, User*>::const_iterator uit = _moreClients.find(*fit);
-            if (uit != _moreClients.end() && uit->second)
-            {
-                if (fit != members.begin()) line += " ";
-                line += uit->second->getNick();
-            }
-        }
-        _sendToFD(usr->getFD(), line + "\r\n");
-    }
-}
+// void	Server::handleNames(Message *msg, User *usr)
+// {
+//     (void)msg;
+//     for (std::map<std::string, Channel*>::const_iterator it = _channels.begin(); it != _channels.end(); ++it)
+//     {
+//         const std::string &chan = it->first;
+//         std::string line = "353 = " + chan + " :";
+//         Channel *c = it->second;
+// 		// FIXME here this won't work with Users returned...
+//         const std::set<int> &members = c->getMembers();
+//         for (std::set<int>::const_iterator fit = members.begin(); fit != members.end(); ++fit)
+//         {
+//             std::map<int, User*>::const_iterator uit = _moreClients.find(*fit);
+//             if (uit != _moreClients.end() && uit->second)
+//             {
+//                 if (fit != members.begin()) line += " ";
+//                 line += uit->second->getNick();
+//             }
+//         }
+//         _sendToFD(usr->getFD(), line + "\r\n");
+//     }
+// }
 
 // TODO Check this against specification: https://modern.ircdocs.horse/#list-message
 // NOTE Optionally takes parameters, should not ignore msg
@@ -844,15 +845,20 @@ void	Server::_broadcastToChannel(const std::string &chan, int from_fd, const std
 
 void	Server::_broadcastToChannel(Channel *channel, int from_fd, const std::string &text, bool include_sender) const
 {
-    if (!channel)
+	if (!channel)
         return;
-    const std::set<int> &members = channel->getMembers();
-    for (std::set<int>::const_iterator fit = members.begin(); fit != members.end(); ++fit)
-    {
-        if (!include_sender && *fit == from_fd)
-            continue;
-        _sendToFD(*fit, text + "\r\n");
-    }
+	// HACK for compilation
+	(void) from_fd;
+	(void) text;
+	(void) include_sender;
+	// FIXME here this won't work with Users returned...
+    // const std::set<int> &members = channel->getMembers();
+    // for (std::set<int>::const_iterator fit = members.begin(); fit != members.end(); ++fit)
+    // {
+    //     if (!include_sender && *fit == from_fd)
+    //         continue;
+    //     _sendToFD(*fit, text + "\r\n");
+    // }
 }
 
 void	Server::handlePass(Message *msg, User *usr)
@@ -952,8 +958,9 @@ void	Server::_processQueue(void)
 				handleJoin(do_next, do_next->getOrigin());
 			else if (command.compare("PART") == 0)
 				handlePart(do_next, do_next->getOrigin());
-			else if (command.compare("NAMES") == 0)
-				handleNames(do_next, do_next->getOrigin());
+			// HACK for compilation pending function fix
+			// else if (command.compare("NAMES") == 0)
+			// 	handleNames(do_next, do_next->getOrigin());
 			else if (command.compare("LIST") == 0)
 				handleList(do_next, do_next->getOrigin());
 			else if (command.compare("TOPIC") == 0)

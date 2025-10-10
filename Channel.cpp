@@ -59,9 +59,9 @@ const std::string& Channel::getTopic(void) const
 	return _topic;
 }
 
-const std::set<int>& Channel::getMembers(void) const
+const std::set<User *>& Channel::getMembers(void) const
 {
-	return _members;
+	return (_members);
 }
 
 const std::set<int>& Channel::getOperators(void) const
@@ -136,33 +136,34 @@ void Channel::setUserLimit(int limit)
 }
 
 // Member management
-bool Channel::addMember(int userFd)
+bool Channel::addMember(User *usr)
 {
-	if (_members.find(userFd) != _members.end())
+	if (_members.find(usr) != _members.end())
 		return false; // Already a member
 	
-	_members.insert(userFd);
+	_members.insert(usr);
 	
 	// First member becomes operator
 	if (_members.size() == 1)
-		_operators.insert(userFd);
+		_operators.insert(usr->getFD());
 	
 	return true;
 }
 
-bool Channel::removeMember(int userFd)
+bool Channel::removeMember(User *usr)
 {
-	if (_members.find(userFd) == _members.end())
+	if (_members.find(usr) == _members.end())
 		return false; // Not a member
 	
-	_members.erase(userFd);
-	_operators.erase(userFd); // Remove operator status if they had it
+	_members.erase(usr);
+// TODO Restore the Operator erase piece here
+//	_operators.erase(usr); // Remove operator status if they had it
 	return true;
 }
 
-bool Channel::isMember(int userFd) const
+bool Channel::isMember(User *usr) const
 {
-	return _members.find(userFd) != _members.end();
+	return (_members.find(usr) != _members.end());
 }
 
 bool Channel::isOperator(int userFd) const
@@ -170,12 +171,14 @@ bool Channel::isOperator(int userFd) const
 	return _operators.find(userFd) != _operators.end();
 }
 
-bool Channel::addOperator(int userFd)
+// TODO Needs updated
+bool Channel::addOperator(User *usr)
 {
-	if (_members.find(userFd) == _members.end())
+	if (_members.find(usr) == _members.end())
 		return false; // Must be a member first
 	
-	_operators.insert(userFd);
+	// TODO Update this later.
+	_operators.insert(usr->getFD());
 	return true;
 }
 

@@ -13,13 +13,14 @@ class Channel
 		std::string					_name;
 		std::string					_topic;
 		// TODO Seems to me that these should store User* not just file descriptors....
-		std::set<int>				_members;		// User FDs
+		std::set<User *>				_members;		// User FDs
 		std::set<int>				_operators;		// User FDs with operator rights
 		std::set<std::string>		_invitedNicks;	// Invited nicks (by name)
 		bool						_topicProtected;	// +t mode
 		bool						_inviteOnly;		// +i mode
 		std::string					_password;		// +k mode
 		int							_userLimit;		// +l mode
+		// NOTE All these work with NICKs so string is the correct format
 		std::set<std::string>		_banList;		// +b mode
 		std::set<std::string>		_exceptionList;	// +e mode
 		std::set<std::string>		_inviteList;	// +I mode
@@ -35,7 +36,7 @@ class Channel
 		// Getters
 		const std::string&			getName(void) const;
 		const std::string&			getTopic(void) const;
-		const std::set<int>&		getMembers(void) const;
+		const std::set<User *>&		getMembers(void) const;
 		const std::set<int>&		getOperators(void) const;
 		const std::set<std::string>& getInvitedNicks(void) const;
 		bool						isTopicProtected(void) const;
@@ -54,11 +55,13 @@ class Channel
 		void						setUserLimit(int limit);
 
 		// Member management
-		bool						addMember(int userFd);
-		bool						removeMember(int userFd);
-		bool						isMember(int userFd) const;
+		bool						addMember(User *usr);
+		//bool						removeMember(int userFd);
+		bool						removeMember(User *usr);
+		bool						isMember(User *usr) const;
+		//bool						isMember(int userFd) const;
 		bool						isOperator(int userFd) const;
-		bool						addOperator(int userFd);
+		bool						addOperator(User *usr);
 		bool						removeOperator(int userFd);
 
 		// Invite management
