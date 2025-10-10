@@ -30,6 +30,8 @@ class	User
 		std::string				_host;		// readable socket address for use in messages
 		// int _mode;	// How do we store / manage this?
 		time_t					last_seen;	// to refer to in case of partial registration
+		bool					_isAway;
+		bool					_isServerOp;	// Has power to shutdown Server, etc
 
 		User		operator=(const User &irc);	// NOTE Not sure about assignment to a User, this could be public
 
