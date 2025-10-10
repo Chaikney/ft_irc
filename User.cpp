@@ -184,3 +184,16 @@ std::list<std::string>	User::getWhoReply(void) const
 	params.push_back(this->getReal());
 	return (params);
 }
+
+// Slightly different from the above, sadly
+// https://modern.ircdocs.horse/#rplwhoisuser-311
+std::list<std::string>	User::getWhoIs(void) const
+{
+	std::list<std::string>	params;
+	params.push_back(this->getNick());
+	params.push_back(this->getUser());
+	params.push_back(this->getHost());
+	params.push_back("*");
+	params.push_back(this->getReal());
+	return (params);
+}

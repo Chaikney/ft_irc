@@ -59,6 +59,7 @@ class	User
 		void				removeChannel(const std::string &channel);
 		void				updateTime(void);
 		std::list<std::string>	getWhoReply(void) const;
+		std::list<std::string>	getWhoIs(void) const;
 		std::string			getFlags(void) const;
 };
 
