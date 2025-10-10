@@ -8,6 +8,8 @@ enum ReplyCodes
     RPL_YOURHOST		=	2,
     RPL_CREATED		=	3,
     RPL_MYINFO 		=	4,
+	RPL_UNAWAY			=	305,
+	RPL_NOWAWAY		=	306,
 	RPL_ENDOFWHO		=	315,
     RPL_TOPIC			=	332,
     RPL_TOPICWHOTIME	=	333,

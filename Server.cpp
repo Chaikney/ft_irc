@@ -977,12 +977,32 @@ void	Server::_processQueue(void)
 				handlePing(do_next, do_next->getOrigin());
 			else if (command == "WHO")
 				handleWho(do_next, do_next->getOrigin());
+			else if (command == "AWAY")
+				handleAway(do_next, do_next->getOrigin());
 			else
 				this->_toProcess.push(_reply(*do_next, ERR_UNKNOWNCOMMAND));
 		}
 		// NOTE deleting the Message here seems to reduce "still reachable" type leaks
 		delete do_next;
  	}
+}
+
+// No, or empty parameter = NOT away
+// otherwise: going away, broadcast message
+// TODO Handle going-away message (e.g. broadcast to channel)
+void	Server::handleAway(Message *msg, User *usr)
+{
+	if (msg->getParams().empty())
+	{
+		usr->setAway(false);
+		this->_toProcess.push(_reply(*msg, RPL_UNAWAY));
+	}
+
+	else
+	{
+		usr->setAway(true);
+		this->_toProcess.push(_reply(*msg, RPL_NOWAWAY));
+	}
 }
 
 // The parameter is either a NICK or a Channel name (we can ignore wildcards)
@@ -1072,6 +1092,12 @@ Message*	Server::_reply(Message &msg, int rep_code) const
 			params.push_back(VERSION);
 			params.push_back("user_modes_here");
 			params.push_back("channel_modes_here");
+			break;
+		case RPL_UNAWAY:
+			params.push_back("Welcome back!");
+			break;
+		case RPL_NOWAWAY:
+			params.push_back("Off you go then, bye.");
 			break;
 		case ERR_NOSUCHNICK:
 			params.push_back(msg.getParams().front());	// HACK Careless assumption here

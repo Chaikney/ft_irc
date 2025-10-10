@@ -198,3 +198,8 @@ std::list<std::string>	User::getWhoIs(void) const
 	params.push_back(this->getReal());
 	return (params);
 }
+
+void	User::setAway(bool are)
+{
+	this->_isAway = are;
+}

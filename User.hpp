@@ -61,6 +61,7 @@ class	User
 		std::list<std::string>	getWhoReply(void) const;
 		std::list<std::string>	getWhoIs(void) const;
 		std::string			getFlags(void) const;
+		void	setAway(bool areyou);
 };
 
 // NOTE Remember to update this alongside the class members
