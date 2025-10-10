@@ -998,12 +998,30 @@ void	Server::handleWho(Message *msg, User *usr)
 	}
 	if (mask.find_first_of("#&") == 0)
 	{
-		std::cerr << "WHO for channels not implemented yet" << std::endl;
 		// treat as Channel. Return all members of that Channel
+		Channel*	target = this->_channels[mask];
+		if (!target)
+			std::cerr << "Oops channel not found what we do?" << std::endl;
+		else
+		{
+			// std::set<User *>	users = target->getMembers();
+			std::cerr << "WHO for channels not implemented yet" << std::endl;
+			// // FIXME Needs channel in the params, this solution doesnt cut it
+			// // FIXME This is a C++11 form
+			// for (User* user : users)
+			// {
+			// 	this->_toProcess.push(_reply(*msg, RPL_WHOREPLY, user));
+			// }
+		}
+
 	}
 	else // treating it as a NICK
 	{
-		std::cerr << "WHO not implemented yet" << std::endl;
+		User*	user = this->_findUserByNick(mask);
+		if (!user)
+			this->_toProcess.push(_reply(*msg, ERR_NOSUCHNICK, user));
+		else
+			this->_toProcess.push(_reply(*msg, RPL_WHOREPLY, user));
 	}
 	// send final 315
 	this->_toProcess.push(_reply(*msg, RPL_ENDOFWHO));
@@ -1138,6 +1156,40 @@ Message*	Server::_reply(Message &msg, int rep_code, Channel *chan) const
 	transmit = new Message(src, cmd_as_str, params, targets);
 	return (transmit);
 }
+// And a User-taking overload
+Message*	Server::_reply(Message &msg, int rep_code, User *usr) const
+{
+	Message*	transmit;
+	std::stringstream strm;
+	strm << rep_code;
+	std::string cmd_as_str = strm.str();
+
+	// NOTE This is a list because Message constructors. Needs worked out!
+	std::list<int>	target;
+	target.push_back(msg.getOrigin()->getFD());
+
+	std::string	src(SERVERNAME);
+
+	std::list<std::string>	params;
+	// TODO If this returns empty, put something else there
+	params.push_back(msg.getOrigin()->getNick());
+	std::list<std::string> who = usr->getWhoReply();
+
+	switch (rep_code)
+	{
+		// FIXME This needs channel as well :'(
+		case RPL_WHOREPLY:
+//			params.push_back(usr->getWhoReply());
+			params.splice(params.end(), who);
+			break;
+		default:
+			std::cerr << "Reply not handled yet:" << rep_code << std::endl;
+	}
+	std::cout << "Added " << params.size() << "parameters" <<std::endl;
+	transmit = new Message(src, cmd_as_str, params, target);
+	return (transmit);
+}
+
 
 // Simplest possible reply construction,
 // This is for commands like PING where we don't need to refer to channel or user

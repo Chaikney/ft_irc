@@ -98,6 +98,8 @@ class	Server
 		// HACK Public to be friend with message origin (user)
 		Message*	_reply(Message &msg, int num_rep) const;
 		Message*	_reply(Message &msg, int num_rep, Channel *chan) const;
+		// NOTE Not sure if this one is any use
+		Message*	_reply(Message &msg, int rep_code, User *usr) const;
 		std::string	getUptime(void) const;
 		std::string	getCreation(void) const;
 };
