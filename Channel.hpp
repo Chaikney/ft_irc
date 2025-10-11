@@ -4,6 +4,7 @@
 #include <string>
 #include <set>
 #include <map>
+#include <list>	// returns FDs for use in Messages
 
 class User;
 
@@ -45,6 +46,8 @@ class Channel
 		const std::string&			getPassword(void) const;
 		int							getUserLimit(void) const;
 		size_t						getMemberCount(void) const;
+		std::list<int>		getBroadcastFDs(void) const;	// for use with PRIVMSG, NOTICE, etc
+		std::list<int>		getBroadcastFDs(User *usr) const;	// as above but excluding one User
 
 		// Setters
 		void						setTopic(const std::string &topic);

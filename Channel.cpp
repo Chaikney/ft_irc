@@ -300,3 +300,29 @@ void Channel::clear(void)
 	_exceptionList.clear();
 	_inviteList.clear();
 }
+
+// for use with PRIVMSG, NOTICE, etc
+std::list<int>		Channel::getBroadcastFDs(void) const
+{
+	std::list<int>	targets;
+	std::set<User *>	chanMembers = this->getMembers();
+	int	fd = 0;
+	std::set<User *>::const_iterator it = chanMembers.begin();
+	while (it != chanMembers.end())
+	{
+		User*	heyyou = *it;
+		fd = heyyou->getFD();
+
+		targets.push_back(fd);
+		it++;
+	}
+	return (targets);
+}
+
+// Removes the sending user from the list of FDs to be sent to
+std::list<int>	Channel::getBroadcastFDs(User *notyou) const
+{
+	std::list<int>	targets = this->getBroadcastFDs();
+	targets.remove(notyou->getFD());
+	return (targets);
+}
