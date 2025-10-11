@@ -614,18 +614,22 @@ void	Server::handlePart(Message *msg, User *usr)
 //     }
 // }
 
-// TODO Check this against specification: https://modern.ircdocs.horse/#list-message
-// NOTE Optionally takes parameters, should not ignore msg
+// TODO This should handle a list of channels
+// TODO Filter the channel list that we call before looping over and listing
 void	Server::handleList(Message *msg, User *usr)
 {
-    (void)msg;
-    for (std::map<std::string, Channel*>::const_iterator it = _channels.begin(); it != _channels.end(); ++it)
-    {
-        Channel *c = it->second;
-        std::stringstream ss;
-        ss << "322 " << c->getName() << " " << c->getMemberCount() << " :" << c->getTopic();
-        _sendToFD(usr->getFD(), ss.str() + "\r\n");
-    }
+	(void) usr;	// HACK surely we need this?
+	if (msg->getParams().size() == 0)	// list all channels
+	{
+		for (std::map<std::string, Channel*>::const_iterator it = _channels.begin(); it != _channels.end(); ++it)
+		{
+			Channel *c = it->second;
+			this->_toProcess.push(_reply(*msg, RPL_LIST, c));
+		}
+		this->_toProcess.push(_reply(*msg, RPL_LISTEND));
+	}
+	else
+		std::cerr << "LIST with selected channels not implemented yet" << std::endl;
 }
 
 void	Server::handleTopic(Message *msg, User *usr)
@@ -1107,6 +1111,9 @@ Message*	Server::_reply(Message &msg, int rep_code) const
 			params.push_back(msg.getCommand());
 			params.push_back("Command not known on this server");
 			break;
+		case RPL_LISTEND:
+			params.push_back("End of /LIST");
+			break;
 		case ERR_NONICKNAMEGIVEN:
 			params.push_back("No nickname given");
 			break;
@@ -1161,6 +1168,8 @@ Message*	Server::_reply(Message &msg, int rep_code, Channel *chan) const
 	// TODO If this returns empty, put something else there
 	params.push_back(msg.getOrigin()->getNick());
 
+	// HACK this is only here for the RPL_LIST splicing that I couldn't call properly without it
+	std::list<std::string> who = chan->getListInfo();
 	switch (rep_code)
 	{
 	// NOTE catching this message needs an overload with Channel
@@ -1174,6 +1183,9 @@ Message*	Server::_reply(Message &msg, int rep_code, Channel *chan) const
 		case ERR_INVITEONLYCHAN:
 			params.push_back(chan->getName());
 			params.push_back("Cannot join channel (+i)");
+			break;
+		case RPL_LIST:
+			params.splice(params.end(), who);
 			break;
 		default:
 			std::cerr << "Reply not handled yet:" << rep_code << std::endl;
