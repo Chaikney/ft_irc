@@ -199,6 +199,23 @@ std::list<std::string>	User::getWhoIs(void) const
 	return (params);
 }
 
+// Return the User representation for use in the RPL_USERHOST list
+// TODO getHost representation, should it be like user@hostname ?
+std::string	User::getUserHostMsg(void) const
+{
+	std::string	userHost;
+	userHost.append(this->getNick());
+	if (this->_isServerOp)
+		userHost.append("isop");
+	userHost.append("=");
+	if (this->_isAway)
+		userHost.append("-");
+	else
+		userHost.append("+");
+	userHost.append(this->getHost());
+	return (userHost);
+}
+
 void	User::setAway(bool are)
 {
 	this->_isAway = are;

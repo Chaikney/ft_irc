@@ -51,17 +51,22 @@ class	User
 		bool				isRegistered() const;
 		sockaddr_in			getAddress() const;		// NOTE This is too low-level to be public IMO
 		std::string			getHost() const;
+		std::list<std::string>	getWhoReply(void) const;
+		std::list<std::string>	getWhoIs(void) const;
+		std::string			getFlags(void) const;
+		std::string			getUserHostMsg(void) const;
+
+		// Set values
 		void				switchVerification();
 		void				setNick(std::string nick);
 		void				setUser(std::string user);
 		void				setReal(std::string rname);
+		void				setAway(bool areyou);
+		void				updateTime(void);
+
+		// Channel-related operations
 		void				addChannel(const std::string &channel);
 		void				removeChannel(const std::string &channel);
-		void				updateTime(void);
-		std::list<std::string>	getWhoReply(void) const;
-		std::list<std::string>	getWhoIs(void) const;
-		std::string			getFlags(void) const;
-		void	setAway(bool areyou);
 };
 
 // NOTE Remember to update this alongside the class members
