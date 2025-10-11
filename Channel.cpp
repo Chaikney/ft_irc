@@ -2,6 +2,9 @@
 #include "User.hpp"
 #include <iostream>
 #include <cstdlib>
+#include <algorithm>
+#include <set>
+#include <sstream>
 
 Channel::Channel(void) : _name(""), _topic(""), _members(), _operators(), _invitedNicks(),
 						_topicProtected(false), _inviteOnly(false), _password(""),
@@ -102,6 +105,16 @@ int Channel::getUserLimit(void) const
 size_t Channel::getMemberCount(void) const
 {
 	return _members.size();
+}
+
+std::string Channel::getMemberCountText(void) const
+{
+	size_t	n = _members.size();
+	std::stringstream	strm;
+	strm << n;
+	std::string	str;
+	str = strm.str();
+	return (str);
 }
 
 // Setters
@@ -325,4 +338,16 @@ std::list<int>	Channel::getBroadcastFDs(User *notyou) const
 	std::list<int>	targets = this->getBroadcastFDs();
 	targets.remove(notyou->getFD());
 	return (targets);
+}
+
+// Return parameter list for use in RPL_LIST(322) Message
+// "<client> <channel> <client count> :<topic>"
+// TODO Turn member count into string
+std::list<std::string>	Channel::getListInfo(void) const
+{
+	std::list<std::string>	params;
+	params.push_back(this->getName());
+	params.push_back(this->getMemberCountText());
+	params.push_back(this->getTopic());
+	return (params);
 }

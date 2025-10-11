@@ -46,8 +46,10 @@ class Channel
 		const std::string&			getPassword(void) const;
 		int							getUserLimit(void) const;
 		size_t						getMemberCount(void) const;
+		std::string		getMemberCountText(void) const;
 		std::list<int>		getBroadcastFDs(void) const;	// for use with PRIVMSG, NOTICE, etc
 		std::list<int>		getBroadcastFDs(User *usr) const;	// as above but excluding one User
+		std::list<std::string>	getListInfo(void) const;	// for use in RPL_LIST
 
 		// Setters
 		void						setTopic(const std::string &topic);
