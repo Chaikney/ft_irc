@@ -993,6 +993,8 @@ void	Server::_processQueue(void)
 				handleWho(do_next, do_next->getOrigin());
 			else if (command == "AWAY")
 				handleAway(do_next, do_next->getOrigin());
+			else if (command == "QUIT")
+				handleQuit(do_next, do_next->getOrigin());
 			else
 				this->_toProcess.push(_reply(*do_next, ERR_UNKNOWNCOMMAND));
 		}
@@ -1017,6 +1019,49 @@ void	Server::handleAway(Message *msg, User *usr)
 		usr->setAway(true);
 		this->_toProcess.push(_reply(*msg, RPL_NOWAWAY));
 	}
+}
+
+// On quit, send ERROR to the client
+// broadcast QUIT to their channels
+// remove them from all channels and clean up traces
+// NOTE The ERROR probably has to act directly as the FD will disappear...
+// TODO Test (refactor?) the user-removal logic
+// - all channels (should be encapsulated in removeMember method)
+// - Server listings (perhaps roll into ERROR)
+void	Server::handleQuit(Message *msg, User *usr)
+{
+    std::list<std::string> params = msg->getParams();
+    std::string reason;
+
+    // FIXME Not defined the function, whatver.
+//	Message*	byethen = _replyNonNumeric(*msg, *usr);
+    std::string quitMsg = ":" + usr->getNick() + " QUIT :" + reason;
+//    std::string quitMsg = byethen->serialiseMsg();
+
+    // Get all channels the user is on and broadcast QUIT message
+    // TODO The channel collection should be when filling the list of FDs
+    for (std::map<std::string, Channel*>::iterator it = _channels.begin(); it != _channels.end(); ++it)
+    {
+        Channel *channel = it->second;
+        if (channel->isMember(usr))
+        {
+			this->_toProcess.push(_channelMessage(*msg, channel));
+//            _broadcastToChannel(channel, usr->getFD(), quitMsg, false);
+            channel->removeMember(usr);
+        }
+    }
+
+    // Remove user from server -- part of the ERROR command, better?
+    _clients.erase(usr->getFD());
+    _partial_msgs.erase(usr->getFD());
+    _moreClients.erase(usr->getFD());
+
+    // Close the connection
+    close(usr->getFD());
+    epoll_ctl(_epollFD, EPOLL_CTL_DEL, usr->getFD(), NULL);
+
+    // TODO -- does this work and do we need to Delete user object
+    delete usr;
 }
 
 // The parameter is either a NICK or a Channel name (we can ignore wildcards)
@@ -1295,9 +1340,9 @@ Message*	Server::_replyNonNumeric(Message &msg, Channel *chan) const
 // [ ] JOIN
 // [ ] PART
 // [ ] AWAY
-// [ ] QUIT
+// [x] QUIT
 // [ ] KICK (we haven't got KICK yet)
-// [ ] TOPIC
+// [x] TOPIC
 // NOTE Maybe this would be better taking a "params" list....
 Message*	Server::_channelMessage(Message &msg, Channel *chan) const
 {
@@ -1318,8 +1363,8 @@ Message*	Server::_channelMessage(Message &msg, Channel *chan) const
 	else if (cmd_as_str.compare("JOIN") == 0)
 		params.push_back((msg.getParams().back()));
 	else if (cmd_as_str.compare("QUIT") == 0)
-	 	params.push_back(("Quit resaon goes here should be preceded by colon"));
-//	 	params.push_back((msg.getParams().back()));
+//	 	params.push_back(("Quit resaon goes here should be preceded by colon"));
+	 	params.push_back("Quit: " + (msg.getParams().back()));
 	// else if (cmd_as_str.compare("PART") == 0)
 	// 	params.push_back((msg.getParams().back()));
 	// else if (cmd_as_str.compare("AWAY") == 0)
