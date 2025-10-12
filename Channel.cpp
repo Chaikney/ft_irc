@@ -76,7 +76,6 @@ const std::set<std::string>& Channel::getInvitedNicks(void) const
 {
 	return _invitedNicks;
 }
-
 bool Channel::isTopicProtected(void) const
 {
 	return _topicProtected;

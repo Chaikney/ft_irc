@@ -118,6 +118,7 @@ Message::Message(std::string text_recvd, User *usr) : _tags(""), _source(""),
 // Constructor suited for *outward* Messages
 // i.e. has parameters, is probably a numeric reply
 // TODO Consider if this needs to take a User as well
+// FIXME I think this can lead to the last parameter NOT having a :
 Message::Message(std::string &src, std::string &cmd,
 				 std::list<std::string> params, std::list<int> target) :
 	_tags(""), _source(src), _command(cmd), _params(params), _origin(), _targets(target)
@@ -187,7 +188,7 @@ std::list<std::string>	Message::getParams() const
 	return(this->_params);
 }
 
-// NOTE May return a NULL pointer
+// NOTE May return a NULL pointer, indicating that the Server sent it
 User*	Message::getOrigin() const
 {
 	return (this->_origin);

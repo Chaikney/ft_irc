@@ -748,6 +748,7 @@ void	Server::handlePing(Message *msg, User *usr)
 	this->_toProcess.push(_replyNonNumeric(*msg));
 }
 
+// NOTE When the Server destructor is called, all memory freed. This is good!
 Server::~Server(void)
 {
 	// Libera recursos si es necesario
@@ -1092,7 +1093,6 @@ void	Server::handleWho(Message *msg, User *usr)
 			// 	this->_toProcess.push(_reply(*msg, RPL_WHOREPLY, user));
 			// }
 		}
-
 	}
 	else // treating it as a NICK
 	{
@@ -1141,7 +1141,6 @@ Message*	Server::_reply(Message &msg, int rep_code) const
 		case RPL_YOURHOST:
 			params.push_back("Your host is:" + SERVERNAME);
 			break;
-		// TODO Update this when we have uptime measuring
 		case RPL_CREATED:
 			params.push_back(this->getCreation());
 			break;
@@ -1313,6 +1312,7 @@ Message*	Server::_replyNonNumeric(Message &msg) const
 // NOTE targets is a LIST so we can expand sending to multiple clients
 // ...that is maybe not needed now?
 // NOTE For this to work with PART you have to include the Reason, final parameter
+// FIXME We send a double channel for JOIN here
 Message*	Server::_replyNonNumeric(Message &msg, Channel *chan) const
 {
 	Message*	transmit;
@@ -1352,7 +1352,6 @@ Message*	Server::_channelMessage(Message &msg, Channel *chan) const
 	std::list<std::string>	params;
 	// NOTE This call gets the FDs of all *except* the sender
 	std::list<int>	targets = chan->getBroadcastFDs(msg.getOrigin());
-	// TODO TOPIC broadcasts what?
 	if (cmd_as_str.compare("TOPIC") == 0)
 	{
 		// HACK Adding back the originating FD so they get the message too.
@@ -1363,7 +1362,6 @@ Message*	Server::_channelMessage(Message &msg, Channel *chan) const
 	else if (cmd_as_str.compare("JOIN") == 0)
 		params.push_back((msg.getParams().back()));
 	else if (cmd_as_str.compare("QUIT") == 0)
-//	 	params.push_back(("Quit resaon goes here should be preceded by colon"));
 	 	params.push_back("Quit: " + (msg.getParams().back()));
 	// else if (cmd_as_str.compare("PART") == 0)
 	// 	params.push_back((msg.getParams().back()));
@@ -1404,7 +1402,7 @@ void	Server::_sendMessage(Message *msg_to_send) const
 					std::cerr << "Would block, split message or drop it" << std::endl;
 					break ;
 				default:
-					std::cerr << "Dunno, something else went wrong" << std::endl;
+					std::cerr << "Dunno, something else went wrong" << errno << std::endl;
 			}
 		}
 		else
