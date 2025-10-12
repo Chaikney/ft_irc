@@ -69,6 +69,7 @@ class	Server
 		void		_sendToFD(int fd, const std::string &text) const;
 		void		_broadcastToChannel(const std::string &chan, int from_fd, const std::string &text, bool include_sender=false) const;
 		void		_broadcastToChannel(Channel *channel, int from_fd, const std::string &text, bool include_sender=false) const;
+		Message*	_channelMessage(Message &msg, Channel *chan) const;
 
 		// --- Manejo de comandos IRC ---
 		void        	handleKick(Message *msg, User *usr);

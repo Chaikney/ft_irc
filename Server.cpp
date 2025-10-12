@@ -632,28 +632,37 @@ void	Server::handleList(Message *msg, User *usr)
 		std::cerr << "LIST with selected channels not implemented yet" << std::endl;
 }
 
+// FIXME Blank topic (RPL_TOPIC?) does not supply channel name (KVIRC)
+// The broadcast message must include the channel name (and goes to all in channel)
 void	Server::handleTopic(Message *msg, User *usr)
 {
     std::list<std::string> params = msg->getParams();
-    if (params.empty()) return ;
+    if (params.empty())
+	{
+		this->_toProcess.push(_reply(*msg, ERR_NEEDMOREPARAMS));
+		return;
+	}
     std::string chan = params.front();
     Channel *channel = _findChannel(chan);
-    if (!channel) return ;
-
+    if (!channel)
+	{
+		this->_toProcess.push(_reply(*msg, ERR_NOSUCHCHANNEL));
+		return;
+	}
     if (params.size() == 1)
     {
-        _sendToFD(usr->getFD(), ":server 332 " + chan + " :" + channel->getTopic() + "\r\n");
+		this->_toProcess.push(_reply(*msg, RPL_TOPIC));
         return ;
     }
     if (channel->isTopicProtected() && !channel->isOperator(usr->getFD()))
     {
-        _sendToFD(usr->getFD(), ":server 482 " + chan + " :You're not channel operator\r\n");
+		this->_toProcess.push(_reply(*msg, ERR_CHANOPRIVSNEEDED));
         return ;
     }
     params.pop_front();
     std::string newTopic = params.front();
     channel->setTopic(newTopic);
-    _broadcastToChannel(channel, -1, ":server TOPIC " + chan + " :" + newTopic, true);
+	this->_toProcess.push(_channelMessage(*msg, channel));
 }
 
 void	Server::handleInvite(Message *msg, User *usr)
@@ -710,7 +719,8 @@ void	Server::handleMode(Message *msg, User *usr)
             std::string modeStr = (adding ? "+" : "-") + std::string(1, f);
             if (!param.empty())
                 modeStr += " " + param;
-            _broadcastToChannel(channel, -1, ":server MODE " + chan + " " + modeStr, true);
+			this->_toProcess.push(_channelMessage(*msg, channel));
+            //_broadcastToChannel(channel, -1, ":server MODE " + chan + " " + modeStr, true);
         }
     }
 }
@@ -1274,6 +1284,47 @@ Message*	Server::_replyNonNumeric(Message &msg, Channel *chan) const
 
 	transmit = new Message(src, cmd_as_str, params, targets);
 	std::cout << "Non-numeric reply composed" << std::endl;
+	std::cout << *transmit << std::endl;
+	std::cout << transmit->serialiseMsg() << std::endl;
+	return (transmit);
+}
+
+// This is to get messages out to a whole channel
+// I.e. inform of AWAY / QUIT; NOTICE or PRIVMSG
+// Test on:
+// [ ] JOIN
+// [ ] PART
+// [ ] AWAY
+// [ ] QUIT
+// [ ] KICK (we haven't got KICK yet)
+// [ ] TOPIC
+// NOTE Maybe this would be better taking a "params" list....
+Message*	Server::_channelMessage(Message &msg, Channel *chan) const
+{
+	Message*	transmit;
+	std::string	src = msg.getOrigin()->getNick();
+	std::string cmd_as_str = msg.getCommand();
+	std::list<std::string>	params;
+	// NOTE This call gets the FDs of all *except* the sender
+	std::list<int>	targets = chan->getBroadcastFDs(msg.getOrigin());
+	// TODO TOPIC broadcasts what?
+	if (cmd_as_str.compare("TOPIC") == 0)
+	{
+		// HACK Adding back the originating FD so they get the message too.
+		targets.push_back(msg.getOrigin()->getFD());
+	 	params.push_back((chan->getName()));
+	 	params.push_back((msg.getParams().back()));
+	}
+	else if (cmd_as_str.compare("JOIN") == 0)
+		params.push_back((msg.getParams().back()));
+	else if (cmd_as_str.compare("QUIT") == 0)
+	 	params.push_back(("Quit resaon goes here should be preceded by colon"));
+//	 	params.push_back((msg.getParams().back()));
+	// else if (cmd_as_str.compare("PART") == 0)
+	// 	params.push_back((msg.getParams().back()));
+	// else if (cmd_as_str.compare("AWAY") == 0)
+	// 	params.push_back((msg.getParams().back()));
+	transmit = new Message(src, cmd_as_str, params, targets);
 	std::cout << *transmit << std::endl;
 	std::cout << transmit->serialiseMsg() << std::endl;
 	return (transmit);
