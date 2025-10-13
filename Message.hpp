@@ -56,6 +56,7 @@ class	Message
 		std::list<int>			getTargets() const;
 
 		bool					addParams(std::list<std::string> &addme);
+		bool					addParams(std::string &addme);
 
 		// All the pieces into a one-line string to send over a socket
 		std::string	serialiseMsg(void) const;

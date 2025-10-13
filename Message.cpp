@@ -270,3 +270,10 @@ bool	Message::addParams(std::list<std::string> &addme)
 	this->_params.splice(_params.end(), addme);
 	return (true);
 }
+
+// Same as above but for one single parameter
+bool	Message::addParams(std::string &addme)
+{
+	this->_params.push_back(addme);
+	return (true);
+}
