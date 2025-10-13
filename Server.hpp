@@ -47,7 +47,9 @@ class	Server
 
 		void		_printMessageQueue(std::queue<Message *> toPrint) const;
 		void		_addNewClient();
+		// FIXME Probably only need one of these two, or one should call the other
 		void		_removeClient(struct epoll_event &bye);
+		void		_removeUser(User &usr);
 		bool 		_setNonBlocking(int fd);
 		bool		_isFullMsg(std::string msg) const;
 		void		_storePartial(int fd_source, std::string msg);
@@ -89,6 +91,7 @@ class	Server
 		void		handleAway(Message *msg, User *usr);
 		void		handleQuit(Message *msg, User *usr);
 		void		handleUserhost(Message *msg, User *usr);
+		void		handleError(Message *msg, User *usr);
 
 	public:
 					Server(int port, std::string password);

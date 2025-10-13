@@ -1031,14 +1031,13 @@ void	Server::handleAway(Message *msg, User *usr)
 // TODO Test (refactor?) the user-removal logic
 // - all channels (should be encapsulated in removeMember method)
 // - Server listings (perhaps roll into ERROR)
+// FIXME _removeUser() and _removeCLient() are too similar, confusing
 void	Server::handleQuit(Message *msg, User *usr)
 {
     std::list<std::string> params = msg->getParams();
-    std::string reason;
+    std::string reason ("Quit: " + params.back());
 
-    // FIXME Not defined the function, whatver.
-//	Message*	byethen = _replyNonNumeric(*msg, *usr);
-    std::string quitMsg = ":" + usr->getNick() + " QUIT :" + reason;
+//    std::string quitMsg = ":" + usr->getNick() + " QUIT :" + reason;
 //    std::string quitMsg = byethen->serialiseMsg();
 
     // Get all channels the user is on and broadcast QUIT message
@@ -1048,23 +1047,15 @@ void	Server::handleQuit(Message *msg, User *usr)
         Channel *channel = it->second;
         if (channel->isMember(usr))
         {
-			this->_toProcess.push(_channelMessage(*msg, channel));
+			Message *broadcast = _channelMessage(*msg, channel);
+			broadcast->addParams(reason);
+			this->_toProcess.push(broadcast);
 //            _broadcastToChannel(channel, usr->getFD(), quitMsg, false);
             channel->removeMember(usr);
         }
     }
-
-    // Remove user from server -- part of the ERROR command, better?
-    _clients.erase(usr->getFD());
-    _partial_msgs.erase(usr->getFD());
-    _moreClients.erase(usr->getFD());
-
-    // Close the connection
-    close(usr->getFD());
-    epoll_ctl(_epollFD, EPOLL_CTL_DEL, usr->getFD(), NULL);
-
-    // TODO -- does this work and do we need to Delete user object
-    delete usr;
+	// Then we call handleError to remove the User themselves from the Server
+	this->handleError(msg, usr);
 }
 
 // The parameter is either a NICK or a Channel name (we can ignore wildcards)
@@ -1303,6 +1294,11 @@ Message*	Server::_replyNonNumeric(Message &msg) const
 		params.push_back(SERVERNAME);
 		params.push_back((msg.getParams().back()));
 	}
+	else if (cmd_as_str.compare("QUIT") == 0)
+	{
+		cmd_as_str = "ERROR";	// NOTE This can *only* go to the one who called QUIT
+		params.push_back((msg.getParams().back()));
+	}
 	transmit = new Message(src, cmd_as_str, params, targets);
 	return (transmit);
 }
@@ -1509,4 +1505,74 @@ void	Server::handleUserhost(Message *msg, User *usr)
 		reply->addParams(o_params);
 		this->_toProcess.push(reply);
 	}
+}
+
+// Used only in case of unrecoverable errors, or in response to the User sends QUIT
+// i.e. We do not expect to *receive* this ever, so it does not have to be checked for!
+// BUT Do we want to process it ourselves from the queue?
+// Best to not remove the User until *after* we send this message
+// The only parameter needed is a disconnection reason - given by client or us (e.g. timed out)
+// TODO Adapt this to handle Server-initiated disconnections
+// - Server-determined errorMsg
+// - Triggered by conditions like Away too long
+// ...implies new/different parameters needed.
+// FIXME Duplicate parameters in message (possibly from QUIT)
+void	Server::handleError(Message *msg, User *usr)
+{
+    std::list<std::string> params = msg->getParams();
+    std::string errorMsg = "";
+
+    if (!params.empty())
+    {
+        errorMsg = params.front();
+		// TODO What is this checking trying to achieve?
+        if (!errorMsg.empty() && errorMsg[0] == ':')
+            errorMsg.erase(0, 1);
+    }
+
+    if (errorMsg.empty())
+        errorMsg = "Connection closed by client";
+
+    // Log the error
+    std::cerr << "ERROR from " << usr->getNick() << ": " << errorMsg << std::endl;
+
+    // Remove user from all channels
+    // TODO Bypass this if we have come from QUIT command, already done.
+    for (std::map<std::string, Channel*>::iterator it = _channels.begin(); it != _channels.end(); ++it)
+    {
+        Channel *channel = it->second;
+        if (channel->isMember(usr))
+        {
+            channel->removeMember(usr);
+        }
+    }
+    // Make error Message *and *send* *immediately
+    // (If we wait, things might get out of order)
+    Message* bye = _replyNonNumeric(*msg);
+	bye->addParams(errorMsg);
+	std::cout << "Direct send of Error message:" << *bye << std::endl;
+	this->_sendMessage(bye);
+    // Remove user from server
+	this->_removeUser(*usr);
+}
+
+// Removes the User from the Server
+// TO be called from QUIT and / or ERROR
+// NOTE Must have already removed from all their Channels, else will cause bother
+void	Server::_removeUser(User &usr)
+{
+	int	usr_FD = usr.getFD();
+
+	// First we stop listening to avoid accidental reconnection
+    epoll_ctl(_epollFD, EPOLL_CTL_DEL, usr_FD, NULL);
+    _clients.erase(usr_FD);
+    _partial_msgs.erase(usr_FD);
+    _moreClients.erase(usr_FD);
+
+    // Close the connection
+    close(usr_FD);
+
+    // Delete user object
+    // FIXME HACK does not work called like this
+//    delete usr;
 }
