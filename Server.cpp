@@ -397,7 +397,7 @@ void Server::handlePrivmsg(Message *msg, User *usr)
 			return ;
 		}
 		else
-			_toProcess.push(_channelMessage(*msg, channel));
+			_toProcess.push(Message::_channelMessage(*msg, channel));
 	}
 	else
 	{	// For individual user
@@ -542,7 +542,7 @@ void	Server::handleJoin(Message *msg, User *usr)
 		this->_toProcess.push(_reply(*msg, RPL_TOPICWHOTIME, channel));	// NOTE Optional
 
         // Notify channel (simple join message, or should it be a NOTICE?)
-		this->_toProcess.push(_channelMessage(*msg, channel));
+		this->_toProcess.push(Message::Message::_channelMessage(*msg, channel));
     }
 	return ;
 }
@@ -579,7 +579,7 @@ void	Server::handlePart(Message *msg, User *usr)
 		this->_toProcess.push(_replyNonNumeric(*msg, channel));
         usr->removeChannel(chan);
 		// TODO Send NOTICE to that channel using Message and queue
-		this->_toProcess.push(_channelMessage(*msg, channel));
+		this->_toProcess.push(Message::_channelMessage(*msg, channel));
         //_broadcastToChannel(channel, -1, ":server NOTICE " + chan + " :" + usr->getNick() + " left", true);
 
         // If channel is empty, remove it
@@ -668,7 +668,7 @@ void	Server::handleTopic(Message *msg, User *usr)
     params.pop_front();
     std::string newTopic = params.front();
     channel->setTopic(newTopic);
-	this->_toProcess.push(_channelMessage(*msg, channel));
+	this->_toProcess.push(Message::_channelMessage(*msg, channel));
 }
 
 void	Server::handleInvite(Message *msg, User *usr)
@@ -725,7 +725,7 @@ void	Server::handleMode(Message *msg, User *usr)
             std::string modeStr = (adding ? "+" : "-") + std::string(1, f);
             if (!param.empty())
                 modeStr += " " + param;
-			this->_toProcess.push(_channelMessage(*msg, channel));
+			this->_toProcess.push(Message::_channelMessage(*msg, channel));
             //_broadcastToChannel(channel, -1, ":server MODE " + chan + " " + modeStr, true);
         }
     }
@@ -1053,7 +1053,7 @@ void	Server::handleQuit(Message *msg, User *usr)
         Channel *channel = it->second;
         if (channel->isMember(usr))
         {
-			Message *broadcast = _channelMessage(*msg, channel);
+			Message *broadcast = Message::_channelMessage(*msg, channel);
 			broadcast->addParams(reason);
 			this->_toProcess.push(broadcast);
 //            _broadcastToChannel(channel, usr->getFD(), quitMsg, false);
@@ -1347,44 +1347,6 @@ Message*	Server::_replyNonNumeric(Message &msg, Channel *chan) const
 	return (transmit);
 }
 
-// This is to get messages out to a whole channel
-// I.e. inform of AWAY / QUIT; NOTICE or PRIVMSG
-// Test on:
-// [ ] JOIN
-// [ ] PART
-// [ ] AWAY
-// [x] QUIT
-// [ ] KICK (we haven't got KICK yet)
-// [x] TOPIC
-// NOTE Maybe this would be better taking a "params" list....
-Message*	Server::_channelMessage(Message &msg, Channel *chan) const
-{
-	Message*	transmit;
-	std::string	src = msg.getOrigin()->getNick();
-	std::string cmd_as_str = msg.getCommand();
-	std::list<std::string>	params;
-	// NOTE This call gets the FDs of all *except* the sender
-	std::list<int>	targets = chan->getBroadcastFDs(msg.getOrigin());
-	if (cmd_as_str.compare("TOPIC") == 0)
-	{
-		// HACK Adding back the originating FD so they get the message too.
-		targets.push_back(msg.getOrigin()->getFD());
-	 	params.push_back((chan->getName()));
-	 	params.push_back((msg.getParams().back()));
-	}
-	else if (cmd_as_str.compare("JOIN") == 0)
-		params.push_back((msg.getParams().back()));
-	else if (cmd_as_str.compare("QUIT") == 0)
-	 	params.push_back("Quit: " + (msg.getParams().back()));
-	// else if (cmd_as_str.compare("PART") == 0)
-	// 	params.push_back((msg.getParams().back()));
-	// else if (cmd_as_str.compare("AWAY") == 0)
-	// 	params.push_back((msg.getParams().back()));
-	transmit = new Message(src, cmd_as_str, params, targets);
-	std::cout << *transmit << std::endl;
-	std::cout << transmit->serialiseMsg() << std::endl;
-	return (transmit);
-}
 
 // Extract from message:
 // - text to be sent

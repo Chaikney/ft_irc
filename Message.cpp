@@ -1,4 +1,6 @@
 #include "Message.hpp"
+#include "User.hpp"
+#include "Channel.hpp"
 #include <string>
 #include <iostream>
 #include <sstream>
@@ -276,4 +278,43 @@ bool	Message::addParams(std::string &addme)
 {
 	this->_params.push_back(addme);
 	return (true);
+}
+
+// This is to get messages out to a whole channel
+// I.e. inform of AWAY / QUIT; NOTICE or PRIVMSG
+// Test on:
+// [ ] JOIN
+// [ ] PART
+// [ ] AWAY
+// [x] QUIT
+// [ ] KICK (we haven't got KICK yet)
+// [x] TOPIC
+// NOTE Maybe this would be better taking a "params" list....
+Message*	Message::_channelMessage(Message &msg, Channel *chan)
+{
+	Message*	transmit;
+	std::string	src = msg.getOrigin()->getNick();
+	std::string cmd_as_str = msg.getCommand();
+	std::list<std::string>	params;
+	// NOTE This call gets the FDs of all *except* the sender
+	std::list<int>	targets = chan->getBroadcastFDs(msg.getOrigin());
+	if (cmd_as_str.compare("TOPIC") == 0)
+	{
+		// HACK Adding back the originating FD so they get the message too.
+		targets.push_back(msg.getOrigin()->getFD());
+	 	params.push_back((chan->getName()));
+	 	params.push_back((msg.getParams().back()));
+	}
+	else if (cmd_as_str.compare("JOIN") == 0)
+		params.push_back((msg.getParams().back()));
+	else if (cmd_as_str.compare("QUIT") == 0)
+	 	params.push_back("Quit: " + (msg.getParams().back()));
+	// else if (cmd_as_str.compare("PART") == 0)
+	// 	params.push_back((msg.getParams().back()));
+	// else if (cmd_as_str.compare("AWAY") == 0)
+	// 	params.push_back((msg.getParams().back()));
+	transmit = new Message(src, cmd_as_str, params, targets);
+	std::cout << *transmit << std::endl;
+	std::cout << transmit->serialiseMsg() << std::endl;
+	return (transmit);
 }

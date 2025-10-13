@@ -58,6 +58,9 @@ class	Message
 		bool					addParams(std::list<std::string> &addme);
 		bool					addParams(std::string &addme);
 
+		// from server
+		static Message*	_channelMessage(Message &msg, Channel *chan);
+
 		// All the pieces into a one-line string to send over a socket
 		std::string	serialiseMsg(void) const;
 
