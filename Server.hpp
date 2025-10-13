@@ -25,7 +25,6 @@ const std::string VERSION	= "0.0.2";	// NOTE Increment this when we get bored
 // [ ] PONG
 // [ ] QUIT
 // [ ] ERROR
-// TODO We don't need both _clients and _moreClients, it looks stupid
 // TODO A function that adds the server "name" for the message source
 class	Server
 {
@@ -37,7 +36,7 @@ class	Server
 		std::string _password;
 		std::queue<Message *>	_toProcess;
 		std::map<int, std::string>	_partial_msgs;
-		std::map<int, User*>	_moreClients;	// TODO Potentially  this replaces _clients()
+		std::map<int, User*>	_clients;	// Maps socket FDs to Users
 		std::map<std::string, Channel*>	_channels;
 		time_t		_creationTime;	// TODO SHould this be const, static? It gets set once and never changes.
 

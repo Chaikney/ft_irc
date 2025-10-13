@@ -52,7 +52,7 @@ bool Server::_setNonBlocking(int fd)
 Server::Server(int port, std::string password) : _socketFD(0), _epollFD(0),
 												 _serverAddress(), _password(password),
 												 _toProcess(), _partial_msgs(),
-												 _moreClients(), _channels(), _creationTime()
+												 _clients(), _channels(), _creationTime()
 {
 	std::cout << "Server constructor with parameters called" << std::endl;
 	_socketFD = socket(AF_INET, SOCK_STREAM, 0);
@@ -132,7 +132,7 @@ void	Server::_addNewClient()
 		}
 		User	*newUser = User::makeUser(clientSocket);
 		std::cout << "Created a new user from fd" << clientSocket << std::endl;
-		this->_moreClients[clientSocket] = newUser;
+		this->_clients[clientSocket] = newUser;
 		// Añadir el cliente a epoll
 		struct epoll_event ev;
 		ev.events = EPOLLIN | EPOLLET;
@@ -164,11 +164,11 @@ void	Server::_removeClient(struct epoll_event &goodbye)
 	epoll_ctl(_epollFD, EPOLL_CTL_DEL, goodbye.data.fd, NULL);
 	this->_partial_msgs.erase(goodbye.data.fd);
 	// Free and forget the User instance if present
-	std::map<int, User*>::iterator it = this->_moreClients.find(goodbye.data.fd);
-	if (it != this->_moreClients.end())
+	std::map<int, User*>::iterator it = this->_clients.find(goodbye.data.fd);
+	if (it != this->_clients.end())
 	{
 		delete it->second;
-		this->_moreClients.erase(it);
+		this->_clients.erase(it);
 	}
 }
 
@@ -229,8 +229,8 @@ void Server::run()
 						this->_partial_msgs[events[i].data.fd].erase();
 						std::cout << "Can be parsed" << std::endl;
 						// NOTE What does the User line do here? Document it.
-						// ....What happens if not found in _moreClients?
-						User*	msgFrom =  this->_moreClients[events[i].data.fd];
+						// ....What happens if not found in _clients?
+						User*	msgFrom =  this->_clients[events[i].data.fd];
 						while (this->_isFullMsg(str_buf))
 						{
 							Message	*nxtMessage = Message::makeMessage(str_buf, msgFrom);
@@ -600,8 +600,8 @@ void	Server::handlePart(Message *msg, User *usr)
 //         const std::set<int> &members = c->getMembers();
 //         for (std::set<int>::const_iterator fit = members.begin(); fit != members.end(); ++fit)
 //         {
-//             std::map<int, User*>::const_iterator uit = _moreClients.find(*fit);
-//             if (uit != _moreClients.end() && uit->second)
+//             std::map<int, User*>::const_iterator uit = _clients.find(*fit);
+//             if (uit != _clients.end() && uit->second)
 //             {
 //                 if (fit != members.begin()) line += " ";
 //                 line += uit->second->getNick();
@@ -760,11 +760,11 @@ Server::~Server(void)
 	_channels.clear();
 
 	// Clean up users
-	for (std::map<int, User*>::iterator it = _moreClients.begin(); it != _moreClients.end(); ++it)
+	for (std::map<int, User*>::iterator it = _clients.begin(); it != _clients.end(); ++it)
 	{
 		delete it->second;
 	}
-	_moreClients.clear();
+	_clients.clear();
 }
 
 // TODO Consider being more lenient and allowing \r only to terminate commands
@@ -811,7 +811,7 @@ std::string	Server::_getClientInput(int fd)
 
 User* Server::_findUserByNick(const std::string &nick) const
 {
-    for (std::map<int, User*>::const_iterator it = this->_moreClients.begin(); it != this->_moreClients.end(); ++it)
+    for (std::map<int, User*>::const_iterator it = this->_clients.begin(); it != this->_clients.end(); ++it)
     {
         if (it->second && it->second->getNick() == nick)
             return it->second;
@@ -1144,7 +1144,7 @@ void	Server::_sendMessage(Message *msg_to_send) const
 // TODO Test this, does it ever return false? Very hard to read.
 bool	Server::_isNickTaken(const std::string &nick, int except_fd) const
 {
-    for (std::map<int, User*>::const_iterator it = this->_moreClients.begin(); it != this->_moreClients.end(); ++it)
+    for (std::map<int, User*>::const_iterator it = this->_clients.begin(); it != this->_clients.end(); ++it)
     {
         if (it->first == except_fd)
             continue;
@@ -1292,7 +1292,7 @@ void	Server::_removeUser(User &usr)
 	// First we stop listening to avoid accidental reconnection
     epoll_ctl(_epollFD, EPOLL_CTL_DEL, usr_FD, NULL);
     _partial_msgs.erase(usr_FD);
-    _moreClients.erase(usr_FD);
+    _clients.erase(usr_FD);
 
     // Close the connection
     close(usr_FD);
