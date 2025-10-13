@@ -103,11 +103,6 @@ class	Server
 		// TODO SHould this be a public method in Channel?
 		bool		normaliseChanName(std::string *chan);
 		// TODO All Message* returning functions might move to that class
-		// HACK Public to be friend with message origin (user)
-		Message*	_reply(Message &msg, int num_rep) const;
-		Message*	_reply(Message &msg, int num_rep, Channel *chan) const;
-		// NOTE Not sure if this one is any use
-		Message*	_reply(Message &msg, int rep_code, User *usr) const;
 		// Simple public getters
 		int		get_fd(void) const;
 		std::string	getUptime(void) const;

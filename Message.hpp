@@ -62,6 +62,11 @@ class	Message
 		static Message*	_channelMessage(Message &msg, Channel *chan);
 		static Message*	_replyNonNumeric(Message &msg, Channel *chan);
 		static Message*	_replyNonNumeric(Message &msg);
+		// HACK Public to be friend with message origin (user)
+		static Message*	_reply(Message &msg, int num_rep);
+		static Message*	_reply(Message &msg, int num_rep, Channel *chan);
+		// NOTE Not sure if this one is any use
+		static Message*	_reply(Message &msg, int rep_code, User *usr);
 
 		// All the pieces into a one-line string to send over a socket
 		std::string	serialiseMsg(void) const;
@@ -69,7 +74,7 @@ class	Message
 		// Declared as friend so it can access User._origin
 		friend	void	Server::_processQueue(void);
 		// TODO is this needed? It was wrong before and the prgram still compiled...
-		friend	Message*	Server::_reply(Message &msg, int num_rep) const;
+//		friend	Message*	Server::_reply(Message &msg, int num_rep) const;
 };
 
 // TODO How can we make this return nothing when Message is absent/empty?

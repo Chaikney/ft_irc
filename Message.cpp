@@ -379,3 +379,183 @@ Message*	Message::_replyNonNumeric(Message &msg, Channel *chan)
 	std::cout << transmit->serialiseMsg() << std::endl;
 	return (transmit);
 }
+// Use the Message and code to create a reply Message to be queued
+// - source
+// - command = reply code
+// - parameters: add client by default (msg->usr-getNick())
+// - use a switch to add other parameters
+// DONE src here should be a Server class variable
+// TODO More protection needed, i.e. on rep_code
+// TODO Consider renaming this to be more specific
+// NOTE When rep_code is < 100, it should be padded to 3 digits
+Message*	Message::_reply(Message &msg, int rep_code)
+{
+	Message*	transmit;
+	std::stringstream strm;
+	strm << rep_code;
+	std::string cmd_as_str = strm.str();
+	if (cmd_as_str.length() == 1)
+		cmd_as_str.insert(0, 2, '0');
+
+	std::list<int>	targets;
+	targets.push_front(msg.getOrigin()->getFD());
+
+	std::string	src(SERVERNAME);
+
+	std::list<std::string>	params;
+	// TODO If this returns empty, put something else there
+	params.push_back(msg.getOrigin()->getNick());
+
+	switch (rep_code)
+	{
+		case RPL_WELCOME:
+			params.push_back("Welcome to this network");
+			break;
+		case RPL_YOURHOST:
+			params.push_back("Your host is:" + SERVERNAME);
+			break;
+		case RPL_CREATED:
+			// FIXME Cannot now call getCreation...
+//			params.push_back(this->getCreation());
+			break;
+		// TODO Update this when we have modes and versioning
+		case RPL_MYINFO:
+			params.push_back(SERVERNAME);
+			params.push_back(VERSION);
+			params.push_back("user_modes_here");
+			params.push_back("channel_modes_here");
+			break;
+		case RPL_UNAWAY:
+			params.push_back("Welcome back!");
+			break;
+		case RPL_NOWAWAY:
+			params.push_back("Off you go then, bye.");
+			break;
+		case ERR_NOSUCHNICK:
+			params.push_back(msg.getParams().front());	// HACK Careless assumption here
+			params.push_back("No such nick or channel found");
+			break;
+		case ERR_CANNOTSENDTOCHAN:
+			params.push_back("You do not have permission to send to this channel");
+			break;
+		case ERR_UNKNOWNCOMMAND:
+			params.push_back(msg.getCommand());
+			params.push_back("Command not known on this server");
+			break;
+		case RPL_LISTEND:
+			params.push_back("End of /LIST");
+			break;
+		case ERR_NONICKNAMEGIVEN:
+			params.push_back("No nickname given");
+			break;
+		case ERR_NICKNAMEINUSE:
+			params.push_back(msg.getParams().front());	// TODO Get the name wanted
+			params.push_back("Nickname already in use");
+			break;
+		case ERR_NOTREGISTERED:
+			params.push_back("You have not registered");
+			break;
+		case ERR_NEEDMOREPARAMS:
+			params.push_back(msg.getCommand());
+			params.push_back("Not enough parameters");
+			break;
+		case ERR_ALREADYREGISTERED:
+			params.push_back("You may not re-register");
+			break;
+		case ERR_PASSWORDMISMATCH:
+			params.push_back("Password incorrect");
+			break;
+		case ERR_BADCHANMASK:
+			params.push_back("Bad channel mask (i.e. name is not valid)");
+			break;
+		case ERR_CHANOPRIVSNEEDED:
+			params.push_back("You're not channel operator");
+			break;
+		default:
+			std::cerr << "Reply not handled yet:" << rep_code << std::endl;
+	}
+	std::cout << "Added " << params.size() << "parameters" <<std::endl;
+	transmit = new Message(src, cmd_as_str, params, targets);
+	return (transmit);
+}
+
+// Channel-including overload of the _reply method above.
+// Needed for replies which refer to Channel characteristics (e.g. TOPIC)
+// TODO The first part of this repeats from above and should be consolidated
+// No padding needed for these commands though
+Message*	Message::_reply(Message &msg, int rep_code, Channel *chan)
+{
+	Message*	transmit;
+	std::stringstream strm;
+	strm << rep_code;
+	std::string cmd_as_str = strm.str();
+
+	std::list<int>	targets;
+	targets.push_front(msg.getOrigin()->getFD());
+
+	std::string	src(SERVERNAME);
+
+	std::list<std::string>	params;
+	// TODO If this returns empty, put something else there
+	params.push_back(msg.getOrigin()->getNick());
+
+	// HACK this is only here for the RPL_LIST splicing that I couldn't call properly without it
+	std::list<std::string> who = chan->getListInfo();
+	switch (rep_code)
+	{
+	// NOTE catching this message needs an overload with Channel
+		case RPL_TOPIC:
+			params.push_back(chan->getName());
+			params.push_back(chan->getTopic());
+			break;
+		case RPL_TOPICWHOTIME:
+			params.push_back("TODO if we can get the channel we can get this I guess");
+			break;
+		case ERR_INVITEONLYCHAN:
+			params.push_back(chan->getName());
+			params.push_back("Cannot join channel (+i)");
+			break;
+		case RPL_LIST:
+			params.splice(params.end(), who);
+			break;
+		default:
+			std::cerr << "Reply not handled yet:" << rep_code << std::endl;
+	}
+	std::cout << "Added " << params.size() << "parameters" <<std::endl;
+	transmit = new Message(src, cmd_as_str, params, targets);
+	return (transmit);
+}
+
+// And a User-taking overload
+Message*	Message::_reply(Message &msg, int rep_code, User *usr)
+{
+	Message*	transmit;
+	std::stringstream strm;
+	strm << rep_code;
+	std::string cmd_as_str = strm.str();
+
+	// NOTE This is a list because Message constructors. Needs worked out!
+	std::list<int>	target;
+	target.push_back(msg.getOrigin()->getFD());
+
+	std::string	src(SERVERNAME);
+
+	std::list<std::string>	params;
+	// TODO If this returns empty, put something else there
+	params.push_back(msg.getOrigin()->getNick());
+	std::list<std::string> who = usr->getWhoReply();
+
+	switch (rep_code)
+	{
+		// FIXME This needs channel as well :'(
+		case RPL_WHOREPLY:
+//			params.push_back(usr->getWhoReply());
+			params.splice(params.end(), who);
+			break;
+		default:
+			std::cerr << "Reply not handled yet:" << rep_code << std::endl;
+	}
+	std::cout << "Added " << params.size() << "parameters" <<std::endl;
+	transmit = new Message(src, cmd_as_str, params, target);
+	return (transmit);
+}
