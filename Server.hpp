@@ -88,6 +88,7 @@ class	Server
 		void		handleWho(Message *msg, User *usr);
 		void		handleAway(Message *msg, User *usr);
 		void		handleQuit(Message *msg, User *usr);
+		void		handleUserhost(Message *msg, User *usr);
 
 	public:
 					Server(int port, std::string password);

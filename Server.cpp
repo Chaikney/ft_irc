@@ -994,6 +994,8 @@ void	Server::_processQueue(void)
 				handleWho(do_next, do_next->getOrigin());
 			else if (command == "AWAY")
 				handleAway(do_next, do_next->getOrigin());
+			else if (command == "USERHOST")
+				handleUserhost(do_next, do_next->getOrigin());
 			else if (command == "QUIT")
 				handleQuit(do_next, do_next->getOrigin());
 			else
@@ -1248,6 +1250,7 @@ Message*	Server::_reply(Message &msg, int rep_code, Channel *chan) const
 	transmit = new Message(src, cmd_as_str, params, targets);
 	return (transmit);
 }
+
 // And a User-taking overload
 Message*	Server::_reply(Message &msg, int rep_code, User *usr) const
 {
@@ -1476,4 +1479,34 @@ std::string	Server::getCreation(void) const
 	strftime(buffer, sizeof(buffer), "%a %b %d %Y at %H:%M:%S %Z", timeinfo);
 	creationmsg.append(buffer);
 	return (creationmsg);
+}
+
+// Return RPL_USERHOST 302 for up to 5 NICKs
+// This is one list with a space-spearated parameter list of the userHostMsg ouptuts
+// FIXME I think this can only work if we have a _replyNonNumeric that takes a LIST OF PARAMETERS!
+void	Server::handleUserhost(Message *msg, User *usr)
+{
+	(void) usr;	// HACK this should be used to check permission to view nicks
+	std::list<std::string>	in_params = msg->getParams();
+	std::list<std::string>	o_params;
+	if (in_params.size() > 5)
+		return ;	// Silently ignore
+	else
+	{
+		while (!in_params.empty())
+		{
+			std::string	nick = in_params.front();
+			// Find User by Nick
+			User*	target = this->_findUserByNick(nick);
+			// TODO This should *do* something with the return!
+			if (target)
+				o_params.push_back(target->getUserHostMsg());
+			in_params.pop_front();
+		}
+		Message* reply;
+		reply = _replyNonNumeric(*msg);
+		// TODO add o_params to reply
+		reply->addParams(o_params);
+		this->_toProcess.push(reply);
+	}
 }
