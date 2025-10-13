@@ -55,6 +55,8 @@ class	Message
 		User*					getOrigin() const;
 		std::list<int>			getTargets() const;
 
+		bool					addParams(std::list<std::string> &addme);
+
 		// All the pieces into a one-line string to send over a socket
 		std::string	serialiseMsg(void) const;
 

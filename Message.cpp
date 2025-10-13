@@ -261,3 +261,12 @@ std::string	Message::serialiseMsg(void) const
 	msg.append("\r\n");
 	return (msg);
 }
+
+// Add a list of parameters onto the end of the parameter list
+// Return true on success
+// TODO Add exceptions, error-checking
+bool	Message::addParams(std::list<std::string> &addme)
+{
+	this->_params.splice(_params.end(), addme);
+	return (true);
+}
