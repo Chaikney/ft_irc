@@ -205,6 +205,8 @@ std::list<int>	Message::getTargets() const
 // ...it must be preceded by :
 //  FIXME A parameter of only a newline code leads to the : being added.
 //  ...careful, an empty parameter at the end is OK (I think)
+//  If there is only one, spaceless parameter, don't add the :
+//  ...KVIRC JOIN gets confused by it i think.
 std::string	Message::_paramToString(std::list<std::string> lst) const
 {
 	std::string	msg;
@@ -214,6 +216,14 @@ std::string	Message::_paramToString(std::list<std::string> lst) const
 		return (msg);
 	n = lst.size();
 	std::list<std::string>::const_iterator  it = lst.begin();
+	// NOTE Here special case adding : for single parameter with spaces
+	if ((n == 1))
+	{
+		msg.append(*it);
+		if (msg.find_first_of(" ") != std::string::npos)
+			msg = (":" + msg);
+		return (msg);
+	}
 	while (it != lst.end())
 	{
 		msg.append(" ");
