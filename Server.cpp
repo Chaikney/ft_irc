@@ -41,7 +41,6 @@ bool Server::_setNonBlocking(int fd)
 	return (fcntl(fd, F_SETFL, flags | O_NONBLOCK) != -1);
 }
 
-// _clients debe ser miembro de la clase Server, no global
 // Set up the Server:
 // - create fd for socket
 // - set as non-blocking
@@ -52,7 +51,7 @@ bool Server::_setNonBlocking(int fd)
 // - Add socket fd to epoll's listening set
 Server::Server(int port, std::string password) : _socketFD(0), _epollFD(0),
 												 _serverAddress(), _password(password),
-												 _toProcess(), _clients(), _partial_msgs(),
+												 _toProcess(), _partial_msgs(),
 												 _moreClients(), _channels(), _creationTime()
 {
 	std::cout << "Server constructor with parameters called" << std::endl;
@@ -138,16 +137,11 @@ void	Server::_addNewClient()
 		struct epoll_event ev;
 		ev.events = EPOLLIN | EPOLLET;
 		ev.data.fd = clientSocket;
-		//if (epoll_ctl(_epollFD, EPOLL_CTL_ADD, clientSocket, &ev) == -1)
 		if (epoll_ctl(_epollFD, EPOLL_CTL_ADD, newUser->getFD(), &ev) == -1)
 		{
+			// TODO If this fails we should probably remove the User altogether...
 			close(clientSocket);
 			throw std::runtime_error("Could not add client socket to epoll");
-		}
-		else
-		{
-			// TODO Is this needed or does it duplicate the _moreClients pieces?
-			this->_clients.insert(newUser->getFD());
 		}
 	}
 	catch (std::exception &e)
@@ -168,8 +162,6 @@ void	Server::_removeClient(struct epoll_event &goodbye)
 	std::cout << "Cliente desconectado, fd: " << goodbye.data.fd << std::endl;
 	close(goodbye.data.fd);
 	epoll_ctl(_epollFD, EPOLL_CTL_DEL, goodbye.data.fd, NULL);
-	// TODO Is this duplication? It is not used anywhere as far as I can tell
-	_clients.erase(goodbye.data.fd);
 	this->_partial_msgs.erase(goodbye.data.fd);
 	// Free and forget the User instance if present
 	std::map<int, User*>::iterator it = this->_moreClients.find(goodbye.data.fd);
@@ -1299,7 +1291,6 @@ void	Server::_removeUser(User &usr)
 
 	// First we stop listening to avoid accidental reconnection
     epoll_ctl(_epollFD, EPOLL_CTL_DEL, usr_FD, NULL);
-    _clients.erase(usr_FD);
     _partial_msgs.erase(usr_FD);
     _moreClients.erase(usr_FD);
 

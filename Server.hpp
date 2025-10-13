@@ -36,7 +36,6 @@ class	Server
 		sockaddr_in _serverAddress;
 		std::string _password;
 		std::queue<Message *>	_toProcess;
-		std::set<int> _clients;		// NOTE This is the fds to be sent to; may duplicate other info
 		std::map<int, std::string>	_partial_msgs;
 		std::map<int, User*>	_moreClients;	// TODO Potentially  this replaces _clients()
 		std::map<std::string, Channel*>	_channels;
