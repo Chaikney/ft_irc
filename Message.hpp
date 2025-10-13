@@ -60,6 +60,8 @@ class	Message
 
 		// from server
 		static Message*	_channelMessage(Message &msg, Channel *chan);
+		static Message*	_replyNonNumeric(Message &msg, Channel *chan);
+		static Message*	_replyNonNumeric(Message &msg);
 
 		// All the pieces into a one-line string to send over a socket
 		std::string	serialiseMsg(void) const;

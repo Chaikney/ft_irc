@@ -61,10 +61,6 @@ class	Server
 		// If this works, it is important
 		void		_sendMessage(Message *to_send) const;
 
-		// NOTE AS now, only works for Channel-related replies
-		// TODO Should these "Message creation" functions be moved to that class?
-		Message*	_replyNonNumeric(Message &msg, Channel *chan) const;
-		Message*	_replyNonNumeric(Message &msg) const;
 
 		// --- Helpers for channels/users ---
 		User*		_findUserByNick(const std::string &nick) const;

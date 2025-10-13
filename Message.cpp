@@ -318,3 +318,64 @@ Message*	Message::_channelMessage(Message &msg, Channel *chan)
 	std::cout << transmit->serialiseMsg() << std::endl;
 	return (transmit);
 }
+
+// Simplest possible reply construction,
+// This is for commands like PING where we don't need to refer to channel or user
+// No source
+Message*	Message::_replyNonNumeric(Message &msg)
+{
+	Message*	transmit;
+	std::string	src;
+	std::string cmd_as_str = msg.getCommand();
+	std::list<int>	targets;
+	targets.push_front(msg.getOrigin()->getFD());
+	std::list<std::string>	params;
+	if (cmd_as_str.compare("PING") == 0)
+	{
+		cmd_as_str = "PONG";
+		params.push_back(SERVERNAME);
+		params.push_back((msg.getParams().back()));
+	}
+	else if (cmd_as_str.compare("QUIT") == 0)
+	{
+		cmd_as_str = "ERROR";	// NOTE This can *only* go to the one who called QUIT
+		params.push_back((msg.getParams().back()));
+	}
+	transmit = new Message(src, cmd_as_str, params, targets);
+	return (transmit);
+}
+
+// Return a Message in reply to a command, but a non-numeric one
+// i.e. typically this will be the same command back to the place it came from
+// Take JOIN as an example to test this
+// https://modern.ircdocs.horse/#join-message
+// ...how would you get the channel name?
+// NOTE targets is a LIST so we can expand sending to multiple clients
+// ...that is maybe not needed now?
+// NOTE For this to work with PART you have to include the Reason, final parameter
+// FIXME We send a double channel for JOIN here
+Message*	Message::_replyNonNumeric(Message &msg, Channel *chan)
+{
+	Message*	transmit;
+	std::string	src = msg.getOrigin()->getNick();
+	std::string cmd_as_str = msg.getCommand();
+
+	std::list<std::string>	params;
+	params.push_back(chan->getName());
+	if (cmd_as_str.compare("PART") == 0)
+		params.push_back((msg.getParams().back()));
+	// NOTE Join only needs the channel name when replying to a client
+	// else if (cmd_as_str.compare("JOIN") == 0)
+	// 	params.push_back((msg.getParams().back()));
+	// If the command should not be sent to the sender, add as parameter
+	// NOTE Be careful of confusing this with _channelMessage()!
+	// TODO Check that this is used consistently
+	std::list<int>	targets = chan->getBroadcastFDs();
+//	targets.push_front(msg.getOrigin()->getFD());
+
+	transmit = new Message(src, cmd_as_str, params, targets);
+	std::cout << "Non-numeric reply composed" << std::endl;
+	std::cout << *transmit << std::endl;
+	std::cout << transmit->serialiseMsg() << std::endl;
+	return (transmit);
+}

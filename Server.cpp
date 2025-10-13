@@ -406,7 +406,7 @@ void Server::handlePrivmsg(Message *msg, User *usr)
 		if (to)
 		{
 			// FIXME This won't work without yet another overload. (to what?)
-//			_toProcess.push(_replyNonNumeric(*msg, to));
+//			_toProcess.push(Message::_replyNonNumeric(*msg, to));
 		}
 		//	_sendToFD(to->getFD(), text + "\r\n");
 		else
@@ -537,7 +537,7 @@ void	Server::handleJoin(Message *msg, User *usr)
     if (channel->addMember(usr))
     {
         usr->addChannel(chan);
-		this->_toProcess.push(_replyNonNumeric(*msg, channel));
+		this->_toProcess.push(Message::_replyNonNumeric(*msg, channel));
 		this->_toProcess.push(_reply(*msg, RPL_TOPIC, channel));
 		this->_toProcess.push(_reply(*msg, RPL_TOPICWHOTIME, channel));	// NOTE Optional
 
@@ -576,7 +576,7 @@ void	Server::handlePart(Message *msg, User *usr)
     if (channel->removeMember(usr))
     {
 		// Send a PART confirmation to the User
-		this->_toProcess.push(_replyNonNumeric(*msg, channel));
+		this->_toProcess.push(Message::_replyNonNumeric(*msg, channel));
         usr->removeChannel(chan);
 		// TODO Send NOTICE to that channel using Message and queue
 		this->_toProcess.push(Message::_channelMessage(*msg, channel));
@@ -751,7 +751,7 @@ void	Server::handlePing(Message *msg, User *usr)
         return ;
     }
 	// HACK send NULL for lack of overload, dangerous!
-	this->_toProcess.push(_replyNonNumeric(*msg));
+	this->_toProcess.push(Message::_replyNonNumeric(*msg));
 }
 
 // NOTE When the Server destructor is called, all memory freed. This is good!
@@ -1286,67 +1286,6 @@ Message*	Server::_reply(Message &msg, int rep_code, User *usr) const
 }
 
 
-// Simplest possible reply construction,
-// This is for commands like PING where we don't need to refer to channel or user
-// No source
-Message*	Server::_replyNonNumeric(Message &msg) const
-{
-	Message*	transmit;
-	std::string	src;
-	std::string cmd_as_str = msg.getCommand();
-	std::list<int>	targets;
-	targets.push_front(msg.getOrigin()->getFD());
-	std::list<std::string>	params;
-	if (cmd_as_str.compare("PING") == 0)
-	{
-		cmd_as_str = "PONG";
-		params.push_back(SERVERNAME);
-		params.push_back((msg.getParams().back()));
-	}
-	else if (cmd_as_str.compare("QUIT") == 0)
-	{
-		cmd_as_str = "ERROR";	// NOTE This can *only* go to the one who called QUIT
-		params.push_back((msg.getParams().back()));
-	}
-	transmit = new Message(src, cmd_as_str, params, targets);
-	return (transmit);
-}
-
-// Return a Message in reply to a command, but a non-numeric one
-// i.e. typically this will be the same command back to the place it came from
-// Take JOIN as an example to test this
-// https://modern.ircdocs.horse/#join-message
-// ...how would you get the channel name?
-// NOTE targets is a LIST so we can expand sending to multiple clients
-// ...that is maybe not needed now?
-// NOTE For this to work with PART you have to include the Reason, final parameter
-// FIXME We send a double channel for JOIN here
-Message*	Server::_replyNonNumeric(Message &msg, Channel *chan) const
-{
-	Message*	transmit;
-	std::string	src = msg.getOrigin()->getNick();
-	std::string cmd_as_str = msg.getCommand();
-
-	std::list<std::string>	params;
-	params.push_back(chan->getName());
-	if (cmd_as_str.compare("PART") == 0)
-		params.push_back((msg.getParams().back()));
-	// NOTE Join only needs the channel name when replying to a client
-	// else if (cmd_as_str.compare("JOIN") == 0)
-	// 	params.push_back((msg.getParams().back()));
-	// If the command should not be sent to the sender, add as parameter
-	// NOTE Be careful of confusing this with _channelMessage()!
-	// TODO Check that this is used consistently
-	std::list<int>	targets = chan->getBroadcastFDs();
-//	targets.push_front(msg.getOrigin()->getFD());
-
-	transmit = new Message(src, cmd_as_str, params, targets);
-	std::cout << "Non-numeric reply composed" << std::endl;
-	std::cout << *transmit << std::endl;
-	std::cout << transmit->serialiseMsg() << std::endl;
-	return (transmit);
-}
-
 
 // Extract from message:
 // - text to be sent
@@ -1476,7 +1415,7 @@ void	Server::handleUserhost(Message *msg, User *usr)
 			in_params.pop_front();
 		}
 		Message* reply;
-		reply = _replyNonNumeric(*msg);
+		reply = Message::_replyNonNumeric(*msg);
 		// TODO add o_params to reply
 		reply->addParams(o_params);
 		this->_toProcess.push(reply);
@@ -1524,7 +1463,7 @@ void	Server::handleError(Message *msg, User *usr)
     }
     // Make error Message *and *send* *immediately
     // (If we wait, things might get out of order)
-    Message* bye = _replyNonNumeric(*msg);
+    Message* bye = Message::_replyNonNumeric(*msg);
 	bye->addParams(errorMsg);
 	std::cout << "Direct send of Error message:" << *bye << std::endl;
 	this->_sendMessage(bye);
