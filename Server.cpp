@@ -541,8 +541,8 @@ void	Server::handleJoin(Message *msg, User *usr)
 		this->_toProcess.push(_reply(*msg, RPL_TOPIC, channel));
 		this->_toProcess.push(_reply(*msg, RPL_TOPICWHOTIME, channel));	// NOTE Optional
 
-        // Notify channel (simple join message)
-        _broadcastToChannel(channel, -1, ":server NOTICE " + chan + " :" + usr->getNick() + " joined", true);
+        // Notify channel (simple join message, or should it be a NOTICE?)
+		this->_toProcess.push(_channelMessage(*msg, channel));
     }
 	return ;
 }
@@ -579,7 +579,8 @@ void	Server::handlePart(Message *msg, User *usr)
 		this->_toProcess.push(_replyNonNumeric(*msg, channel));
         usr->removeChannel(chan);
 		// TODO Send NOTICE to that channel using Message and queue
-        _broadcastToChannel(channel, -1, ":server NOTICE " + chan + " :" + usr->getNick() + " left", true);
+		this->_toProcess.push(_channelMessage(*msg, channel));
+        //_broadcastToChannel(channel, -1, ":server NOTICE " + chan + " :" + usr->getNick() + " left", true);
 
         // If channel is empty, remove it
         if (channel->isEmpty())
@@ -1330,9 +1331,14 @@ Message*	Server::_replyNonNumeric(Message &msg, Channel *chan) const
 	params.push_back(chan->getName());
 	if (cmd_as_str.compare("PART") == 0)
 		params.push_back((msg.getParams().back()));
-
-	std::list<int>	targets;
-	targets.push_front(msg.getOrigin()->getFD());
+	// NOTE Join only needs the channel name when replying to a client
+	// else if (cmd_as_str.compare("JOIN") == 0)
+	// 	params.push_back((msg.getParams().back()));
+	// If the command should not be sent to the sender, add as parameter
+	// NOTE Be careful of confusing this with _channelMessage()!
+	// TODO Check that this is used consistently
+	std::list<int>	targets = chan->getBroadcastFDs();
+//	targets.push_front(msg.getOrigin()->getFD());
 
 	transmit = new Message(src, cmd_as_str, params, targets);
 	std::cout << "Non-numeric reply composed" << std::endl;
