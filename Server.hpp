@@ -30,6 +30,7 @@ const std::string VERSION	= "0.0.2";	// NOTE Increment this when we get bored
 class	Server
 {
 	private:
+		// First, the attributes
 		int         _socketFD;
 		int         _epollFD;
 		sockaddr_in _serverAddress;
@@ -41,10 +42,12 @@ class	Server
 		std::map<std::string, Channel*>	_channels;
 		time_t		_creationTime;	// TODO SHould this be const, static? It gets set once and never changes.
 
+		// Some constructors that we want to disable / forbid
 					Server(void);	// private so not called
 					Server(const Server &irc);	// No good reason to allow copy construction of the server
 		Server		operator=(const Server &irc);	// No assignment should be possible either
 
+		// Unsorted mess of internal methods
 		void		_printMessageQueue(std::queue<Message *> toPrint) const;
 		void		_addNewClient();
 		// FIXME Probably only need one of these two, or one should call the other
@@ -74,6 +77,7 @@ class	Server
 		Message*	_channelMessage(Message &msg, Channel *chan) const;
 
 		// --- Manejo de comandos IRC ---
+		// NOTE Possibly these could be abstracted away into a Command interface class?
 		void        	handleKick(Message *msg, User *usr);
 		void        	handlePrivmsg(Message *msg, User *usr);
 		void		handlePass(Message *msg, User *usr);
@@ -94,19 +98,23 @@ class	Server
 		void		handleError(Message *msg, User *usr);
 
 	public:
-					Server(int port, std::string password);
-					~Server(void);	// NOTE Destructor will have to cleanly close connections and whatever partial / pending messages we have
+		Server(int port, std::string password);
+		~Server(void);	// NOTE Destructor will have to cleanly close connections and whatever partial / pending messages we have
 
-		int			get_fd(void) const;
+		// TODO Server::run() could be private, who else calls it?
 		void		run(void);
 //		bool		_checkPass(Message &msg) const;	//public to act as friend of Message
 		void		_processQueue(void);	//public to act as friend of Message
+		// TODO SHould this be a public method in Channel?
 		bool		normaliseChanName(std::string *chan);
+		// TODO All Message* returning functions might move to that class
 		// HACK Public to be friend with message origin (user)
 		Message*	_reply(Message &msg, int num_rep) const;
 		Message*	_reply(Message &msg, int num_rep, Channel *chan) const;
 		// NOTE Not sure if this one is any use
 		Message*	_reply(Message &msg, int rep_code, User *usr) const;
+		// Simple public getters
+		int		get_fd(void) const;
 		std::string	getUptime(void) const;
 		std::string	getCreation(void) const;
 };

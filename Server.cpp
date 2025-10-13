@@ -497,6 +497,7 @@ void	Server::handleUser(Message *msg, User *usr)
 // DONE Break out the name normalisation to a helper function
 // TODO JOIN can accept an alternative parameter of '0'
 // TODO Improve parameter handling so JOIN Can handle multiple Channels
+// FIXME the reply or broadcast message repeats the #channelname
 void	Server::handleJoin(Message *msg, User *usr)
 {
     std::list<std::string> params = msg->getParams();
@@ -536,9 +537,6 @@ void	Server::handleJoin(Message *msg, User *usr)
     if (channel->addMember(usr))
     {
         usr->addChannel(chan);
-		// TODO How do we do this JOIN acknowledgment thing?
-		//(is a common problem)
-		//this->_toProcess.push(_reply(*msg, JOIN));
 		this->_toProcess.push(_replyNonNumeric(*msg, channel));
 		this->_toProcess.push(_reply(*msg, RPL_TOPIC, channel));
 		this->_toProcess.push(_reply(*msg, RPL_TOPICWHOTIME, channel));	// NOTE Optional
@@ -640,6 +638,7 @@ void	Server::handleList(Message *msg, User *usr)
 
 // FIXME Blank topic (RPL_TOPIC?) does not supply channel name (KVIRC)
 // The broadcast message must include the channel name (and goes to all in channel)
+// FIXME Parsing not putting the : in the correct place (sometimes?)
 void	Server::handleTopic(Message *msg, User *usr)
 {
     std::list<std::string> params = msg->getParams();
@@ -1488,7 +1487,7 @@ std::string	Server::getCreation(void) const
 
 // Return RPL_USERHOST 302 for up to 5 NICKs
 // This is one list with a space-spearated parameter list of the userHostMsg ouptuts
-// FIXME I think this can only work if we have a _replyNonNumeric that takes a LIST OF PARAMETERS!
+// TODO Test with multiple NICKs
 void	Server::handleUserhost(Message *msg, User *usr)
 {
 	(void) usr;	// HACK this should be used to check permission to view nicks
