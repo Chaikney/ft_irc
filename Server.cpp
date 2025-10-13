@@ -363,14 +363,13 @@ void Server::handleKick(Message *msg, User *usr)
 	_sendToFD(target->getFD(), ":server KICK " + chan + " " + nick + " :" + reason + "\r\n");
 }
 
-// TODO use Server_reply for the 404
+// Aquí va la lógica para enviar mensajes privados o a canales
 // TODO There are further checks needed on whether a message is allowed, see docs
 // Sends a message to user(s) or channel(s)
 // https://modern.ircdocs.horse/#privmsg-message
+// FIXME Mesage formatting is wrong. sender? Message must be precede by :
 void Server::handlePrivmsg(Message *msg, User *usr)
 {
-	// Aquí va la lógica para enviar mensajes privados o a canales
-	std::cout << "[PRIVMSG] Comando recibido de fd " << usr->getFD() << " " << msg << std::endl;
 	std::list<std::string> params = msg->getParams();
 	if (params.size() < 2)
 	{
@@ -386,23 +385,30 @@ void Server::handlePrivmsg(Message *msg, User *usr)
 		// Only allow if sender is member of the channel
 		Channel *channel = _findChannel(target);
 		if (!channel)
+		{
+			this->_toProcess.push(_reply(*msg, ERR_NOSUCHCHANNEL));
 			return ;
+		}
 		// TODO Faster to find Channel membership directly with User? Or not?
 		if (!channel->isMember(usr))
 		{
 			// 404 ERR_CANNOTSENDTOCHAN
 			this->_toProcess.push(_reply(*msg, ERR_CANNOTSENDTOCHAN));
-//			_sendToFD(sender_fd, ":server 404 " + target + " :Cannot send to channel\r\n");
 			return ;
 		}
-		_broadcastToChannel(channel, usr->getFD(), text, false);
+		else
+			_toProcess.push(_channelMessage(*msg, channel));
 	}
 	else
 	{	// For individual user
-		// TODO Need to change the text format e.g. source, or not?
+		// TODO Need to change the text format in PRIVMSG e.g. source, or not?
 		User *to = _findUserByNick(target);
 		if (to)
-			_sendToFD(to->getFD(), text + "\r\n");
+		{
+			// FIXME This won't work without yet another overload. (to what?)
+//			_toProcess.push(_replyNonNumeric(*msg, to));
+		}
+		//	_sendToFD(to->getFD(), text + "\r\n");
 		else
 			this->_toProcess.push(_reply(*msg, ERR_NOSUCHNICK));
 	}
@@ -1153,6 +1159,9 @@ Message*	Server::_reply(Message &msg, int rep_code) const
 		case ERR_NOSUCHNICK:
 			params.push_back(msg.getParams().front());	// HACK Careless assumption here
 			params.push_back("No such nick or channel found");
+			break;
+		case ERR_CANNOTSENDTOCHAN:
+			params.push_back("You do not have permission to send to this channel");
 			break;
 		case ERR_UNKNOWNCOMMAND:
 			params.push_back(msg.getCommand());
