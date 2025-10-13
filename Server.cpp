@@ -1242,7 +1242,7 @@ void	Server::handleUserhost(Message *msg, User *usr)
 // - Server-determined errorMsg
 // - Triggered by conditions like Away too long
 // ...implies new/different parameters needed.
-// FIXME Duplicate parameters in message (possibly from QUIT)
+// FIXED Duplicate parameters in message
 void	Server::handleError(Message *msg, User *usr)
 {
     std::list<std::string> params = msg->getParams();
@@ -1255,7 +1255,6 @@ void	Server::handleError(Message *msg, User *usr)
         if (!errorMsg.empty() && errorMsg[0] == ':')
             errorMsg.erase(0, 1);
     }
-
     if (errorMsg.empty())
         errorMsg = "Connection closed by client";
 

@@ -307,8 +307,6 @@ Message*	Message::_channelMessage(Message &msg, Channel *chan)
 	}
 	else if (cmd_as_str.compare("JOIN") == 0)
 		params.push_back((msg.getParams().back()));
-	else if (cmd_as_str.compare("QUIT") == 0)
-	 	params.push_back("Quit: " + (msg.getParams().back()));
 	// else if (cmd_as_str.compare("PART") == 0)
 	// 	params.push_back((msg.getParams().back()));
 	// else if (cmd_as_str.compare("AWAY") == 0)
@@ -339,7 +337,6 @@ Message*	Message::_replyNonNumeric(Message &msg)
 	else if (cmd_as_str.compare("QUIT") == 0)
 	{
 		cmd_as_str = "ERROR";	// NOTE This can *only* go to the one who called QUIT
-		params.push_back((msg.getParams().back()));
 	}
 	transmit = new Message(src, cmd_as_str, params, targets);
 	return (transmit);
