@@ -683,18 +683,32 @@ void	Server::handleInvite(Message *msg, User *usr)
         _sendToFD(target->getFD(), ":server INVITE " + nick + " " + chan + "\r\n");
 }
 
+// TODO Handle modestring-less commands with a reply
+// - param 1 = target, either Nick or Channel
+// - param 2 = optional modestring
+// - param 3 = optional mode arguments
 void	Server::handleMode(Message *msg, User *usr)
 {
     std::list<std::string> params = msg->getParams();
-    if (params.size() < 2) return ;
+    if (params.size() < 2)
+    {
+		if (params.size() == 1)
+			std::cerr << "MODE listing not implemented yet" << std::endl;
+        this->_toProcess.push(Message::_reply(*msg, ERR_NEEDMOREPARAMS));
+        return ;
+    }
     std::string chan = params.front(); params.pop_front();
     std::string flags = params.front(); params.pop_front();
     Channel *channel = _findChannel(chan);
-    if (!channel) return ;
-
+    if (!channel)
+	{
+		// TODO Add channel name to this error? Check specification
+        this->_toProcess.push(Message::_reply(*msg, ERR_NOSUCHCHANNEL));
+		return ;
+	}
     if (!channel->isOperator(usr->getFD()))
     {
-        _sendToFD(usr->getFD(), ":server 482 " + chan + " :You're not channel operator\r\n");
+        this->_toProcess.push(Message::_reply(*msg, ERR_CHANOPRIVSNEEDED, channel));
         return ;
     }
 
@@ -819,6 +833,7 @@ User* Server::_findUserByNick(const std::string &nick) const
     return NULL;
 }
 
+// TODO Consider making this a public Channel method instead
 Channel* Server::_findChannel(const std::string &name) const
 {
     std::map<std::string, Channel*>::const_iterator it = _channels.find(name);

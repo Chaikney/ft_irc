@@ -515,6 +515,10 @@ Message*	Message::_reply(Message &msg, int rep_code, Channel *chan)
 		case RPL_LIST:
 			params.splice(params.end(), who);
 			break;
+		case ERR_CHANOPRIVSNEEDED:
+			params.push_back(chan->getName());
+			params.push_back("You're not a channel operator");
+			break;
 		default:
 			std::cerr << "Reply not handled yet:" << rep_code << std::endl;
 	}
