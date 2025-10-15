@@ -226,14 +226,17 @@ std::string	Message::_paramToString(std::list<std::string> lst) const
 			msg = (":" + msg);
 		return (msg);
 	}
+	// Multiple parameters: don't add space before first one
 	while (it != lst.end())
 	{
-		msg.append(" ");
 		if (n == 1)
 			msg.append(":");
 		msg.append(*it);
 		it++;
 		n--;
+		// Add space after (not before) each parameter except the last
+		if (it != lst.end())
+			msg.append(" ");
 	}
 	return (msg);
 }
@@ -306,7 +309,12 @@ Message*	Message::_channelMessage(Message &msg, Channel *chan)
 	 	params.push_back((msg.getParams().back()));
 	}
 	else if (cmd_as_str.compare("JOIN") == 0)
+		params.push_back(chan->getName());
+	else if (cmd_as_str.compare("PRIVMSG") == 0)
+	{
+		params.push_back(chan->getName());
 		params.push_back((msg.getParams().back()));
+	}
 	// else if (cmd_as_str.compare("PART") == 0)
 	// 	params.push_back((msg.getParams().back()));
 	// else if (cmd_as_str.compare("AWAY") == 0)
@@ -367,8 +375,12 @@ Message*	Message::_replyNonNumeric(Message &msg, Channel *chan)
 	// If the command should not be sent to the sender, add as parameter
 	// NOTE Be careful of confusing this with _channelMessage()!
 	// TODO Check that this is used consistently
-	std::list<int>	targets = chan->getBroadcastFDs();
-//	targets.push_front(msg.getOrigin()->getFD());
+	std::list<int>	targets;
+	// For JOIN, send only to the user joining. For others, send to all.
+	if (cmd_as_str.compare("JOIN") == 0)
+		targets.push_back(msg.getOrigin()->getFD());
+	else
+		targets = chan->getBroadcastFDs();
 
 	transmit = new Message(src, cmd_as_str, params, targets);
 	std::cout << "Non-numeric reply composed" << std::endl;
@@ -400,8 +412,11 @@ Message*	Message::_reply(Message &msg, int rep_code)
 	std::string	src(SERVERNAME);
 
 	std::list<std::string>	params;
-	// TODO If this returns empty, put something else there
-	params.push_back(msg.getOrigin()->getNick());
+	// Use "*" if nickname is empty (IRC standard for unregistered users)
+	std::string nick = msg.getOrigin()->getNick();
+	if (nick.empty())
+		nick = "*";
+	params.push_back(nick);
 
 	switch (rep_code)
 	{
@@ -507,6 +522,31 @@ Message*	Message::_reply(Message &msg, int rep_code, Channel *chan)
 			break;
 		case RPL_TOPICWHOTIME:
 			params.push_back("TODO if we can get the channel we can get this I guess");
+			break;
+		case RPL_NAMREPLY:
+		{
+			params.push_back("=");  // = for public channels
+			params.push_back(chan->getName());
+			// Build names list from channel members
+			std::string names;
+			std::set<User *> members = chan->getMembers();
+			std::set<User *>::const_iterator it = members.begin();
+			while (it != members.end())
+			{
+				User* member = *it;
+				if (chan->isOperator(member->getFD()))
+					names += "@";
+				names += member->getNick();
+				it++;
+				if (it != members.end())
+					names += " ";
+			}
+			params.push_back(names);
+			break;
+		}
+		case RPL_ENDOFNAMES:
+			params.push_back(chan->getName());
+			params.push_back("End of /NAMES list");
 			break;
 		case ERR_INVITEONLYCHAN:
 			params.push_back(chan->getName());

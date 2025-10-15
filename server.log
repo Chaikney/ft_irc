@@ -1,0 +1,26 @@
+Message of unknown origin
+Command: NICK
+Parameters (3):pants,and,socks,
+
+0x564ecc11f2e0
+Message of unknown origin
+Source: not
+Command: valid
+Parameters (2):is,it,
+
+Message of unknown origin
+Tags: tag
+Source: source
+Command: command
+Parameters (7):and,then,a,long,list,of,parameters,
+
+Message of unknown origin
+Tags: tag
+Source: source
+Command: command
+Parameters (1):and then a long list of parameters treated as one,
+
+calling server constructor
+Server constructor with parameters called
+Created a socket listening at fd 5
+Binding...Unable to start up Server: Binding failed

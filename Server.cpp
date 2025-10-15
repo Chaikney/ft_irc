@@ -442,7 +442,16 @@ void	Server::handleNick(Message *msg, User *usr)
 	else
 	{
 		std::cout << "setting nickname to " << newNick << std::endl;
+		bool wasRegistered = usr->isRegistered();
 		usr->setNick(newNick);
+		// If user just became registered (had USER but was missing NICK), send welcome
+		if (!wasRegistered && usr->isRegistered())
+		{
+			this->_toProcess.push(Message::_reply(*msg, RPL_WELCOME));
+			this->_toProcess.push(Message::_reply(*msg, RPL_YOURHOST));
+			this->_toProcess.push(Message::_reply(*msg, RPL_CREATED));
+			this->_toProcess.push(Message::_reply(*msg, RPL_MYINFO));
+		}
 	}
 }
 
@@ -474,11 +483,14 @@ void	Server::handleUser(Message *msg, User *usr)
 	usr->setUser(newUser);
 	usr->setReal(newRName);
 	std::cout << "User: " << newUser << ", Really: " << newRName << std::endl;
-	// If this all worked, send the welcome bundle
-	this->_toProcess.push(Message::_reply(*msg, RPL_WELCOME));
-	this->_toProcess.push(Message::_reply(*msg, RPL_YOURHOST));
-	this->_toProcess.push(Message::_reply(*msg, RPL_CREATED));
-	this->_toProcess.push(Message::_reply(*msg, RPL_MYINFO));
+	// Only send welcome bundle if user is fully registered (has valid nickname)
+	if (usr->isRegistered())
+	{
+		this->_toProcess.push(Message::_reply(*msg, RPL_WELCOME));
+		this->_toProcess.push(Message::_reply(*msg, RPL_YOURHOST));
+		this->_toProcess.push(Message::_reply(*msg, RPL_CREATED));
+		this->_toProcess.push(Message::_reply(*msg, RPL_MYINFO));
+	}
 }
 
 // FIXME This does not cause clients to realise they have joined a room :|
@@ -525,16 +537,26 @@ void	Server::handleJoin(Message *msg, User *usr)
         }
     }
 
-	// TODO What is the logic needed here to JOIN someone to a channel?
+	// Add member to channel
     if (channel->addMember(usr))
     {
         usr->addChannel(chan);
+		// Send JOIN confirmation
 		this->_toProcess.push(Message::_replyNonNumeric(*msg, channel));
-		this->_toProcess.push(Message::_reply(*msg, RPL_TOPIC, channel));
-		this->_toProcess.push(Message::_reply(*msg, RPL_TOPICWHOTIME, channel));	// NOTE Optional
+		
+		// Send topic if channel has one
+		if (!channel->getTopic().empty())
+		{
+			this->_toProcess.push(Message::_reply(*msg, RPL_TOPIC, channel));
+			this->_toProcess.push(Message::_reply(*msg, RPL_TOPICWHOTIME, channel));
+		}
+		
+		// Send names list (shows who is in the channel)
+		this->_toProcess.push(Message::_reply(*msg, RPL_NAMREPLY, channel));
+		this->_toProcess.push(Message::_reply(*msg, RPL_ENDOFNAMES, channel));
 
-        // Notify channel (simple join message, or should it be a NOTICE?)
-		this->_toProcess.push(Message::Message::_channelMessage(*msg, channel));
+        // Notify other users in the channel
+		this->_toProcess.push(Message::_channelMessage(*msg, channel));
     }
 	return ;
 }
