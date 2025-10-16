@@ -506,7 +506,10 @@ void	Server::handleJoin(Message *msg, User *usr)
 {
     std::list<std::string> params = msg->getParams();
     if (params.empty())
+	{
+		this->_toProcess.push(Message::_reply(*msg, ERR_NEEDMOREPARAMS));
         return ;
+	}
     std::string chan = params.front();
     // If the channel name is valid, store and remove from our params
 	if (!this->normaliseChanName(&chan))
@@ -1206,17 +1209,19 @@ bool	Server::normaliseChanName(std::string *chan)
 		return (false);
 	if (chan->find_first_of(':') == 0)
 		chan->erase(0, 1);
-	// These 3 characters are forbidden in Channel names
+	// Channel must start with # or &
+	if (chan->empty() || ((*chan)[0] != '#' && (*chan)[0] != '&'))
+		return (false);
+	// Channel must have at least one character after the # or &
+	if (chan->length() < 2)
+		return (false);
+	// Reject ## or && at the start (invalid channel names)
+	if (chan->length() >= 2 && (*chan)[0] == (*chan)[1])
+		return (false);
+	// These characters are forbidden in Channel names
 	if (chan->find_first_of(" ,\a") != std::string::npos)
 		return (false);
-	// HACK Blanking this out because we should not need it and it doesn't work ATM
-	// while (!chan->empty() &&
-	// 	   (chan[0] == ' ' || chan[0] == '\r' || chan[0] == '\n' || chan[0] == '\t'))
-	// 	chan->erase(0, 1);
-	if (chan->empty() || chan->find_first_of("#&") == std::string::npos)
-		return (false) ;
-	else
-		return (true);
+	return (true);
 }
 
 // FIXME This should be of the type "4 days, 3 hours 10 minutes 15 seconds"
