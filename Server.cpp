@@ -442,7 +442,16 @@ void	Server::handleNick(Message *msg, User *usr)
 	else
 	{
 		std::cout << "setting nickname to " << newNick << std::endl;
+		bool wasRegistered = usr->isRegistered();
 		usr->setNick(newNick);
+		// If user just became registered (had USER but was missing NICK), send welcome
+		if (!wasRegistered && usr->isRegistered())
+		{
+			this->_toProcess.push(Message::_reply(*msg, RPL_WELCOME));
+			this->_toProcess.push(Message::_reply(*msg, RPL_YOURHOST));
+			this->_toProcess.push(Message::_reply(*msg, RPL_CREATED));
+			this->_toProcess.push(Message::_reply(*msg, RPL_MYINFO));
+		}
 	}
 }
 
@@ -474,11 +483,14 @@ void	Server::handleUser(Message *msg, User *usr)
 	usr->setUser(newUser);
 	usr->setReal(newRName);
 	std::cout << "User: " << newUser << ", Really: " << newRName << std::endl;
-	// If this all worked, send the welcome bundle
-	this->_toProcess.push(Message::_reply(*msg, RPL_WELCOME));
-	this->_toProcess.push(Message::_reply(*msg, RPL_YOURHOST));
-	this->_toProcess.push(Message::_reply(*msg, RPL_CREATED));
-	this->_toProcess.push(Message::_reply(*msg, RPL_MYINFO));
+	// Only send welcome bundle if user is fully registered (has valid nickname)
+	if (usr->isRegistered())
+	{
+		this->_toProcess.push(Message::_reply(*msg, RPL_WELCOME));
+		this->_toProcess.push(Message::_reply(*msg, RPL_YOURHOST));
+		this->_toProcess.push(Message::_reply(*msg, RPL_CREATED));
+		this->_toProcess.push(Message::_reply(*msg, RPL_MYINFO));
+	}
 }
 
 // FIXME This does not cause clients to realise they have joined a room :|
