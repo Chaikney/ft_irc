@@ -508,6 +508,31 @@ Message*	Message::_reply(Message &msg, int rep_code, Channel *chan)
 		case RPL_TOPICWHOTIME:
 			params.push_back("TODO if we can get the channel we can get this I guess");
 			break;
+		case RPL_NAMREPLY:
+		{
+			params.push_back("=");  // = for public channels
+			params.push_back(chan->getName());
+			// Build names list from channel members
+			std::string names;
+			std::set<User *> members = chan->getMembers();
+			std::set<User *>::const_iterator it = members.begin();
+			while (it != members.end())
+			{
+				User* member = *it;
+				if (chan->isOperator(member->getFD()))
+					names += "@";
+				names += member->getNick();
+				it++;
+				if (it != members.end())
+					names += " ";
+			}
+			params.push_back(names);
+			break;
+		}
+		case RPL_ENDOFNAMES:
+			params.push_back(chan->getName());
+			params.push_back("End of /NAMES list");
+			break;
 		case ERR_INVITEONLYCHAN:
 			params.push_back(chan->getName());
 			params.push_back("Cannot join channel (+i)");

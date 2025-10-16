@@ -525,13 +525,23 @@ void	Server::handleJoin(Message *msg, User *usr)
         }
     }
 
-	// TODO What is the logic needed here to JOIN someone to a channel?
+	// Add member to channel
     if (channel->addMember(usr))
     {
         usr->addChannel(chan);
+		// Send JOIN confirmation
 		this->_toProcess.push(Message::_replyNonNumeric(*msg, channel));
-		this->_toProcess.push(Message::_reply(*msg, RPL_TOPIC, channel));
-		this->_toProcess.push(Message::_reply(*msg, RPL_TOPICWHOTIME, channel));	// NOTE Optional
+		
+		// Send topic if channel has one
+		if (!channel->getTopic().empty())
+		{
+			this->_toProcess.push(Message::_reply(*msg, RPL_TOPIC, channel));
+			this->_toProcess.push(Message::_reply(*msg, RPL_TOPICWHOTIME, channel));
+		}
+		
+		// Send names list (shows who is in the channel)
+		this->_toProcess.push(Message::_reply(*msg, RPL_NAMREPLY, channel));
+		this->_toProcess.push(Message::_reply(*msg, RPL_ENDOFNAMES, channel));
 
         // Notify channel (simple join message, or should it be a NOTICE?)
 		this->_toProcess.push(Message::Message::_channelMessage(*msg, channel));
