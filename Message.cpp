@@ -309,7 +309,12 @@ Message*	Message::_channelMessage(Message &msg, Channel *chan)
 	 	params.push_back((msg.getParams().back()));
 	}
 	else if (cmd_as_str.compare("JOIN") == 0)
+		params.push_back(chan->getName());
+	else if (cmd_as_str.compare("PRIVMSG") == 0)
+	{
+		params.push_back(chan->getName());
 		params.push_back((msg.getParams().back()));
+	}
 	// else if (cmd_as_str.compare("PART") == 0)
 	// 	params.push_back((msg.getParams().back()));
 	// else if (cmd_as_str.compare("AWAY") == 0)
@@ -370,8 +375,12 @@ Message*	Message::_replyNonNumeric(Message &msg, Channel *chan)
 	// If the command should not be sent to the sender, add as parameter
 	// NOTE Be careful of confusing this with _channelMessage()!
 	// TODO Check that this is used consistently
-	std::list<int>	targets = chan->getBroadcastFDs();
-//	targets.push_front(msg.getOrigin()->getFD());
+	std::list<int>	targets;
+	// For JOIN, send only to the user joining. For others, send to all.
+	if (cmd_as_str.compare("JOIN") == 0)
+		targets.push_back(msg.getOrigin()->getFD());
+	else
+		targets = chan->getBroadcastFDs();
 
 	transmit = new Message(src, cmd_as_str, params, targets);
 	std::cout << "Non-numeric reply composed" << std::endl;
@@ -403,8 +412,11 @@ Message*	Message::_reply(Message &msg, int rep_code)
 	std::string	src(SERVERNAME);
 
 	std::list<std::string>	params;
-	// TODO If this returns empty, put something else there
-	params.push_back(msg.getOrigin()->getNick());
+	// Use "*" if nickname is empty (IRC standard for unregistered users)
+	std::string nick = msg.getOrigin()->getNick();
+	if (nick.empty())
+		nick = "*";
+	params.push_back(nick);
 
 	switch (rep_code)
 	{
