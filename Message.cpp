@@ -226,14 +226,17 @@ std::string	Message::_paramToString(std::list<std::string> lst) const
 			msg = (":" + msg);
 		return (msg);
 	}
+	// Multiple parameters: don't add space before first one
 	while (it != lst.end())
 	{
-		msg.append(" ");
 		if (n == 1)
 			msg.append(":");
 		msg.append(*it);
 		it++;
 		n--;
+		// Add space after (not before) each parameter except the last
+		if (it != lst.end())
+			msg.append(" ");
 	}
 	return (msg);
 }
