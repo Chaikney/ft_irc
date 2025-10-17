@@ -60,7 +60,22 @@ const std::string& Channel::getName(void) const
 
 const std::string& Channel::getTopic(void) const
 {
-	return _topic;
+	return (this->_topic);
+}
+
+const std::string& Channel::getTopicSetter(void) const
+{
+	return (this->_topicSetBy);
+}
+
+const std::string Channel::getTopicTime(void) const
+{
+	std::stringstream	strm;
+	strm << this->_topicTime;
+	std::string	time_set;
+	strm >> time_set;
+
+	return (time_set);
 }
 
 const std::set<User *>& Channel::getMembers(void) const

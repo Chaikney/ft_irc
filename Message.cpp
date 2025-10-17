@@ -522,7 +522,9 @@ Message*	Message::_reply(Message &msg, int rep_code, Channel *chan)
 			params.push_back(chan->getTopic());
 			break;
 		case RPL_TOPICWHOTIME:
-			params.push_back("TODO if we can get the channel we can get this I guess");
+			params.push_back(chan->getName());
+			params.push_back(chan->getTopicSetter());
+			params.push_back(chan->getTopicTime());
 			break;
 		case RPL_NAMREPLY:
 		{

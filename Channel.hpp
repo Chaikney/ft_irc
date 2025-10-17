@@ -39,6 +39,8 @@ class Channel
 		// Getters
 		const std::string&			getName(void) const;
 		const std::string&			getTopic(void) const;
+		const std::string&			getTopicSetter(void) const;
+		const std::string			getTopicTime(void) const;	// NOTE Not returning a reference because using a local variable
 		const std::set<User *>&		getMembers(void) const;
 		const std::set<int>&		getOperators(void) const;
 		const std::set<std::string>& getInvitedNicks(void) const;
