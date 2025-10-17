@@ -498,6 +498,7 @@ Message*	Message::_reply(Message &msg, int rep_code)
 // No padding needed for these commands though
 Message*	Message::_reply(Message &msg, int rep_code, Channel *chan)
 {
+	std::list<std::string>	who;
 	Message*	transmit;
 	std::stringstream strm;
 	strm << rep_code;
@@ -512,8 +513,6 @@ Message*	Message::_reply(Message &msg, int rep_code, Channel *chan)
 	// TODO If this returns empty, put something else there
 	params.push_back(msg.getOrigin()->getNick());
 
-	// HACK this is only here for the RPL_LIST splicing that I couldn't call properly without it
-	std::list<std::string> who = chan->getListInfo();
 	switch (rep_code)
 	{
 	// NOTE catching this message needs an overload with Channel
@@ -527,26 +526,9 @@ Message*	Message::_reply(Message &msg, int rep_code, Channel *chan)
 			params.push_back(chan->getTopicTime());
 			break;
 		case RPL_NAMREPLY:
-		{
-			params.push_back("=");  // = for public channels
-			params.push_back(chan->getName());
-			// Build names list from channel members
-			std::string names;
-			std::set<User *> members = chan->getMembers();
-			std::set<User *>::const_iterator it = members.begin();
-			while (it != members.end())
-			{
-				User* member = *it;
-				if (chan->isOperator(member->getFD()))
-					names += "@";
-				names += member->getNick();
-				it++;
-				if (it != members.end())
-					names += " ";
-			}
-			params.push_back(names);
+			who = chan->getNameReply();
+			params.splice(params.end(), who);
 			break;
-		}
 		case RPL_ENDOFNAMES:
 			params.push_back(chan->getName());
 			params.push_back("End of /NAMES list");
@@ -556,6 +538,7 @@ Message*	Message::_reply(Message &msg, int rep_code, Channel *chan)
 			params.push_back("Cannot join channel (+i)");
 			break;
 		case RPL_LIST:
+			who = chan->getListInfo();
 			params.splice(params.end(), who);
 			break;
 		case ERR_CHANOPRIVSNEEDED:

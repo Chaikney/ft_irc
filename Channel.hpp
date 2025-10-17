@@ -54,6 +54,7 @@ class Channel
 		std::list<int>		getBroadcastFDs(void) const;	// for use with PRIVMSG, NOTICE, etc
 		std::list<int>		getBroadcastFDs(User *usr) const;	// as above but excluding one User
 		std::list<std::string>	getListInfo(void) const;	// for use in RPL_LIST
+		std::list<std::string>	getNameReply(void) const;	// for use in RPL_NAMREPLY
 
 		// Setters
 //		void						setTopic(const std::string &topic);

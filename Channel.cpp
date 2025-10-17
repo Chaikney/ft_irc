@@ -368,3 +368,29 @@ std::list<std::string>	Channel::getListInfo(void) const
 	params.push_back(this->getTopic());
 	return (params);
 }
+
+// Return a list of channel users formatted for use in RPL_NAMREPLY
+// For every member of the channel, build their prefix-NICK pair
+// Put it in a list and return it
+// TODO Handle secret channels if we ever have them (not just the =)
+std::list<std::string>	Channel::getNameReply(void) const
+{
+	std::list<std::string>	params;
+	params.push_back("=");  // = for public channels
+	params.push_back(this->getName());
+	std::string name;
+	std::set<User *> members = this->getMembers();
+	std::set<User *>::const_iterator it = members.begin();
+
+	while (it != members.end())
+	{
+		User* member = *it;
+		if (this->isOperator(member->getFD()))
+			name += "@";
+		name += member->getNick();
+		params.push_back(name);
+		name.clear();
+		it++;
+	}
+	return (params);
+}
