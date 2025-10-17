@@ -1,12 +1,10 @@
 #ifndef SERVER_HPP
 # define SERVER_HPP
 
-#include "ReplyEnums.hpp"	// for server numeric replies
 #include <sys/socket.h>	// socket() function
 #include <netinet/in.h>	// provides the sockaddr_in struct
 #include <string>
 #include <queue>// Messages to be processed
-#include <set>	// FDs of clients to be sent to
 #include <map>	// dictionary of partial messages
 #include <ctime>
 
@@ -21,10 +19,10 @@ const std::string VERSION	= "0.0.2";	// NOTE Increment this when we get bored
 // - port
 // - password (passed in on command line)
 // TODO Commands to implement:
-// [ ] PING
-// [ ] PONG
-// [ ] QUIT
-// [ ] ERROR
+// [x] PING
+// [x] PONG
+// [x] QUIT
+// [x] ERROR
 // TODO A function that adds the server "name" for the message source
 class	Server
 {

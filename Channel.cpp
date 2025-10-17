@@ -2,7 +2,6 @@
 #include "User.hpp"
 #include <iostream>
 #include <cstdlib>
-#include <algorithm>
 #include <set>
 #include <sstream>
 
@@ -156,13 +155,13 @@ bool Channel::addMember(User *usr)
 {
 	if (_members.find(usr) != _members.end())
 		return false; // Already a member
-	
+
 	_members.insert(usr);
-	
+
 	// First member becomes operator
 	if (_members.size() == 1)
 		_operators.insert(usr->getFD());
-	
+
 	return true;
 }
 
@@ -170,7 +169,7 @@ bool Channel::removeMember(User *usr)
 {
 	if (_members.find(usr) == _members.end())
 		return false; // Not a member
-	
+
 	_members.erase(usr);
 // TODO Restore the Operator erase piece here
 //	_operators.erase(usr); // Remove operator status if they had it
@@ -192,7 +191,7 @@ bool Channel::addOperator(User *usr)
 {
 	if (_members.find(usr) == _members.end())
 		return false; // Must be a member first
-	
+
 	// TODO Update this later.
 	_operators.insert(usr->getFD());
 	return true;
@@ -202,7 +201,7 @@ bool Channel::removeOperator(int userFd)
 {
 	if (_operators.find(userFd) == _operators.end())
 		return false; // Not an operator
-	
+
 	_operators.erase(userFd);
 	return true;
 }
@@ -218,7 +217,7 @@ bool Channel::removeInvite(const std::string &nick)
 {
 	if (_invitedNicks.find(nick) == _invitedNicks.end())
 		return false;
-	
+
 	_invitedNicks.erase(nick);
 	return true;
 }
@@ -239,7 +238,7 @@ bool Channel::removeBan(const std::string &mask)
 {
 	if (_banList.find(mask) == _banList.end())
 		return false;
-	
+
 	_banList.erase(mask);
 	return true;
 }
@@ -253,7 +252,7 @@ bool Channel::isBanned(const std::string &mask) const
 std::string Channel::getModeString(void) const
 {
 	std::string modes = "+";
-	
+
 	if (_topicProtected)
 		modes += "t";
 	if (_inviteOnly)
@@ -262,7 +261,7 @@ std::string Channel::getModeString(void) const
 		modes += "k";
 	if (_userLimit > 0)
 		modes += "l";
-	
+
 	return modes;
 }
 

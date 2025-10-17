@@ -7,26 +7,11 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <unistd.h>	// for close()
-#include <sstream>
 #include <sys/epoll.h>
 #include <cerrno>	// for error checking in send calls
-// #include <type_traits>	// NO this is C++11 feature :(
 #include <cstdlib>	// for the EXIT code
 #include <cstring>	// for memset. Too many includes!
-#include <fcntl.h>	// NOTE IS there a C++ equivalent we should prefer?
-					// RESPONSE No, fcntl is what we need to use because we cant use external libraries and stl has nothing better or equal.
-					// ***
-					// Subject IV.2 *** For MacOS only ***
-					// ***
-					// Since MacOS does not implement write() in the same
-					// way as other Unix OSes, you are permitted to use fcntl().
-					// However, you are allowed to use fcntl() only as follows:
-					// fcntl(fd, F_SETFL, O_NONBLOCK);
-					// Any other flag is forbidden.
-					//
-					// ...we maybe are supposed to directly create a non-blocking socket,
-					// https://stackoverflow.com/a/63348937
-
+#include <fcntl.h>	// NOTE Consider not using this, it may be OSX only (see requirements doc)
 
 // Helper para poner un socket en modo no bloqueante
 // Set socket to non-blocking by:

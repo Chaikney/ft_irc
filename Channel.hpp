@@ -3,7 +3,6 @@
 
 #include <string>
 #include <set>
-#include <map>
 #include <list>	// returns FDs for use in Messages
 #include <ctime>
 

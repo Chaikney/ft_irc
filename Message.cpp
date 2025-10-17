@@ -1,11 +1,12 @@
 #include "Message.hpp"
 #include "User.hpp"
 #include "Channel.hpp"
+#include "ReplyEnums.hpp"
+
 #include <string>
 #include <iostream>
 #include <sstream>
 #include <cstdio>	// EOF marker in stringstream
-#include <algorithm>	// erase
 
 // Make sure that the string is not empty and it ends in crlf
 // TODO Check the final two chars are cr and lf
