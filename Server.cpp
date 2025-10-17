@@ -684,7 +684,7 @@ void	Server::handleTopic(Message *msg, User *usr)
     }
     params.pop_front();
     std::string newTopic = params.front();
-    channel->setTopic(newTopic);
+    channel->setTopic(newTopic, usr->getNick());
 	this->_toProcess.push(Message::_channelMessage(*msg, channel));
 }
 

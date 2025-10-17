@@ -5,6 +5,7 @@
 #include <set>
 #include <map>
 #include <list>	// returns FDs for use in Messages
+#include <ctime>
 
 class User;
 
@@ -13,8 +14,10 @@ class Channel
 	private:
 		std::string					_name;
 		std::string					_topic;
+		time_t						_topicTime;
+		std::string					_topicSetBy;
+		std::set<User *>			_members;		// User FDs
 		// TODO Seems to me that these should store User* not just file descriptors....
-		std::set<User *>				_members;		// User FDs
 		std::set<int>				_operators;		// User FDs with operator rights
 		std::set<std::string>		_invitedNicks;	// Invited nicks (by name)
 		bool						_topicProtected;	// +t mode
@@ -52,7 +55,8 @@ class Channel
 		std::list<std::string>	getListInfo(void) const;	// for use in RPL_LIST
 
 		// Setters
-		void						setTopic(const std::string &topic);
+//		void						setTopic(const std::string &topic);
+		void						setTopic(const std::string &topic, const std::string &set_by);
 		void						setTopicProtected(bool topicProtected);
 		void						setInviteOnly(bool inviteOnly);
 		void						setPassword(const std::string &password);
