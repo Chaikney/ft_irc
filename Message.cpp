@@ -219,7 +219,7 @@ std::string	Message::_paramToString(std::list<std::string> lst) const
 	n = lst.size();
 	std::list<std::string>::const_iterator  it = lst.begin();
 	// NOTE Here special case adding : for single parameter with spaces
-	if ((n == 1))
+	if (n == 1)
 	{
 		msg.append(*it);
 		if (msg.find_first_of(" ") != std::string::npos)
