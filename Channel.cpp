@@ -331,7 +331,8 @@ void Channel::clear(void)
 	_inviteList.clear();
 }
 
-// for use with PRIVMSG, NOTICE, etc
+// Return a list of the file descriptors that should receive things
+// related to the channel. For use with PRIVMSG, NOTICE, etc
 std::list<int>		Channel::getBroadcastFDs(void) const
 {
 	std::list<int>	targets;
@@ -342,7 +343,6 @@ std::list<int>		Channel::getBroadcastFDs(void) const
 	{
 		User*	heyyou = *it;
 		fd = heyyou->getFD();
-
 		targets.push_back(fd);
 		it++;
 	}
@@ -359,7 +359,6 @@ std::list<int>	Channel::getBroadcastFDs(User *notyou) const
 
 // Return parameter list for use in RPL_LIST(322) Message
 // "<client> <channel> <client count> :<topic>"
-// TODO Turn member count into string
 std::list<std::string>	Channel::getListInfo(void) const
 {
 	std::list<std::string>	params;

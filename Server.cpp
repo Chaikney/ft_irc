@@ -1100,8 +1100,15 @@ void	Server::handleWho(Message *msg, User *usr)
 			std::cerr << "Oops channel not found what we do?" << std::endl;
 		else
 		{
-			// std::set<User *>	users = target->getMembers();
-			std::cerr << "WHO for channels not implemented yet" << std::endl;
+			std::set<User *>	users = target->getMembers();
+			std::set<User *>::const_iterator it = users.begin();
+			while (it != users.end())
+			{
+				User*	user = *it;
+			 	this->_toProcess.push(Message::_reply(*msg, RPL_WHOREPLY, user));
+				it++;
+			}
+//			std::cerr << "WHO for channels not implemented yet" << std::endl;
 			// // FIXME Needs channel in the params, this solution doesnt cut it
 			// // FIXME This is a C++11 form
 			// for (User* user : users)
