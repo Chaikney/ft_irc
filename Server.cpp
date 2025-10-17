@@ -1195,8 +1195,6 @@ bool	Server::_isNickTaken(const std::string &nick, int except_fd) const
 // Helper function, could be moved to Channel or to separate set of functions
 // Removes any leading : from the command
 // NOTE this should have already happened on Message construction
-// Remove any space characters in the name
-// (NOTE these should also have been removed in Message construction)
 // Returns TRUE if the string has been turned into a valid channel name
 // Returns FALSE if not
 // NOTE This modifies the string even if we say we can't do anything with it. Bad!
@@ -1206,17 +1204,19 @@ bool	Server::normaliseChanName(std::string *chan)
 		return (false);
 	if (chan->find_first_of(':') == 0)
 		chan->erase(0, 1);
-	// These 3 characters are forbidden in Channel names
+	// Channel must start with # or &
+	if (chan->empty() || ((*chan)[0] != '#' && (*chan)[0] != '&'))
+		return (false);
+	// Channel must have at least one character after the # or &
+	if (chan->length() < 2)
+		return (false);
+	// Reject ## or && at the start (invalid channel names)
+	if (chan->length() >= 2 && (*chan)[0] == (*chan)[1])
+		return (false);
+	// These characters are forbidden in Channel names
 	if (chan->find_first_of(" ,\a") != std::string::npos)
 		return (false);
-	// HACK Blanking this out because we should not need it and it doesn't work ATM
-	// while (!chan->empty() &&
-	// 	   (chan[0] == ' ' || chan[0] == '\r' || chan[0] == '\n' || chan[0] == '\t'))
-	// 	chan->erase(0, 1);
-	if (chan->empty() || chan->find_first_of("#&") == std::string::npos)
-		return (false) ;
-	else
-		return (true);
+	return (true);
 }
 
 // FIXME This should be of the type "4 days, 3 hours 10 minutes 15 seconds"
