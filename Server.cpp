@@ -506,7 +506,10 @@ void	Server::handleJoin(Message *msg, User *usr)
 {
     std::list<std::string> params = msg->getParams();
     if (params.empty())
+	{
+		this->_toProcess.push(Message::_reply(*msg, ERR_NEEDMOREPARAMS));
         return ;
+	}
     std::string chan = params.front();
     // If the channel name is valid, store and remove from our params
 	if (!this->normaliseChanName(&chan))
@@ -543,14 +546,14 @@ void	Server::handleJoin(Message *msg, User *usr)
         usr->addChannel(chan);
 		// Send JOIN confirmation
 		this->_toProcess.push(Message::_replyNonNumeric(*msg, channel));
-		
+
 		// Send topic if channel has one
 		if (!channel->getTopic().empty())
 		{
 			this->_toProcess.push(Message::_reply(*msg, RPL_TOPIC, channel));
 			this->_toProcess.push(Message::_reply(*msg, RPL_TOPICWHOTIME, channel));
 		}
-		
+
 		// Send names list (shows who is in the channel)
 		this->_toProcess.push(Message::_reply(*msg, RPL_NAMREPLY, channel));
 		this->_toProcess.push(Message::_reply(*msg, RPL_ENDOFNAMES, channel));
