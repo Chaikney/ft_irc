@@ -548,6 +548,11 @@ Message*	Message::_reply(Message &msg, int rep_code, Channel *chan)
 			params.push_back(chan->getName());
 			params.push_back("You're not a channel operator");
 			break;
+			// TODO No way this is correct RPL_CHANNELMODEIS
+		case RPL_CHANNELMODEIS:
+			params.push_back(chan->getName());
+			params.push_back(chan->getModeString());
+			break;
 		case RPL_CREATIONTIME:
 			params.push_back(chan->getCreationTime());
 			break;

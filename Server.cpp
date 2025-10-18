@@ -721,10 +721,8 @@ void	Server::handleMode(Message *msg, User *usr)
 		// We only got a channel so we list the modes and return
 		// RPL_CHANNELMODEIS (324)
 		// "<client> <channel> <modestring> <mode arguments>..."
-		// Followed by the creation time
-		// RPL_CREATIONTIME
-		// <client> <channel> <creationtime>" (with timestamp)
-		this->_toProcess.push(Message::_reply(*msg, RPL_CREATIONTIME));
+		this->_toProcess.push(Message::_reply(*msg, RPL_CHANNELMODEIS, channel));
+		this->_toProcess.push(Message::_reply(*msg, RPL_CREATIONTIME, channel));
 		return ;
 	}
 	// NOTE Below here only if more than 1 param was given
