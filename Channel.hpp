@@ -12,6 +12,7 @@ class Channel
 {
 	private:
 		std::string					_name;
+		time_t						_creationTime;
 		std::string					_topic;
 		time_t						_topicTime;
 		std::string					_topicSetBy;
@@ -39,6 +40,7 @@ class Channel
 		// Getters
 		const std::string&			getName(void) const;
 		const std::string&			getTopic(void) const;
+		const std::string			getCreationTime(void) const;
 		const std::string&			getTopicSetter(void) const;
 		const std::string			getTopicTime(void) const;	// NOTE Not returning a reference because using a local variable
 		const std::set<User *>&		getMembers(void) const;

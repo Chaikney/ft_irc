@@ -5,19 +5,19 @@
 #include <set>
 #include <sstream>
 
-Channel::Channel(void) : _name(""), _topic(""), _topicTime(time(0)), _topicSetBy("Server"), _members(), _operators(), _invitedNicks(),
+Channel::Channel(void) : _name(""), _creationTime(time(0)), _topic(""), _topicTime(time(0)), _topicSetBy("Server"), _members(), _operators(), _invitedNicks(),
 						_topicProtected(false), _inviteOnly(false), _password(""),
 						_userLimit(0), _banList(), _exceptionList(), _inviteList()
 {
 }
 
-Channel::Channel(const std::string &name) : _name(name), _topic(""),_topicTime(time(0)), _topicSetBy("Server"),  _members(), _operators(),
+Channel::Channel(const std::string &name) : _name(name),_creationTime(time(0)),  _topic(""),_topicTime(time(0)), _topicSetBy("Server"),  _members(), _operators(),
 											_invitedNicks(), _topicProtected(false), _inviteOnly(false),
 											_password(""), _userLimit(0), _banList(), _exceptionList(), _inviteList()
 {
 }
 
-Channel::Channel(const Channel &other) : _name(other._name), _topic(other._topic),_topicTime(time(0)), _topicSetBy("Server"),  _members(other._members),
+Channel::Channel(const Channel &other) : _name(other._name),_creationTime(other._creationTime),  _topic(other._topic),_topicTime(time(0)), _topicSetBy("Server"),  _members(other._members),
 										_operators(other._operators), _invitedNicks(other._invitedNicks),
 										_topicProtected(other._topicProtected), _inviteOnly(other._inviteOnly),
 										_password(other._password), _userLimit(other._userLimit),
@@ -35,6 +35,7 @@ Channel& Channel::operator=(const Channel &other)
 	if (this != &other)
 	{
 		_name = other._name;
+		_creationTime = other._creationTime;
 		_topic = other._topic;
 		_topicTime = other._topicTime;
 		_topicSetBy = other._topicSetBy;
@@ -68,13 +69,21 @@ const std::string& Channel::getTopicSetter(void) const
 	return (this->_topicSetBy);
 }
 
+const std::string Channel::getCreationTime(void) const
+{
+	std::stringstream	strm;
+	strm << this->_creationTime;
+	std::string	time_set;
+	strm >> time_set;
+	return (time_set);
+}
+
 const std::string Channel::getTopicTime(void) const
 {
 	std::stringstream	strm;
 	strm << this->_topicTime;
 	std::string	time_set;
 	strm >> time_set;
-
 	return (time_set);
 }
 
