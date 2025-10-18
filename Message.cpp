@@ -548,6 +548,9 @@ Message*	Message::_reply(Message &msg, int rep_code, Channel *chan)
 			params.push_back(chan->getName());
 			params.push_back("You're not a channel operator");
 			break;
+		case RPL_CREATIONTIME:
+			params.push_back(chan->getCreationTime());
+			break;
 		default:
 			std::cerr << "Reply not handled yet (channel overload):" << rep_code << std::endl;
 	}

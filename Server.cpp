@@ -701,15 +701,14 @@ void	Server::handleInvite(Message *msg, User *usr)
 void	Server::handleMode(Message *msg, User *usr)
 {
     std::list<std::string> params = msg->getParams();
-    if (params.size() < 2)
-    {
-		if (params.size() == 1)
-			std::cerr << "MODE listing not implemented yet" << std::endl;
+	if (params.empty())
+	{
         this->_toProcess.push(Message::_reply(*msg, ERR_NEEDMOREPARAMS));
         return ;
-    }
-    std::string chan = params.front(); params.pop_front();
-    std::string flags = params.front(); params.pop_front();
+	}
+    std::string chan = params.front();
+	params.pop_front();
+	// FIXME The first parameter could also be a USER, how do we handle that?
     Channel *channel = _findChannel(chan);
     if (!channel)
 	{
@@ -717,12 +716,26 @@ void	Server::handleMode(Message *msg, User *usr)
         this->_toProcess.push(Message::_reply(*msg, ERR_NOSUCHCHANNEL));
 		return ;
 	}
+	if (params.empty())
+	{
+		// We only got a channel so we list the modes and return
+		// RPL_CHANNELMODEIS (324)
+		// "<client> <channel> <modestring> <mode arguments>..."
+		// Followed by the creation time
+		// RPL_CREATIONTIME
+		// <client> <channel> <creationtime>" (with timestamp)
+		this->_toProcess.push(Message::_reply(*msg, RPL_CREATIONTIME));
+		return ;
+	}
+	// NOTE Below here only if more than 1 param was given
+	// NOTE No privileges needed to get a listing, but from here we change things
     if (!channel->isOperator(usr->getFD()))
     {
         this->_toProcess.push(Message::_reply(*msg, ERR_CHANOPRIVSNEEDED, channel));
         return ;
     }
-
+    std::string flags = params.front(); params.pop_front();
+	// FIXME This mode-making logic must be shared, else it will cause problems
     bool adding = true;
     for (size_t i = 0; i < flags.size(); ++i)
     {
