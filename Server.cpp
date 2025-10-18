@@ -1085,7 +1085,13 @@ void	Server::handleQuit(Message *msg, User *usr)
 // Reply with multiple 352 terminated by RPL_ENDOFWHO (315)
 void	Server::handleWho(Message *msg, User *usr)
 {
-	std::string	mask = msg->getParams().front();
+	std::list<std::string>	params = msg->getParams();
+	if (params.empty())
+	{
+		this->_toProcess.push(Message::_reply(*msg, ERR_NEEDMOREPARAMS));
+		return ;
+	}
+	std::string	mask = params.front();
 	(void) usr;	// HACK for compilation
 	if (mask.empty())
 	{
