@@ -179,9 +179,10 @@ std::list<std::string>	User::getWhoReply(void) const
 	params.push_back(this->getUser());
 	params.push_back(this->getHost());
 //	params.push_back(SERVER);	// FIXME this is not available
+	params.push_back("ft_irc");	// HACK hardcoded to test client behaviour
 	params.push_back(this->getNick());
 	params.push_back(this->getFlags());
-	params.push_back("HOPCOUNT_IS_NONSENSE");
+	params.push_back("1");
 	params.push_back(this->getReal());
 	return (params);
 }

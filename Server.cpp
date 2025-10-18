@@ -442,6 +442,7 @@ void	Server::handleNick(Message *msg, User *usr)
 
 // FIXME IF the nick name is already in use that doesn't seem to stop registration?
 // TODO Sure there are other errors to catch here...
+// FIXME Hexchat at least does not get given a Real Name
 void	Server::handleUser(Message *msg, User *usr)
 {
 	if (usr->isRegistered())
