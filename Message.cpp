@@ -484,8 +484,11 @@ Message*	Message::_reply(Message &msg, int rep_code)
 		case ERR_CHANOPRIVSNEEDED:
 			params.push_back("You're not channel operator");
 			break;
+		case RPL_ENDOFWHO:
+			params.push_back("End of /WHOIS messages");
+			break;
 		default:
-			std::cerr << "Reply not handled yet:" << rep_code << std::endl;
+			std::cerr << "Reply not handled yet (simple version):" << rep_code << std::endl;
 	}
 	std::cout << "Added " << params.size() << "parameters" <<std::endl;
 	transmit = new Message(src, cmd_as_str, params, targets);
@@ -546,7 +549,7 @@ Message*	Message::_reply(Message &msg, int rep_code, Channel *chan)
 			params.push_back("You're not a channel operator");
 			break;
 		default:
-			std::cerr << "Reply not handled yet:" << rep_code << std::endl;
+			std::cerr << "Reply not handled yet (channel overload):" << rep_code << std::endl;
 	}
 	std::cout << "Added " << params.size() << "parameters" <<std::endl;
 	transmit = new Message(src, cmd_as_str, params, targets);
@@ -580,7 +583,7 @@ Message*	Message::_reply(Message &msg, int rep_code, User *usr)
 			params.splice(params.end(), who);
 			break;
 		default:
-			std::cerr << "Reply not handled yet:" << rep_code << std::endl;
+			std::cerr << "Reply not handled yet (user overload):" << rep_code << std::endl;
 	}
 	std::cout << "Added " << params.size() << "parameters" <<std::endl;
 	transmit = new Message(src, cmd_as_str, params, target);
