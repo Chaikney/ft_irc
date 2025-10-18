@@ -1179,8 +1179,8 @@ void	Server::handleWhoIs(Message *msg, User *usr)
 		this->_toProcess.push(Message::_reply(*msg, ERR_NOSUCHNICK));
 		return ;
 	}
-	this->_toProcess.push(Message::_reply(*msg, RPL_WHOREPLY));
-	this->_toProcess.push(Message::_reply(*msg, RPL_ENDOFWHO));
+	this->_toProcess.push(Message::_reply(*msg, RPL_WHOISUSER));
+	this->_toProcess.push(Message::_reply(*msg, RPL_ENDOFWHOIS));
 }
 
 // Extract from message:
