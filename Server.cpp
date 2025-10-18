@@ -1159,9 +1159,14 @@ void	Server::handleWho(Message *msg, User *usr)
     // RPL_WHOISMODES (379)	--	maybe later if we develop modes fully
     // RPL_WHOISSECURE (671)	--	no one will be using a secure connection, ignore it
     // RPL_AWAY (301)	--	this seems easy to do
-// FIXME UInitialised value crash caused here somewhere
 void	Server::handleWhoIs(Message *msg, User *usr)
 {
+	std::list<std::string>	params = msg->getParams();
+	if (params.empty())
+	{
+		this->_toProcess.push(Message::_reply(*msg, ERR_NEEDMOREPARAMS));
+		return ;
+	}
 	std::string	inick = msg->getParams().front();
 	(void) usr;	// HACK for compilation
 	if (inick.empty())
