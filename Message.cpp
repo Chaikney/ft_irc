@@ -480,7 +480,10 @@ Message*	Message::_reply(Message &msg, int rep_code)
 			params.push_back("You're not channel operator");
 			break;
 		case RPL_ENDOFWHO:
-			params.push_back("End of /WHOIS messages");
+			params.push_back("End of /WHO list");
+			break;
+		case RPL_ENDOFWHOIS:
+			params.push_back("End of /WHOIS list of messages");
 			break;
 		default:
 			std::cerr << "Reply not handled yet (simple version):" << rep_code << std::endl;
@@ -566,6 +569,7 @@ Message*	Message::_reply(Message &msg, int rep_code, User *usr)
 	std::stringstream strm;
 	strm << rep_code;
 	std::string cmd_as_str = strm.str();
+	std::list<std::string> who;
 
 	// NOTE This is a list because Message constructors. Needs worked out!
 	std::list<int>	target;
@@ -576,13 +580,17 @@ Message*	Message::_reply(Message &msg, int rep_code, User *usr)
 	std::list<std::string>	params;
 	// TODO If this returns empty, put something else there
 	params.push_back(msg.getOrigin()->getNick());
-	std::list<std::string> who = usr->getWhoReply();
 
 	switch (rep_code)
 	{
 		// FIXME This needs channel as well :'(
 		case RPL_WHOREPLY:
-//			params.push_back(usr->getWhoReply());
+			who = usr->getWhoReply();
+			params.splice(params.end(), who);
+			break;
+			// FIXME we return info for the SENDER not the queried user
+		case RPL_WHOISUSER:
+			who = usr->getWhoIs();
 			params.splice(params.end(), who);
 			break;
 		default:
