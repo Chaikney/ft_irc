@@ -85,6 +85,7 @@ class	Server
 		void		handleMode(Message *msg, User *usr);
 		void		handlePing(Message *msg, User *usr);
 		void		handleWho(Message *msg, User *usr);
+		void		handleWhoIs(Message *msg, User *usr);
 		void		handleAway(Message *msg, User *usr);
 		void		handleQuit(Message *msg, User *usr);
 		void		handleUserhost(Message *msg, User *usr);
