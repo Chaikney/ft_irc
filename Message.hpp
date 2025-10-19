@@ -56,7 +56,7 @@ class	Message
 		std::list<int>			getTargets() const;
 
 		bool					addParams(std::list<std::string> &addme);
-		bool					addParams(std::string &addme);
+		bool					addParams(const std::string &addme);
 
 		// from server
 		static Message*	_channelMessage(Message &msg, Channel *chan);

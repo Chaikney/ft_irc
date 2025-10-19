@@ -278,7 +278,7 @@ bool	Message::addParams(std::list<std::string> &addme)
 }
 
 // Same as above but for one single parameter
-bool	Message::addParams(std::string &addme)
+bool	Message::addParams(const std::string &addme)
 {
 	this->_params.push_back(addme);
 	return (true);
