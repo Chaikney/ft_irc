@@ -588,7 +588,6 @@ Message*	Message::_reply(Message &msg, int rep_code, User *usr)
 			who = usr->getWhoReply();
 			params.splice(params.end(), who);
 			break;
-			// FIXME we return info for the SENDER not the queried user
 		case RPL_WHOISUSER:
 			who = usr->getWhoIs();
 			params.splice(params.end(), who);

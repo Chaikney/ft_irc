@@ -1161,6 +1161,7 @@ void	Server::handleWho(Message *msg, User *usr)
     // RPL_AWAY (301)	--	this seems easy to do
 void	Server::handleWhoIs(Message *msg, User *usr)
 {
+	(void) usr;	// HACK for compilation
 	std::list<std::string>	params = msg->getParams();
 	if (params.empty())
 	{
@@ -1168,7 +1169,6 @@ void	Server::handleWhoIs(Message *msg, User *usr)
 		return ;
 	}
 	std::string	inick = msg->getParams().front();
-	(void) usr;	// HACK for compilation
 	if (inick.empty())
 	{
 		this->_toProcess.push(Message::_reply(*msg, ERR_NEEDMOREPARAMS));
@@ -1179,8 +1179,10 @@ void	Server::handleWhoIs(Message *msg, User *usr)
 		this->_toProcess.push(Message::_reply(*msg, ERR_NOSUCHNICK));
 		return ;
 	}
-	this->_toProcess.push(Message::_reply(*msg, RPL_WHOISUSER, usr));
-	this->_toProcess.push(Message::_reply(*msg, RPL_ENDOFWHOIS, usr));
+	User*	target = this->_findUserByNick(inick);
+	if (target)
+		this->_toProcess.push(Message::_reply(*msg, RPL_WHOISUSER, target));
+	this->_toProcess.push(Message::_reply(*msg, RPL_ENDOFWHOIS));
 }
 
 // Extract from message:
