@@ -1364,3 +1364,18 @@ std::string	Server::getUserModes(void) const
 {
 	return ("oO");
 }
+
+// Returns a string saying which channel modes are supported by us / the Server
+// NOTE this is not the same as a channel's channel Modes!
+// TODO Check which modes we are likely to implement.
+// https://modern.ircdocs.horse/
+// [ ] invite only +i
+// [ ] limited number of users +l
+// [ ] key / password +k
+// [ ] ban list +b
+// [ ] exceptions to bans +e
+// [ ] topic protection +t
+std::string	Server::getChanModes(void) const
+{
+	return ("beIiklt");
+}
