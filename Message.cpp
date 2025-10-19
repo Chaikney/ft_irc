@@ -448,6 +448,10 @@ Message*	Message::_reply(Message &msg, int rep_code)
 			params.push_back(msg.getParams().front());	// HACK Careless assumption here
 			params.push_back("No such nick or channel found");
 			break;
+		case ERR_NOSUCHCHANNEL:
+			params.push_back(msg.getParams().front());	// HACK Careless assumption here
+			params.push_back("No such channel found");
+			break;
 		case ERR_CANNOTSENDTOCHAN:
 			params.push_back("You do not have permission to send to this channel");
 			break;

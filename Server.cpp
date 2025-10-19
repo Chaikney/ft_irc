@@ -712,7 +712,6 @@ void	Server::handleMode(Message *msg, User *usr)
     Channel *channel = _findChannel(chan);
     if (!channel)
 	{
-		// TODO Add channel name to this error? Check specification
         this->_toProcess.push(Message::_reply(*msg, ERR_NOSUCHCHANNEL));
 		return ;
 	}
