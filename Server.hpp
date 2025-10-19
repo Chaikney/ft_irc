@@ -63,6 +63,8 @@ class	Server
 		Channel*	_findChannel(const std::string &name) const;
 		Channel*	_createChannel(const std::string &name);
 		void		_removeChannel(const std::string &name);
+		void		_channelMode(Message *msg, User *usr, std::string target);
+		void		_userMode(Message *msg, User *usr, std::string target);
 		// TODO These three "direct"  comms methods should be removed, too dangerous
 		void		_sendToFD(int fd, const std::string &text) const;
 		void		_broadcastToChannel(const std::string &chan, int from_fd, const std::string &text, bool include_sender=false) const;

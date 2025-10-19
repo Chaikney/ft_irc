@@ -696,6 +696,50 @@ void	Server::handleInvite(Message *msg, User *usr)
         _sendToFD(target->getFD(), ":server INVITE " + nick + " " + chan + "\r\n");
 }
 
+// MODE command to deal with a User
+void	Server::_userMode(Message *msg, User *usr, std::string target)
+{
+	(void) msg;
+	(void) usr;
+	(void) target;
+	std::cerr << "User MODE not yet handled" << std::endl;
+}
+
+// MODE command to deal with a Channel
+void	Server::_channelMode(Message *msg, User *usr, std::string target)
+{
+	Channel *channel = _findChannel(target);
+	if (!channel)
+	{
+		// TODO How does thiss give the incorreect channel name?
+		this->_toProcess.push(Message::_reply(*msg, ERR_NOSUCHCHANNEL));
+		return ;
+	}
+	if (msg->getParamCount() == 1)
+	{
+		// We only got a channel so we list the modes and return
+		// RPL_CHANNELMODEIS (324)
+		// "<client> <channel> <modestring> <mode arguments>..."
+		this->_toProcess.push(Message::_reply(*msg, RPL_CHANNELMODEIS, channel));
+		this->_toProcess.push(Message::_reply(*msg, RPL_CREATIONTIME, channel));
+		return ;
+	}
+	// NOTE Below here only if more than 1 param was given
+	// NOTE No privileges needed to get a listing, but from here we change things
+	if (!channel->isOperator(usr->getFD()))
+	{
+		this->_toProcess.push(Message::_reply(*msg, ERR_CHANOPRIVSNEEDED, channel));
+		return ;
+	}
+	// get the modestring from the second parameter
+	std::string	modestring;
+	if (msg->getParamCount() == 2)
+		modestring = msg->getParams().back();
+	// and any mode parameters from the third
+	// FIXME this logic is nonlogical
+	// TODO Add MODE change logic for channel (perhaps that is a Channel method that takes the modestring)
+}
+
 // TODO Handle modestring-less commands with a reply
 // - param 1 = target, either Nick or Channel
 // - param 2 = optional modestring
@@ -708,32 +752,22 @@ void	Server::handleMode(Message *msg, User *usr)
         this->_toProcess.push(Message::_reply(*msg, ERR_NEEDMOREPARAMS));
         return ;
 	}
-    std::string chan = params.front();
+    std::string target = params.front();
 	params.pop_front();
 	// FIXME The first parameter could also be a USER, how do we handle that?
-    Channel *channel = _findChannel(chan);
-    if (!channel)
+	if (target.find_first_of("#&") == 1)
 	{
-        this->_toProcess.push(Message::_reply(*msg, ERR_NOSUCHCHANNEL));
+		_channelMode(msg, usr, target);
+		// Do MODE as Channel
+	}
+	else // treat target as NICK
+	{
+		_userMode(msg, usr, target);
 		return ;
 	}
-	if (params.empty())
-	{
-		// We only got a channel so we list the modes and return
-		// RPL_CHANNELMODEIS (324)
-		// "<client> <channel> <modestring> <mode arguments>..."
-		this->_toProcess.push(Message::_reply(*msg, RPL_CHANNELMODEIS, channel));
-		this->_toProcess.push(Message::_reply(*msg, RPL_CREATIONTIME, channel));
-		return ;
-	}
-	// NOTE Below here only if more than 1 param was given
-	// NOTE No privileges needed to get a listing, but from here we change things
-    if (!channel->isOperator(usr->getFD()))
-    {
-        this->_toProcess.push(Message::_reply(*msg, ERR_CHANOPRIVSNEEDED, channel));
-        return ;
-    }
+	// NOTE Nothing below now gets reached.
     std::string flags = params.front(); params.pop_front();
+	// This below does....what?
 	// FIXME This mode-making logic must be shared, else it will cause problems
     bool adding = true;
     for (size_t i = 0; i < flags.size(); ++i)
@@ -742,6 +776,7 @@ void	Server::handleMode(Message *msg, User *usr)
         if (f == '+') { adding = true; continue; }
         if (f == '-') { adding = false; continue; }
 
+		(void) adding;	// HACK
         std::string param = "";
         if (!params.empty())
         {
@@ -749,15 +784,16 @@ void	Server::handleMode(Message *msg, User *usr)
             params.pop_front();
         }
 
-        if (channel->setMode(f, adding, param))
-        {
-			// TODO Must be able to explain this ternary expression
-            std::string modeStr = (adding ? "+" : "-") + std::string(1, f);
-            if (!param.empty())
-                modeStr += " " + param;
-			this->_toProcess.push(Message::_channelMessage(*msg, channel));
-            //_broadcastToChannel(channel, -1, ":server MODE " + chan + " " + modeStr, true);
-        }
+        // HACK below commented out for compilation
+        // if (channel->setMode(f, adding, param))
+        // {
+		// 	// TODO Must be able to explain this ternary expression
+        //     std::string modeStr = (adding ? "+" : "-") + std::string(1, f);
+        //     if (!param.empty())
+        //         modeStr += " " + param;
+		// 	this->_toProcess.push(Message::_channelMessage(*msg, channel));
+        //     //_broadcastToChannel(channel, -1, ":server MODE " + chan + " " + modeStr, true);
+        // }
     }
 }
 
