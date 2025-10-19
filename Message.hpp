@@ -52,6 +52,7 @@ class	Message
 		std::string				getSource() const;
 		std::string				getCommand() const;
 		std::list<std::string>	getParams() const;
+		int						getParamCount() const;
 		User*					getOrigin() const;
 		std::list<int>			getTargets() const;
 

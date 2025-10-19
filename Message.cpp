@@ -599,3 +599,8 @@ Message*	Message::_reply(Message &msg, int rep_code, User *usr)
 	transmit = new Message(src, cmd_as_str, params, target);
 	return (transmit);
 }
+
+int		Message::getParamCount() const
+{
+	return (_params.size());
+}
