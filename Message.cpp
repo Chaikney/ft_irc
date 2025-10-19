@@ -398,6 +398,7 @@ Message*	Message::_replyNonNumeric(Message &msg, Channel *chan)
 // TODO More protection needed, i.e. on rep_code
 // TODO Consider renaming this to be more specific
 // NOTE When rep_code is < 100, it should be padded to 3 digits
+// NOTE RPL_MYINFO and RPL_CREATED generate false positive "not found" passthrough messages
 Message*	Message::_reply(Message &msg, int rep_code)
 {
 	Message*	transmit;
@@ -426,18 +427,6 @@ Message*	Message::_reply(Message &msg, int rep_code)
 			break;
 		case RPL_YOURHOST:
 			params.push_back("Your host is:" + SERVERNAME);
-			break;
-		case RPL_CREATED:
-			// FIXME Cannot now call getCreation...
-//			params.push_back(this->getCreation());
-			break;
-		// TODO Update this when we have modes and versioning
-		case RPL_MYINFO:
-			params.push_back(SERVERNAME);
-			params.push_back(VERSION);
-			// FIXME Cannot call Server::getUserModes() with this class structure
-			params.push_back("user_modes_here");
-			params.push_back("channel_modes_here");
 			break;
 		case RPL_UNAWAY:
 			params.push_back("Welcome back!");

@@ -431,12 +431,7 @@ void	Server::handleNick(Message *msg, User *usr)
 		usr->setNick(newNick);
 		// If user just became registered (had USER but was missing NICK), send welcome
 		if (!wasRegistered && usr->isRegistered())
-		{
-			this->_toProcess.push(Message::_reply(*msg, RPL_WELCOME));
-			this->_toProcess.push(Message::_reply(*msg, RPL_YOURHOST));
-			this->_toProcess.push(Message::_reply(*msg, RPL_CREATED));
-			this->_toProcess.push(Message::_reply(*msg, RPL_MYINFO));
-		}
+			this->_sendWelcome(msg, usr);
 	}
 }
 
@@ -471,12 +466,7 @@ void	Server::handleUser(Message *msg, User *usr)
 	std::cout << "User: " << newUser << ", Really: " << newRName << std::endl;
 	// Only send welcome bundle if user is fully registered (has valid nickname)
 	if (usr->isRegistered())
-	{
-		this->_toProcess.push(Message::_reply(*msg, RPL_WELCOME));
-		this->_toProcess.push(Message::_reply(*msg, RPL_YOURHOST));
-		this->_toProcess.push(Message::_reply(*msg, RPL_CREATED));
-		this->_toProcess.push(Message::_reply(*msg, RPL_MYINFO));
-	}
+		this->_sendWelcome(msg, usr);
 }
 
 // FIXME This does not cause clients to realise they have joined a room :|
@@ -1378,4 +1368,23 @@ std::string	Server::getUserModes(void) const
 std::string	Server::getChanModes(void) const
 {
 	return ("beIiklt");
+}
+
+// Send the WELCOME set of messages to a newly-registered User
+// HACK RPL_CREATED and RPL_MYINFO have to use a different path
+// ...how to avoid that?
+void	Server::_sendWelcome(Message *msg, User *usr)
+{
+	(void) usr;	// HACK maybe not ask for this
+	this->_toProcess.push(Message::_reply(*msg, RPL_WELCOME));
+	this->_toProcess.push(Message::_reply(*msg, RPL_YOURHOST));
+	Message* created = Message::_reply(*msg, RPL_CREATED);
+	created->addParams(this->getCreation());
+	this->_toProcess.push(created);
+	Message* info = Message::_reply(*msg, RPL_MYINFO);
+	info->addParams(SERVERNAME);
+	info->addParams(VERSION);
+	info->addParams(this->getUserModes());
+	info->addParams(this->getChanModes());
+	this->_toProcess.push(info);
 }

@@ -67,6 +67,7 @@ class	Server
 		void		_sendToFD(int fd, const std::string &text) const;
 		void		_broadcastToChannel(const std::string &chan, int from_fd, const std::string &text, bool include_sender=false) const;
 		void		_broadcastToChannel(Channel *channel, int from_fd, const std::string &text, bool include_sender=false) const;
+		void		_sendWelcome(Message *msg, User *usr);
 
 		// --- Manejo de comandos IRC ---
 		// NOTE Possibly these could be abstracted away into a Command interface class?
