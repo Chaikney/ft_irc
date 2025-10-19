@@ -389,6 +389,7 @@ Message*	Message::_replyNonNumeric(Message &msg, Channel *chan)
 	std::cout << transmit->serialiseMsg() << std::endl;
 	return (transmit);
 }
+
 // Use the Message and code to create a reply Message to be queued
 // - source
 // - command = reply code

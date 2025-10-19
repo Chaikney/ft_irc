@@ -273,6 +273,10 @@ bool Channel::isBanned(const std::string &mask) const
 }
 
 // Mode management
+
+// Return the channel's mode string
+// NOTE We support here tkil -
+// how do we handle reporting the ones with parametrers, i.e. limit?
 std::string Channel::getModeString(void) const
 {
 	std::string modes = "+";
@@ -289,6 +293,9 @@ std::string Channel::getModeString(void) const
 	return modes;
 }
 
+// Take a char, boolean and optional string
+// Use them to set channel modes per character
+// Return true if value changed; false if not
 bool Channel::setMode(char mode, bool add, const std::string &param)
 {
 	switch (mode)

@@ -739,6 +739,7 @@ void	Server::handleMode(Message *msg, User *usr)
 
         if (channel->setMode(f, adding, param))
         {
+			// TODO Must be able to explain this ternary expression
             std::string modeStr = (adding ? "+" : "-") + std::string(1, f);
             if (!param.empty())
                 modeStr += " " + param;

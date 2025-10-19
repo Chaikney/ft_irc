@@ -11,21 +11,21 @@ class User;
 class Channel
 {
 	private:
-		std::string					_name;
-		time_t						_creationTime;
-		std::string					_topic;
-		time_t						_topicTime;
-		std::string					_topicSetBy;
-		std::set<User *>			_members;		// User FDs
+		std::string			_name;
+		time_t				_creationTime;
+		std::string			_topic;
+		time_t				_topicTime;
+		std::string			_topicSetBy;
+		std::set<User *>		_members;		// User FDs
 		// TODO Seems to me that these should store User* not just file descriptors....
-		std::set<int>				_operators;		// User FDs with operator rights
+		std::set<int>			_operators;		// User FDs with operator rights
 		std::set<std::string>		_invitedNicks;	// Invited nicks (by name)
-		bool						_topicProtected;	// +t mode
-		bool						_inviteOnly;		// +i mode
-		std::string					_password;		// +k mode
-		int							_userLimit;		// +l mode
+		bool				_topicProtected;	// +t mode
+		bool				_inviteOnly;		// +i mode
+		std::string			_password;		// +k mode
+		int				_userLimit;		// +l mode
 		// NOTE All these work with NICKs so string is the correct format
-		std::set<std::string>		_banList;		// +b mode
+		std::set<std::string>		_banList;	// +b mode
 		std::set<std::string>		_exceptionList;	// +e mode
 		std::set<std::string>		_inviteList;	// +I mode
 
@@ -34,6 +34,7 @@ class Channel
 		Channel& operator=(const Channel &other);
 
 	public:
+		// TODO Explain why we have used the explicit keyword here
 		explicit Channel(const std::string &name);
 		~Channel(void);
 
@@ -69,10 +70,8 @@ class Channel
 
 		// Member management
 		bool						addMember(User *usr);
-		//bool						removeMember(int userFd);
 		bool						removeMember(User *usr);
 		bool						isMember(User *usr) const;
-		//bool						isMember(int userFd) const;
 		bool						isOperator(int userFd) const;
 		bool						addOperator(User *usr);
 		bool						removeOperator(int userFd);
@@ -88,6 +87,7 @@ class Channel
 		bool						isBanned(const std::string &mask) const;
 
 		// Mode management
+		// TODO Make setMode an internal thing and have an exeternal piece that takes the whole modestring
 		std::string					getModeString(void) const;
 		bool						setMode(char mode, bool add, const std::string &param = "");
 
