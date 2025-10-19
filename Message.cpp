@@ -435,6 +435,7 @@ Message*	Message::_reply(Message &msg, int rep_code)
 		case RPL_MYINFO:
 			params.push_back(SERVERNAME);
 			params.push_back(VERSION);
+			// FIXME Cannot call Server::getUserModes() with this class structure
 			params.push_back("user_modes_here");
 			params.push_back("channel_modes_here");
 			break;

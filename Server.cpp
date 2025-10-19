@@ -1349,3 +1349,18 @@ void	Server::_removeUser(User &usr)
     // FIXME HACK does not work called like this
 //    delete usr;
 }
+
+// Returns a string saying which User modes are supported by us / the Server
+// NOTE this is not the same as a User's User Modes!
+// All possible modes: https://defs.ircdocs.horse/defs/usermodes.html
+// TODO Check which modes we are likely to implement.
+// https://modern.ircdocs.horse/#user-modes
+// [ ] Invisible +i
+// [X] oper +o
+// [X] Local operator +O -- NOTE that these 2 are the same for us
+// [ ] registered user +r -- not sure about this, we don't have long-lasting accounts
+// [ ] WALLOPS +w -- gets WALLOPS messages from server
+std::string	Server::getUserModes(void) const
+{
+	return ("oO");
+}

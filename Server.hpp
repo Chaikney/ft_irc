@@ -104,5 +104,6 @@ class	Server
 		int		get_fd(void) const;
 		std::string	getUptime(void) const;
 		std::string	getCreation(void) const;
+		std::string	getUserModes(void) const;
 };
 #endif
