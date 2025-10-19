@@ -588,29 +588,41 @@ void	Server::handlePart(Message *msg, User *usr)
 
 // FIXME Does not comply with specifications of NAMES command
 // https://modern.ircdocs.horse/#names-message
-// TODO Read msg parameters and call to each named channel
-// void	Server::handleNames(Message *msg, User *usr)
-// {
-//     (void)msg;
-//     for (std::map<std::string, Channel*>::const_iterator it = _channels.begin(); it != _channels.end(); ++it)
-//     {
-//         const std::string &chan = it->first;
-//         std::string line = "353 = " + chan + " :";
-//         Channel *c = it->second;
-// 		// FIXME here this won't work with Users returned...
-//         const std::set<int> &members = c->getMembers();
-//         for (std::set<int>::const_iterator fit = members.begin(); fit != members.end(); ++fit)
-//         {
-//             std::map<int, User*>::const_iterator uit = _clients.find(*fit);
-//             if (uit != _clients.end() && uit->second)
-//             {
-//                 if (fit != members.begin()) line += " ";
-//                 line += uit->second->getNick();
-//             }
-//         }
-//         _sendToFD(usr->getFD(), line + "\r\n");
-//     }
-// }
+// Read msg parameters and call to each named channel
+// - for each channel:
+// -- enumerate users
+// -- send RPL_NAMEREPLY per user
+// -- send RPL_ENDOFNAMES with the channel name
+// TODO Test that this works with multiple channels
+void	Server::handleNames(Message *msg, User *usr)
+{
+	(void) usr;	// HACK for compilation again
+	std::list<std::string>	params = msg->getParams();
+	if (params.empty())
+	{
+		this->_toProcess.push(Message::_reply(*msg, ERR_NEEDMOREPARAMS));
+		return ;
+	}
+	while (!params.empty())
+	{
+		std::string	cname = params.front();
+		this->normaliseChanName(&cname);
+		Channel*	target = _findChannel(cname);
+		if (target)
+		{
+			this->_toProcess.push(Message::_reply(*msg, RPL_NAMREPLY, target));
+			this->_toProcess.push(Message::_reply(*msg, RPL_ENDOFNAMES, target));
+		}
+		else	// send end of names without touching channel
+			// NOTE This triggers a false "not implemented 366" error message
+		{
+			Message*	no_channel = Message::_reply(*msg, RPL_ENDOFNAMES);
+			no_channel->addParams(cname);
+			this->_toProcess.push(no_channel);
+		}
+		params.pop_front();
+	}
+}
 
 // TODO This should handle a list of channels
 // TODO Filter the channel list that we call before looping over and listing
@@ -998,9 +1010,8 @@ void	Server::_processQueue(void)
 				handleJoin(do_next, do_next->getOrigin());
 			else if (command.compare("PART") == 0)
 				handlePart(do_next, do_next->getOrigin());
-			// HACK for compilation pending function fix
-			// else if (command.compare("NAMES") == 0)
-			// 	handleNames(do_next, do_next->getOrigin());
+			else if (command.compare("NAMES") == 0)
+			 	handleNames(do_next, do_next->getOrigin());
 			else if (command.compare("LIST") == 0)
 				handleList(do_next, do_next->getOrigin());
 			else if (command.compare("TOPIC") == 0)
