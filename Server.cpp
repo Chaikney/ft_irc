@@ -757,11 +757,12 @@ void	Server::handleMode(Message *msg, User *usr)
 	}
     std::string target = params.front();
 	params.pop_front();
-	// FIXME The first parameter could also be a USER, how do we handle that?
-	if (target.find_first_of("#&") == 1)
+	std::cout << "Directing mode for:" << target << std::endl;	// HACK debug statement
+	if (target.find_first_of("#&") == 0)// Do MODE as Channel
 	{
 		_channelMode(msg, usr, target);
 		// Do MODE as Channel
+		return;
 	}
 	else // treat target as NICK
 	{
