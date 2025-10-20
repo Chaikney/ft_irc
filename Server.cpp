@@ -699,17 +699,31 @@ void	Server::handleInvite(Message *msg, User *usr)
 // MODE command to deal with a User
 void	Server::_userMode(Message *msg, User *usr, std::string target)
 {
+	User* target_user = this->_findUserByNick(target);
+	if (!target_user)
+	{
+		// TODO How do we include the "wrong" name here? add target somehow
+		this->_toProcess.push(Message::_reply(*msg, ERR_NOSUCHNICK));
+		return ;
+	}
 	(void) msg;
 	(void) usr;
-	(void) target;
 	std::list<std::string> params = msg->getParams();
-	(void) params;
-	std::cerr << "User MODE not yet handled" << std::endl;
+	params.pop_front();	// that was the target
+	std::string	modestring = params.front();
+	std::string	modearg;
+	if (!params.empty())
+		modearg = "";
+	else
+		modearg = params.front();
+	target_user->setMode(modestring);
+	(void) modearg;	// HACK until I expand setMode to handle the args
 }
 
 // MODE command to deal with a Channel
 // TODO If channel mode changes, broadcast the change to channel
 // NOTE Here, params has popped off the first (target), it is not like msg->getParams()
+// TODO How to handle +b ? (request for a ban list)? In channel i suppose
 void	Server::_channelMode(Message *msg, User *usr, std::string target)
 {
 	std::list<std::string>	params = msg->getParams();
