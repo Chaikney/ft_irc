@@ -214,9 +214,10 @@ bool Channel::isOperator(int userFd) const
 // TODO Needs updated
 bool Channel::addOperator(User *usr)
 {
+	if (!usr)
+		return (false);
 	if (_members.find(usr) == _members.end())
 		return false; // Must be a member first
-
 	// TODO Update this later.
 	_operators.insert(usr->getFD());
 	return true;
@@ -357,6 +358,13 @@ bool Channel::setMode(char mode, bool add, const std::string &param)
 		case 'n':
 			this->_noExtMsg = add;
 			return (true);
+		case 'o':
+			if (param.empty())
+				return (false);
+			else
+			{
+				this->addOperator(this->findMemberByNick(param));
+			}
 		default:
 			return false;
 	}

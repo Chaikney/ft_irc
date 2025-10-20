@@ -19,6 +19,7 @@
 // TODO Support invisible user mode +i
 // - store in User
 // - use to filter results (might have to be in another Class)
+// TODO A public(?) method isVisibleTo(User) that can be used to filter parameters
 class	User
 {
 	private:

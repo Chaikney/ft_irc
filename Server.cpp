@@ -697,6 +697,7 @@ void	Server::handleInvite(Message *msg, User *usr)
 }
 
 // MODE command to deal with a User
+// FIXME Must handle modearg
 void	Server::_userMode(Message *msg, User *usr, std::string target)
 {
 	User* target_user = this->_findUserByNick(target);
@@ -706,7 +707,6 @@ void	Server::_userMode(Message *msg, User *usr, std::string target)
 		this->_toProcess.push(Message::_reply(*msg, ERR_NOSUCHNICK));
 		return ;
 	}
-	(void) msg;
 	(void) usr;
 	std::list<std::string> params = msg->getParams();
 	params.pop_front();	// that was the target
@@ -724,6 +724,7 @@ void	Server::_userMode(Message *msg, User *usr, std::string target)
 // TODO If channel mode changes, broadcast the change to channel
 // NOTE Here, params has popped off the first (target), it is not like msg->getParams()
 // TODO How to handle +b ? (request for a ban list)? In channel i suppose
+// FIXME Must handle modearg
 void	Server::_channelMode(Message *msg, User *usr, std::string target)
 {
 	std::list<std::string>	params = msg->getParams();
@@ -755,7 +756,7 @@ void	Server::_channelMode(Message *msg, User *usr, std::string target)
 	std::string	modestring = params.front();
 	std::string	modearg;
 	params.pop_front();
-	if (!params.empty())
+	if (params.empty())
 		modearg = "";
 	else
 		modearg = params.front();
