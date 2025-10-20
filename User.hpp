@@ -32,6 +32,7 @@ class	User
 		time_t					last_seen;	// to refer to in case of partial registration
 		bool					_isAway;
 		bool					_isServerOp;	// +o Has power to shutdown Server, etc
+		bool					_isInvisible;	// +i implications for user listings
 
 		User		operator=(const User &irc);	// NOTE Not sure about assignment to a User, this could be public
 
