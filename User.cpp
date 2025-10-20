@@ -2,6 +2,7 @@
 #include <arpa/inet.h>	// inet_ntop() ("network-to-printable")
 #include <netinet/in.h>
 #include <unistd.h>
+#include <sstream>
 
 // Start with blank names, password FALSE
 // ...but the connection information?
@@ -220,4 +221,45 @@ std::string	User::getUserHostMsg(void) const
 void	User::setAway(bool are)
 {
 	this->_isAway = are;
+}
+
+// Read a modestring into pieces and pass to the active method.
+// TODO Handle parameters along commands (which might have them)
+bool	User::setMode(std::string modestring)
+{
+	bool adding = true;
+	std::stringstream	strm(modestring);
+	char	c = 0;
+
+	while (strm)	// or whatever
+	{
+		c = strm.get();
+		if (c == '+')
+			adding = true;
+		else if (c ==  '-')
+			adding = false;
+		else
+			_setModeLetter(c, adding, "");	// HACK ignores parameters (because I don't understand them)
+	}
+	return true;	// just because
+}
+
+// TODO Support supported user modes:
+// +oO
+// +i (lter)
+// NOTE OPER command is needed to support isOp properly
+bool User::_setModeLetter(char mode, bool add, const std::string &param)
+{
+	(void) param;	// HACK because no modes use this (yet?)
+	switch (mode)
+	{
+		case 'o':
+			this->_isServerOp = add;
+			return (true);	// TODO Probably should check for ability to take this away...
+		case 'O':
+			this->_isServerOp = add;
+			return (true);	// TODO Probably should check for ability to take this away...
+	default:
+		return false;
+	}
 }

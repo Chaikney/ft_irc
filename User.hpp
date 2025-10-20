@@ -29,10 +29,9 @@ class	User
 		bool					_gavepass;
 		sockaddr_in				_address;	// has sin_port and sin_addr
 		std::string				_host;		// readable socket address for use in messages
-		// int _mode;	// How do we store / manage this?
 		time_t					last_seen;	// to refer to in case of partial registration
 		bool					_isAway;
-		bool					_isServerOp;	// Has power to shutdown Server, etc
+		bool					_isServerOp;	// +o Has power to shutdown Server, etc
 
 		User		operator=(const User &irc);	// NOTE Not sure about assignment to a User, this could be public
 
@@ -64,6 +63,8 @@ class	User
 		void				setReal(std::string rname);
 		void				setAway(bool areyou);
 		void				updateTime(void);
+		bool				setMode(std::string modestr);	// return if changes made (tbc?)
+		bool 				_setModeLetter(char mode, bool add, const std::string &param);
 
 		// Channel-related operations
 		void				addChannel(const std::string &channel);
