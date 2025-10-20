@@ -440,3 +440,13 @@ std::list<std::string>	Channel::getNameReply(void) const
 	}
 	return (params);
 }
+
+User*		Channel::findMemberByNick(std::string target) const
+{
+	for (std::set<User*>::const_iterator it = this->_members.begin(); it != this->_members.end(); ++it)
+    {
+        if ((*it)->getNick() == target)
+            return (*it);
+    }
+    return NULL;
+}

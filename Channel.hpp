@@ -17,7 +17,7 @@ class Channel
 		std::string			_topic;
 		time_t				_topicTime;
 		std::string			_topicSetBy;
-		std::set<User *>		_members;		// User FDs
+		std::set<User *>		_members;		// Users in the channel
 		// TODO Seems to me that these should store User* not just file descriptors....
 		std::set<int>			_operators;		// User FDs with operator rights
 		std::set<std::string>		_invitedNicks;	// Invited nicks (by name)
@@ -60,6 +60,8 @@ class Channel
 		std::list<int>		getBroadcastFDs(User *usr) const;	// as above but excluding one User
 		std::list<std::string>	getListInfo(void) const;	// for use in RPL_LIST
 		std::list<std::string>	getNameReply(void) const;	// for use in RPL_NAMREPLY
+		User*		findMemberByNick(std::string target) const;
+
 
 		// Setters
 //		void						setTopic(const std::string &topic);
@@ -96,7 +98,7 @@ class Channel
 
 		// Utility
 		bool						isEmpty(void) const;
-		void						clear(void);
+		void						clear(void);	// TODO Give this a less-ambiguous name
 };
 
 #endif
