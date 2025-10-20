@@ -293,6 +293,30 @@ std::string Channel::getModeString(void) const
 	return modes;
 }
 
+// This should ingest like C++ not C
+// get a value for adding, flag and param
+// pass that to the other setMode function
+// FIXME This wouldn't carry a parameter, as the string would be lost?
+// NOTE This could be const, as the changes happen in the other setMode(?)
+bool	Channel::setMode(std::string modestring)
+{
+	bool adding = true;
+	std::stringstream	strm(modestring);
+	char	c = 0;
+
+	while (strm)	// or whatever
+	{
+		c = strm.get();
+		if (c == '+')
+			adding = true;
+		else if (c ==  '-')
+			adding = false;
+		else
+			setMode(c, adding, "");	// HACK ignores parameters (because I don't understand them)
+	}
+	return true;	// just because
+}
+
 // Take a char, boolean and optional string
 // Use them to set channel modes per character
 // Return true if value changed; false if not
@@ -306,6 +330,7 @@ bool Channel::setMode(char mode, bool add, const std::string &param)
 		case 'i':
 			_inviteOnly = add;
 			return true;
+		// TODO Check this logic - I think a k without password should clear it?
 		case 'k':
 			if (add)
 			{

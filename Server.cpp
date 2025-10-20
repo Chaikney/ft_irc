@@ -735,6 +735,9 @@ void	Server::_channelMode(Message *msg, User *usr, std::string target)
 	std::string	modestring;
 	if (msg->getParamCount() == 2)
 		modestring = msg->getParams().back();
+	else if (msg->getParamCount() == 3)
+		// FIXME dumb dumb dumb
+		std::cerr << "Too dumb to get the middle parameter" << std::endl;
 	// and any mode parameters from the third
 	// FIXME this logic is nonlogical
 	// TODO Add MODE change logic for channel (perhaps that is a Channel method that takes the modestring)
