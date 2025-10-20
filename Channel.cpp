@@ -6,20 +6,20 @@
 #include <sstream>
 
 Channel::Channel(void) : _name(""), _creationTime(time(0)), _topic(""), _topicTime(time(0)), _topicSetBy("Server"), _members(), _operators(), _invitedNicks(),
-						_topicProtected(false), _inviteOnly(false), _password(""),
+						_topicProtected(false), _noExtMsg(true), _inviteOnly(false), _password(""),
 						_userLimit(0), _banList(), _exceptionList(), _inviteList()
 {
 }
 
 Channel::Channel(const std::string &name) : _name(name),_creationTime(time(0)),  _topic(""),_topicTime(time(0)), _topicSetBy("Server"),  _members(), _operators(),
-											_invitedNicks(), _topicProtected(false), _inviteOnly(false),
+											_invitedNicks(), _topicProtected(false), _noExtMsg(true), _inviteOnly(false),
 											_password(""), _userLimit(0), _banList(), _exceptionList(), _inviteList()
 {
 }
 
 Channel::Channel(const Channel &other) : _name(other._name),_creationTime(other._creationTime),  _topic(other._topic),_topicTime(time(0)), _topicSetBy("Server"),  _members(other._members),
 										_operators(other._operators), _invitedNicks(other._invitedNicks),
-										_topicProtected(other._topicProtected), _inviteOnly(other._inviteOnly),
+										_topicProtected(other._topicProtected), _noExtMsg(other._noExtMsg), _inviteOnly(other._inviteOnly),
 										_password(other._password), _userLimit(other._userLimit),
 										_banList(other._banList), _exceptionList(other._exceptionList),
 										_inviteList(other._inviteList)
@@ -43,6 +43,7 @@ Channel& Channel::operator=(const Channel &other)
 		_operators = other._operators;
 		_invitedNicks = other._invitedNicks;
 		_topicProtected = other._topicProtected;
+		_noExtMsg = other._noExtMsg;
 		_inviteOnly = other._inviteOnly;
 		_password = other._password;
 		_userLimit = other._userLimit;
@@ -322,7 +323,7 @@ bool	Channel::setMode(std::string modestring)
 // Return true if value changed; false if not
 // TODO Should this handle 'o' for operator? (Server or ChanOp??) - is a confusing halfway house
 // ...it would add the posting user to the Operators attribute and we cannot access it here...
-// TODO Mode +n for no external messages could be added
+// DONE Mode +n for no external messages could be added
 bool Channel::setMode(char mode, bool add, const std::string &param)
 {
 	switch (mode)
@@ -353,6 +354,9 @@ bool Channel::setMode(char mode, bool add, const std::string &param)
 			else
 				_userLimit = 0;
 			return true;
+		case 'n':
+			this->_noExtMsg = add;
+			return (true);
 		default:
 			return false;
 	}

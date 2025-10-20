@@ -8,6 +8,7 @@
 
 class User;
 
+// TODO Support no External messages ban on sending (e.g. in getBraodcastFDs? or elsewhere?)
 class Channel
 {
 	private:
@@ -21,6 +22,7 @@ class Channel
 		std::set<int>			_operators;		// User FDs with operator rights
 		std::set<std::string>		_invitedNicks;	// Invited nicks (by name)
 		bool				_topicProtected;	// +t mode
+		bool				_noExtMsg;			// +n no external messages can be sent to the channel (this is kind of implicit in how we have coded it though)
 		bool				_inviteOnly;		// +i mode
 		std::string			_password;		// +k mode
 		int				_userLimit;		// +l mode
