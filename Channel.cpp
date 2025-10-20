@@ -320,6 +320,9 @@ bool	Channel::setMode(std::string modestring)
 // Take a char, boolean and optional string
 // Use them to set channel modes per character
 // Return true if value changed; false if not
+// TODO Should this handle 'o' for operator? (Server or ChanOp??) - is a confusing halfway house
+// ...it would add the posting user to the Operators attribute and we cannot access it here...
+// TODO Mode +n for no external messages could be added
 bool Channel::setMode(char mode, bool add, const std::string &param)
 {
 	switch (mode)
@@ -330,7 +333,6 @@ bool Channel::setMode(char mode, bool add, const std::string &param)
 		case 'i':
 			_inviteOnly = add;
 			return true;
-		// TODO Check this logic - I think a k without password should clear it?
 		case 'k':
 			if (add)
 			{

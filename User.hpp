@@ -10,14 +10,15 @@
 // TODO Decide if any other information is useful to us here
 // DONE Add a last seen timestamp (what format?) to allow for timeouts
 // TODO Add getter for time in appropriate format (string?)
-// TODO Decide how to store MODEs
-// TODO Add more constructors as appropriate
-// TODO Decide how to store server info
 // TODO Add a "display as source" method giving info to add to Message.source
 // .....which commands need that?
 // TODO Add _address info to the << display override
 // TODO Extract useful info from sockaddr_in *on construction*
 // ....to save complications for function callers (me, I am the function caller)
+// TODO Add a setMode(modestring) method akin to Channel's
+// TODO Support invisible user mode +i
+// - store in User
+// - use to filter results (might have to be in another Class)
 class	User
 {
 	private:

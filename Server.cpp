@@ -702,20 +702,25 @@ void	Server::_userMode(Message *msg, User *usr, std::string target)
 	(void) msg;
 	(void) usr;
 	(void) target;
+	std::list<std::string> params = msg->getParams();
+	(void) params;
 	std::cerr << "User MODE not yet handled" << std::endl;
 }
 
 // MODE command to deal with a Channel
+// TODO If channel mode changes, broadcast the change to channel
+// NOTE Here, params has popped off the first (target), it is not like msg->getParams()
 void	Server::_channelMode(Message *msg, User *usr, std::string target)
 {
+	std::list<std::string>	params = msg->getParams();
 	Channel *channel = _findChannel(target);
 	if (!channel)
 	{
-		// TODO How does thiss give the incorreect channel name?
+		// TODO How do we include the "wrong" name here? add target somehow
 		this->_toProcess.push(Message::_reply(*msg, ERR_NOSUCHCHANNEL));
 		return ;
 	}
-	if (msg->getParamCount() == 1)
+	if (params.empty())
 	{
 		// We only got a channel so we list the modes and return
 		// RPL_CHANNELMODEIS (324)
@@ -732,21 +737,24 @@ void	Server::_channelMode(Message *msg, User *usr, std::string target)
 		return ;
 	}
 	// get the modestring from the second parameter
-	std::string	modestring;
-	if (msg->getParamCount() == 2)
-		modestring = msg->getParams().back();
-	else if (msg->getParamCount() == 3)
-		// FIXME dumb dumb dumb
-		std::cerr << "Too dumb to get the middle parameter" << std::endl;
 	// and any mode parameters from the third
-	// FIXME this logic is nonlogical
-	// TODO Add MODE change logic for channel (perhaps that is a Channel method that takes the modestring)
+	std::string	modestring = params.front();
+	std::string	modearg;
+	params.pop_front();
+	if (!params.empty())
+		modearg = "";
+	else
+		modearg = params.front();
+	channel->setMode(modestring);
+	(void) modearg;	// HACK until I expand setMode to handle the args
 }
 
 // TODO Handle modestring-less commands with a reply
 // - param 1 = target, either Nick or Channel
 // - param 2 = optional modestring
 // - param 3 = optional mode arguments
+// First we decide if we are targetting a channel or aa user, and direct appropriately
+// After changes are made, we have to notify them - individually or together?
 void	Server::handleMode(Message *msg, User *usr)
 {
     std::list<std::string> params = msg->getParams();
@@ -756,49 +764,20 @@ void	Server::handleMode(Message *msg, User *usr)
         return ;
 	}
     std::string target = params.front();
-	params.pop_front();
+//	params.pop_front();	// NOTE This causes a crash below if we remove the final parameter...
 	std::cout << "Directing mode for:" << target << std::endl;	// HACK debug statement
 	if (target.find_first_of("#&") == 0)// Do MODE as Channel
 	{
-		_channelMode(msg, usr, target);
-		// Do MODE as Channel
+		std::cout << "Choosing channel" << std::endl;	// HACK debug statement
+		this->_channelMode(msg, usr, target);
 		return;
 	}
 	else // treat target as NICK
 	{
-		_userMode(msg, usr, target);
+		std::cout << "Choosing user" << std::endl;	// HACK debug statement
+		this->_userMode(msg, usr, target);
 		return ;
 	}
-	// NOTE Nothing below now gets reached.
-    std::string flags = params.front(); params.pop_front();
-	// This below does....what?
-	// FIXME This mode-making logic must be shared, else it will cause problems
-    bool adding = true;
-    for (size_t i = 0; i < flags.size(); ++i)
-    {
-        char f = flags[i];
-        if (f == '+') { adding = true; continue; }
-        if (f == '-') { adding = false; continue; }
-
-		(void) adding;	// HACK
-        std::string param = "";
-        if (!params.empty())
-        {
-            param = params.front();
-            params.pop_front();
-        }
-
-        // HACK below commented out for compilation
-        // if (channel->setMode(f, adding, param))
-        // {
-		// 	// TODO Must be able to explain this ternary expression
-        //     std::string modeStr = (adding ? "+" : "-") + std::string(1, f);
-        //     if (!param.empty())
-        //         modeStr += " " + param;
-		// 	this->_toProcess.push(Message::_channelMessage(*msg, channel));
-        //     //_broadcastToChannel(channel, -1, ":server MODE " + chan + " " + modeStr, true);
-        // }
-    }
 }
 
 // Client says PING <token> then we return PONG <token>

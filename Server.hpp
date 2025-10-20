@@ -6,6 +6,7 @@
 #include <string>
 #include <queue>// Messages to be processed
 #include <map>	// dictionary of partial messages
+#include <list>	// parameters in user/channelMode
 #include <ctime>
 
 class	Message;
