@@ -53,7 +53,8 @@ class Channel
 		bool						isInviteOnly(void) const;
 		bool						hasPassword(void) const;
 		const std::string&			getPassword(void) const;
-		int							getUserLimit(void) const;
+		int			getUserLimit(void) const;
+		std::string		getUserLimitText(void) const;
 		size_t						getMemberCount(void) const;
 		std::string		getMemberCountText(void) const;
 		std::list<int>		getBroadcastFDs(void) const;	// for use with PRIVMSG, NOTICE, etc

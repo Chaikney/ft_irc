@@ -127,6 +127,16 @@ int Channel::getUserLimit(void) const
 	return _userLimit;
 }
 
+std::string Channel::getUserLimitText(void) const
+{
+	int	n = _userLimit;
+	std::stringstream	strm;
+	strm << n;
+	std::string	str;
+	str = strm.str();
+	return (str);
+}
+
 size_t Channel::getMemberCount(void) const
 {
 	return _members.size();
@@ -283,7 +293,7 @@ bool Channel::isBanned(const std::string &mask) const
 // how do we handle reporting the ones with parametrers, i.e. limit?
 std::string Channel::getModeString(void) const
 {
-	std::string modes = "+";
+	std::string modes;
 
 	if (_topicProtected)
 		modes += "t";
@@ -292,9 +302,13 @@ std::string Channel::getModeString(void) const
 	if (hasPassword())
 		modes += "k";
 	if (_userLimit > 0)
-		modes += "l";
-
-	return modes;
+	{
+		modes += "l ";
+		modes += this->getUserLimitText();
+	}
+	if (!modes.empty())
+		modes = "+" + modes;
+	return (modes);
 }
 
 // This should ingest like C++ not C
