@@ -735,6 +735,7 @@ void	Server::_channelMode(Message *msg, User *usr, std::string target)
 		this->_toProcess.push(Message::_reply(*msg, ERR_NOSUCHCHANNEL));
 		return ;
 	}
+	params.pop_front();	// discard target
 	if (params.empty())
 	{
 		// We only got a channel so we list the modes and return
@@ -760,7 +761,7 @@ void	Server::_channelMode(Message *msg, User *usr, std::string target)
 		modearg = "";
 	else
 		modearg = params.front();
-	channel->setMode(modestring);
+	channel->setMode(modestring, modearg);
 	(void) modearg;	// HACK until I expand setMode to handle the args
 }
 

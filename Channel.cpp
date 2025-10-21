@@ -201,6 +201,8 @@ bool Channel::removeMember(User *usr)
 	return true;
 }
 
+// FIXME Can cause segfault, protect this.
+// (Called from Server::handleQuit 1127)
 bool Channel::isMember(User *usr) const
 {
 	return (_members.find(usr) != _members.end());
@@ -297,14 +299,14 @@ std::string Channel::getModeString(void) const
 
 // This should ingest like C++ not C
 // get a value for adding, flag and param
-// pass that to the other setMode function
-// FIXME This wouldn't carry a parameter, as the string would be lost?
-// NOTE This could be const, as the changes happen in the other setMode(?)
-bool	Channel::setMode(std::string modestring)
+// Identify the final modestring char and only then
+// pass param to the other setMode function
+bool	Channel::setMode(std::string modestring, std::string modearg)
 {
 	bool adding = true;
 	std::stringstream	strm(modestring);
 	char	c = 0;
+	int	strm_size = modestring.length();
 
 	while (strm)	// or whatever
 	{
@@ -313,8 +315,16 @@ bool	Channel::setMode(std::string modestring)
 			adding = true;
 		else if (c ==  '-')
 			adding = false;
+		else if (strm.tellg() == strm_size)
+		{
+			std::cout << "Last modestr:" << c << "\tpassing param" << std::endl;
+			setMode(c, adding, modearg);
+		}
 		else
-			setMode(c, adding, "");	// HACK ignores parameters (because I don't understand them)
+		{
+			std::cout << "modestr:" << c << "\twithout param" << std::endl;
+			setMode(c, adding, "");
+		}
 	}
 	return true;	// just because
 }
@@ -327,15 +337,19 @@ bool	Channel::setMode(std::string modestring)
 // DONE Mode +n for no external messages could be added
 bool Channel::setMode(char mode, bool add, const std::string &param)
 {
+	std::cout << "Channel mode letter setting" << std::endl;
 	switch (mode)
 	{
 		case 't':
 			_topicProtected = add;
+			std::cout << "Touched topic mode" << std::endl;
 			return true;
 		case 'i':
 			_inviteOnly = add;
+			std::cout << "Touched invite mode" << std::endl;
 			return true;
 		case 'k':
+			std::cout << "Touched key mode" << std::endl;
 			if (add)
 			{
 				if (param.empty())
@@ -346,19 +360,23 @@ bool Channel::setMode(char mode, bool add, const std::string &param)
 				_password.clear();
 			return true;
 		case 'l':
+			std::cout << "Touched limit mode" << std::endl;
 			if (add)
 			{
 				if (param.empty())
 					return false;
+				std::cout << "Setting limit to:" << param << "(" << atoi(param.c_str()) << ")" << std::endl;
 				_userLimit = atoi(param.c_str());
 			}
 			else
 				_userLimit = 0;
 			return true;
 		case 'n':
+			std::cout << "Touched no external mode" << std::endl;
 			this->_noExtMsg = add;
 			return (true);
 		case 'o':
+			std::cout << "Touched op mode" << std::endl;
 			if (param.empty())
 				return (false);
 			else

@@ -93,8 +93,8 @@ class Channel
 		// Mode management
 		// TODO Make setMode an internal thing and have an exeternal piece that takes the whole modestring
 		std::string					getModeString(void) const;
-		bool						setMode(char mode, bool add, const std::string &param = "");
-		bool						setMode(std::string modestring);
+		bool			setMode(char mode, bool add, const std::string &param = "");
+		bool			setMode(std::string modestring, std::string modearg) ;
 
 		// Utility
 		bool						isEmpty(void) const;
