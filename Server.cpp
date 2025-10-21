@@ -710,14 +710,15 @@ void	Server::_userMode(Message *msg, User *usr, std::string target)
 	(void) usr;
 	std::list<std::string> params = msg->getParams();
 	params.pop_front();	// that was the target
-	std::string	modestring = params.front();
-	std::string	modearg;
-	if (!params.empty())
-		modearg = "";
+	if (params.empty())
+	{
+		this->_toProcess.push(Message::_reply(*msg, RPL_UMODEIS, msg->getOrigin()));
+	}
 	else
-		modearg = params.front();
-	target_user->setMode(modestring);
-	(void) modearg;	// HACK until I expand setMode to handle the args
+	{
+		std::string	modestring = params.front();
+		target_user->setMode(modestring);
+	}
 }
 
 // MODE command to deal with a Channel

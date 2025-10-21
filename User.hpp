@@ -57,6 +57,7 @@ class	User
 		std::list<std::string>	getWhoIs(void) const;
 		std::string			getFlags(void) const;
 		std::string			getUserHostMsg(void) const;
+		std::string			getModes(void) const;
 
 		// Set values
 		void				switchVerification();

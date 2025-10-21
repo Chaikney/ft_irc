@@ -583,6 +583,9 @@ Message*	Message::_reply(Message &msg, int rep_code, User *usr)
 
 	switch (rep_code)
 	{
+		case RPL_UMODEIS:
+			params.push_back(usr->getModes());
+			break;
 		// FIXME This needs channel as well :'(
 		case RPL_WHOREPLY:
 			who = usr->getWhoReply();

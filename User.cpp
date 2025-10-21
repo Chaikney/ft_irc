@@ -228,7 +228,8 @@ void	User::setAway(bool are)
 }
 
 // Read a modestring into pieces and pass to the active method.
-// TODO Handle parameters along commands (which might have them)
+// NOTE Ignoring parameters (unlike Channel::SetMode) because they aren't needed
+// (see https://defs.ircdocs.horse/defs/usermodes.html - only 2 have parameters, ignorable)
 bool	User::setMode(std::string modestring)
 {
 	bool adding = true;
@@ -269,4 +270,23 @@ bool User::_setModeLetter(char mode, bool add, const std::string &param)
 	default:
 		return false;
 	}
+}
+
+// Return the User's active modes, as used in RPL_UMODEIS
+// NOTE In future could add +w WALLOPS
+// Status of +o Network Operator is ambiguous - we have no network
+// TODO Consider making User::getModes private - who else uses it?
+std::string	User::getModes(void) const
+{
+	std::string	modes;
+	if (this->_isInvisible)
+		modes.append("i");
+	if (this->_isServerOp)
+		modes.append("O");
+	if (this->isRegistered())
+		modes.append("r");
+	// Finally, if the return is not blank, it starts with a +
+	if (!modes.empty())
+		modes = "+" + modes;
+	return (modes);
 }
