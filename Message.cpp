@@ -288,7 +288,7 @@ bool	Message::addParams(const std::string &addme)
 // I.e. inform of AWAY / QUIT; NOTICE or PRIVMSG
 // Test on:
 // [ ] JOIN
-// [ ] PART
+// [X] PART
 // [ ] AWAY
 // [x] QUIT
 // [ ] KICK (we haven't got KICK yet)
@@ -316,8 +316,8 @@ Message*	Message::_channelMessage(Message &msg, Channel *chan)
 		params.push_back(chan->getName());
 		params.push_back((msg.getParams().back()));
 	}
-	// else if (cmd_as_str.compare("PART") == 0)
-	// 	params.push_back((msg.getParams().back()));
+	else if (cmd_as_str.compare("PART") == 0)
+	 	params.push_back((msg.getParams().back()));
 	// else if (cmd_as_str.compare("AWAY") == 0)
 	// 	params.push_back((msg.getParams().back()));
 	transmit = new Message(src, cmd_as_str, params, targets);

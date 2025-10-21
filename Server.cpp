@@ -542,10 +542,11 @@ void	Server::handleJoin(Message *msg, User *usr)
 	return ;
 }
 
-// DONE Factor out the channel name normalisation, it is repeated everywhere
-// TODO Unsuccessful commands will need an Error reply
-// TODO Use a standard function to craft message, not hardcoded parameters
-// TODO Will need to be able to handle *multiple* Channel PARTs
+// PART command
+// - Check name and channel exists.
+// - Remove User, send confirmation and to channel
+// - Remove channel if now empty
+// TODO Will need to be able to handle *multiple* Channel PARTs (comma separated)
 void	Server::handlePart(Message *msg, User *usr)
 {
     std::list<std::string> params = msg->getParams();
@@ -573,15 +574,12 @@ void	Server::handlePart(Message *msg, User *usr)
 		// Send a PART confirmation to the User
 		this->_toProcess.push(Message::_replyNonNumeric(*msg, channel));
         usr->removeChannel(chan);
-		// TODO Send NOTICE to that channel using Message and queue
 		this->_toProcess.push(Message::_channelMessage(*msg, channel));
-        //_broadcastToChannel(channel, -1, ":server NOTICE " + chan + " :" + usr->getNick() + " left", true);
-
         // If channel is empty, remove it
         if (channel->isEmpty())
             _removeChannel(chan);
     }
-	else
+	else	// TODO Check that this is the only possible error here
 	{
 		this->_toProcess.push(Message::_reply(*msg, ERR_NOTONCHANNEL));
 		return ;
