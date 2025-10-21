@@ -364,6 +364,7 @@ bool Channel::setMode(char mode, bool add, const std::string &param)
 			else
 			{
 				this->addOperator(this->findMemberByNick(param));
+				return (true);
 			}
 		default:
 			return false;
