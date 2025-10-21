@@ -485,6 +485,9 @@ Message*	Message::_reply(Message &msg, int rep_code)
 		case RPL_ENDOFWHOIS:
 			params.push_back("End of /WHOIS list of messages");
 			break;
+		case ERR_USERSDONTMATCH:
+			params.push_back("You can't change other users' modes");
+			break;
 		default:
 			std::cerr << "Reply not handled yet (simple version):" << rep_code << std::endl;
 	}

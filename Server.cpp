@@ -697,9 +697,14 @@ void	Server::handleInvite(Message *msg, User *usr)
 }
 
 // MODE command to deal with a User
-// FIXME Must handle modearg
+// NOTE User modes don't need the modearg
+// TODO Notify changed modes. How?
+// TODO Check that the user and target are the same
+// TODO Send mode list when no modestring
+// TODO Notify on changed modes
 void	Server::_userMode(Message *msg, User *usr, std::string target)
 {
+	(void) usr;
 	User* target_user = this->_findUserByNick(target);
 	if (!target_user)
 	{
@@ -707,7 +712,10 @@ void	Server::_userMode(Message *msg, User *usr, std::string target)
 		this->_toProcess.push(Message::_reply(*msg, ERR_NOSUCHNICK));
 		return ;
 	}
-	(void) usr;
+	if (!(*usr == *target_user))
+	{
+		this->_toProcess.push(Message::_reply(*msg, ERR_USERSDONTMATCH));
+	}
 	std::list<std::string> params = msg->getParams();
 	params.pop_front();	// that was the target
 	if (params.empty())

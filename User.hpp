@@ -72,7 +72,22 @@ class	User
 		// Channel-related operations
 		void				addChannel(const std::string &channel);
 		void				removeChannel(const std::string &channel);
+
+		// Comparison overloads
+		friend bool	operator==(const User &lhs, const User &rhs);
+		friend bool	operator!=(const User &lhs, const User &rhs);
 };
+
+// TODO Make the USER equality comparison more robust
+inline bool	operator==(const User &lhs, const User &rhs)
+{
+	return (lhs._nick == rhs._nick);
+}
+
+inline bool	operator!=(const User &lhs, const User &rhs)
+{
+	return (lhs._nick != rhs._nick);
+}
 
 // NOTE Remember to update this alongside the class members
 // TODO Add a last_seen entry
