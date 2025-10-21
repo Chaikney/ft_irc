@@ -712,13 +712,14 @@ void	Server::_userMode(Message *msg, User *usr, std::string target)
 		this->_toProcess.push(Message::_reply(*msg, ERR_NOSUCHNICK));
 		return ;
 	}
-	if (!(*usr == *target_user))
+	if (*usr != *target_user)
 	{
 		this->_toProcess.push(Message::_reply(*msg, ERR_USERSDONTMATCH));
+		return;
 	}
 	std::list<std::string> params = msg->getParams();
 	params.pop_front();	// that was the target
-	if (params.empty())
+	if (params.empty() || (params.back() == ""))
 	{
 		this->_toProcess.push(Message::_reply(*msg, RPL_UMODEIS, msg->getOrigin()));
 	}
@@ -733,7 +734,6 @@ void	Server::_userMode(Message *msg, User *usr, std::string target)
 // TODO If channel mode changes, broadcast the change to channel
 // NOTE Here, params has popped off the first (target), it is not like msg->getParams()
 // TODO How to handle +b ? (request for a ban list)? In channel i suppose
-// FIXME Must handle modearg
 void	Server::_channelMode(Message *msg, User *usr, std::string target)
 {
 	std::list<std::string>	params = msg->getParams();
@@ -745,11 +745,10 @@ void	Server::_channelMode(Message *msg, User *usr, std::string target)
 		return ;
 	}
 	params.pop_front();	// discard target
-	if (params.empty())
+	// NOTE 2nd check to work around Hexchat sending final blank parameter
+	if (params.empty() || (params.back() == ""))
 	{
 		// We only got a channel so we list the modes and return
-		// RPL_CHANNELMODEIS (324)
-		// "<client> <channel> <modestring> <mode arguments>..."
 		this->_toProcess.push(Message::_reply(*msg, RPL_CHANNELMODEIS, channel));
 		this->_toProcess.push(Message::_reply(*msg, RPL_CREATIONTIME, channel));
 		return ;
@@ -771,7 +770,6 @@ void	Server::_channelMode(Message *msg, User *usr, std::string target)
 	else
 		modearg = params.front();
 	channel->setMode(modestring, modearg);
-	(void) modearg;	// HACK until I expand setMode to handle the args
 }
 
 // TODO Handle modestring-less commands with a reply
@@ -780,6 +778,7 @@ void	Server::_channelMode(Message *msg, User *usr, std::string target)
 // - param 3 = optional mode arguments
 // First we decide if we are targetting a channel or aa user, and direct appropriately
 // After changes are made, we have to notify them - individually or together?
+// NOTE Workaround for Hexchat which sends a blank final parameter.
 void	Server::handleMode(Message *msg, User *usr)
 {
     std::list<std::string> params = msg->getParams();
