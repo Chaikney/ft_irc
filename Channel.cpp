@@ -109,7 +109,7 @@ bool Channel::isTopicProtected(void) const
 
 bool Channel::isInviteOnly(void) const
 {
-	return _inviteOnly;
+	return (this->_inviteOnly);
 }
 
 bool Channel::hasPassword(void) const

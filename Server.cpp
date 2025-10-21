@@ -503,6 +503,8 @@ void	Server::handleJoin(Message *msg, User *usr)
         channel = this->_createChannel(chan);
 
 	// NOTE This logic is odd, why remove an invite? Just to keep the list clean?
+	// FIXME I had this fail recently there is a problem somewhere.
+	// TODO Encapsulate this in some kind of Channel:addUser method
     if (channel->isInviteOnly())
     {
         if (!channel->isInvited(usr->getNick()))
@@ -698,17 +700,12 @@ void	Server::handleInvite(Message *msg, User *usr)
 
 // MODE command to deal with a User
 // NOTE User modes don't need the modearg
-// TODO Notify changed modes. How?
-// TODO Check that the user and target are the same
-// TODO Send mode list when no modestring
 // TODO Notify on changed modes
 void	Server::_userMode(Message *msg, User *usr, std::string target)
 {
-	(void) usr;
 	User* target_user = this->_findUserByNick(target);
 	if (!target_user)
 	{
-		// TODO How do we include the "wrong" name here? add target somehow
 		this->_toProcess.push(Message::_reply(*msg, ERR_NOSUCHNICK));
 		return ;
 	}
@@ -1133,6 +1130,7 @@ void	Server::handleQuit(Message *msg, User *usr)
 			broadcast->addParams(reason);
 			this->_toProcess.push(broadcast);
 //            _broadcastToChannel(channel, usr->getFD(), quitMsg, false);
+			// FIXME This has caused a segfault; must be protected.
             channel->removeMember(usr);
         }
     }
