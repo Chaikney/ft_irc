@@ -355,11 +355,17 @@ bool Channel::setMode(char mode, bool add, const std::string &param)
 	switch (mode)
 	{
 		case 't':
-			_topicProtected = add;
+			if (this->_topicProtected == add)
+				return (false);		// no action needed
+			else
+				this->_topicProtected = add;
 			std::cout << "Touched topic mode" << std::endl;
 			return true;
 		case 'i':
-			_inviteOnly = add;
+			if (this->_inviteOnly == add)
+				return (false);		// no action needed
+			else
+				this->_inviteOnly = add;
 			std::cout << "Touched invite mode" << std::endl;
 			return true;
 		case 'k':
@@ -386,8 +392,11 @@ bool Channel::setMode(char mode, bool add, const std::string &param)
 				_userLimit = 0;
 			return true;
 		case 'n':
+			if (this->_noExtMsg == add)
+				return (false); 	// no change
+			else
+				this->_noExtMsg = add;
 			std::cout << "Touched no external mode" << std::endl;
-			this->_noExtMsg = add;
 			return (true);
 		case 'o':
 			std::cout << "Touched op mode" << std::endl;
