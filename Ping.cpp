@@ -19,11 +19,11 @@ void	Ping::executeCmd(void)
 {
 	Message	msg = this->_msg;
     std::list<std::string> params = this->_msg.getParams();
-    if (params.empty())
-    {
-        this->_responses.push(Message::_reply(msg, ERR_NEEDMOREPARAMS));
-        return ;
-    }
+    // if (params.empty())
+    // {
+    //     this->_responses.push(Message::_reply(msg, ERR_NEEDMOREPARAMS));
+    //     return ;
+    // }
     std::string origin = params.front();
     if (origin.empty())
     {

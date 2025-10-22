@@ -881,17 +881,25 @@ void	Server::handleMode(Message *msg, User *usr)
 // As PONG only comes back in reponse to PING,
 // if we don't *send* a PING then there's no need to handle PONG
 // TODO Use usr to update a "last seen" value for AWAY, autodisconnects, etc
+// NOTE most of this could be replaced in-loop with the ACommand* =  and enqueue / processing...
 void	Server::handlePing(Message *msg, User *usr)
 {
 	ACommand* thingtodo = new Ping(*msg);
 	(void) usr;
+	// NOTE this could be done in a main single loop not repeated for every command
 	if (thingtodo->numParamsOK())
 		thingtodo->executeCmd();
+	else
+	{
+        this->_toProcess.push(Message::_reply(*msg, ERR_NEEDMOREPARAMS));
+        return ;
+	};
 	std::queue<Message *>	to_add = thingtodo->getResponses();
+	// TODO This also seem like a common operation to be shared...
 	while (!to_add.empty())
 	{
-	this->_toProcess.push(to_add.front());
-	to_add.pop();
+		this->_toProcess.push(to_add.front());
+		to_add.pop();
 	}
 }
 
