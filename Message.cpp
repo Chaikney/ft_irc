@@ -285,9 +285,9 @@ bool	Message::addParams(const std::string &addme)
 }
 
 // This is to get messages out to a whole channel
-// I.e. inform of AWAY / QUIT; NOTICE or PRIVMSG
+// i.e. inform of AWAY / QUIT; NOTICE or PRIVMSG
 // Test on:
-// [ ] JOIN
+// [ ] JOIN - KOnversation does not update members list when someone joins
 // [X] PART
 // [ ] AWAY
 // [x] QUIT
@@ -317,9 +317,12 @@ Message*	Message::_channelMessage(Message &msg, Channel *chan)
 		params.push_back((msg.getParams().back()));
 	}
 	else if (cmd_as_str.compare("PART") == 0)
+	{
+		params.push_back(chan->getName());	// channel name
+	 	params.push_back((msg.getParams().back()));	// PART message
+	}
+	else if (cmd_as_str.compare("AWAY") == 0)
 	 	params.push_back((msg.getParams().back()));
-	// else if (cmd_as_str.compare("AWAY") == 0)
-	// 	params.push_back((msg.getParams().back()));
 	transmit = new Message(src, cmd_as_str, params, targets);
 	std::cout << *transmit << std::endl;
 	std::cout << transmit->serialiseMsg() << std::endl;
@@ -378,7 +381,10 @@ Message*	Message::_replyNonNumeric(Message &msg, Channel *chan)
 	// TODO Check that this is used consistently
 	std::list<int>	targets;
 	// For JOIN, send only to the user joining. For others, send to all.
+	// NOTE WIthout catching here, multiple PART messages get sent...
 	if (cmd_as_str.compare("JOIN") == 0)
+		targets.push_back(msg.getOrigin()->getFD());
+	else if (cmd_as_str.compare("PART") == 0)
 		targets.push_back(msg.getOrigin()->getFD());
 	else
 		targets = chan->getBroadcastFDs();

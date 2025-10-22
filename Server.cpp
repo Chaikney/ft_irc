@@ -547,6 +547,8 @@ void	Server::handleJoin(Message *msg, User *usr)
 // - Remove User, send confirmation and to channel
 // - Remove channel if now empty
 // TODO Will need to be able to handle *multiple* Channel PARTs (comma separated)
+// FIXED? I think the PART mesasge lacks the channel name
+// FIXED Sending PART twice to channel
 void	Server::handlePart(Message *msg, User *usr)
 {
     std::list<std::string> params = msg->getParams();
