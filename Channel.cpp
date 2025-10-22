@@ -188,6 +188,8 @@ void Channel::setUserLimit(int limit)
 // Member management
 bool Channel::addMember(User *usr)
 {
+	if (!usr)
+		return (false);	// TODO Maybe this should raise an exception? It is a big problem...
 	if (_members.find(usr) != _members.end())
 		return false; // Already a member
 
@@ -202,20 +204,21 @@ bool Channel::addMember(User *usr)
 
 bool Channel::removeMember(User *usr)
 {
+	if (!usr)
+		return (false);
 	if (_members.find(usr) == _members.end())
 		return false; // Not a member
-
 	_members.erase(usr);
-// TODO Restore the Operator erase piece here
-//	_operators.erase(usr); // Remove operator status if they had it
+	_operators.erase(usr->getFD()); // Remove operator status if they had it
 	return true;
 }
 
-// FIXME Can cause segfault, protect this.
-// (Called from Server::handleQuit 1127)
 bool Channel::isMember(User *usr) const
 {
-	return (_members.find(usr) != _members.end());
+	if (!usr)
+		return (false);
+	else
+		return (_members.find(usr) != _members.end());
 }
 
 bool Channel::isOperator(int userFd) const
@@ -223,14 +226,13 @@ bool Channel::isOperator(int userFd) const
 	return _operators.find(userFd) != _operators.end();
 }
 
-// TODO Needs updated
+// TODO Needs updated when Operators stores User*
 bool Channel::addOperator(User *usr)
 {
 	if (!usr)
 		return (false);
 	if (_members.find(usr) == _members.end())
 		return false; // Must be a member first
-	// TODO Update this later.
 	_operators.insert(usr->getFD());
 	return true;
 }
