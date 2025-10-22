@@ -487,6 +487,10 @@ void	Server::handleJoin(Message *msg, User *usr)
         return ;
 	}
     std::string chan = params.front();
+	if (chan.compare("0") == 0)
+	{
+		std::cerr << "JOIN 0 not yet implemented." << std::endl;
+	}
     // If the channel name is valid, store and remove from our params
 	if (!this->normaliseChanName(&chan))
 	{
@@ -537,7 +541,11 @@ void	Server::handleJoin(Message *msg, User *usr)
 		this->_toProcess.push(Message::_reply(*msg, RPL_ENDOFNAMES, channel));
 
         // Notify channel (simple join message, or should it be a NOTICE?)
-		this->_toProcess.push(Message::Message::_channelMessage(*msg, channel));
+        // "This message may be sent from a server to a client to notify the client
+        // that someone has joined a channel. In this case, the message <source>
+        // will be the client who is joining,
+        // and <channel> will be the channel which that client has joined
+		this->_toProcess.push(Message::_channelMessage(*msg, channel));
     }
 	return ;
 }
@@ -576,6 +584,7 @@ void	Server::handlePart(Message *msg, User *usr)
 		// Send a PART confirmation to the User
 		this->_toProcess.push(Message::_replyNonNumeric(*msg, channel));
         usr->removeChannel(chan);
+		// ...and to the Channel
 		this->_toProcess.push(Message::_channelMessage(*msg, channel));
         // If channel is empty, remove it
         if (channel->isEmpty())
