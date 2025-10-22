@@ -279,15 +279,16 @@ void	Server::_printMessageQueue(std::queue<Message *> toPrint) const
 	std::cout << n << " Messages printed" << std::endl;
 }
 
-// Manejo de comandos IRC ---
-// Esqueleto para el comando KICK
+// KICK <channel> <user> [<comment>]
 // TODO Remove repetitive parts like checking the channel name, that should be in Channel::_findChannel
 // TODO isOperator() probably is based on NICK or USER not a fd? What happens if they reconnect?
-// TODO Wrong number of parameters needs an error message sent
 // TODO Unified message creation / sending not the hardcoded parameters
+// TODO Adapt to handle multiple Users getting kicked from the one channel
+// (Although: "Servers MAY limit the number of target users per KICK command via the TARGMAX parameter
+// of RPL_ISUPPORT, and silently drop targets if the number of targets exceeds
+// the limit.)"
 void Server::handleKick(Message *msg, User *usr)
 {
-	std::cout << "[KICK] Comando recibido de fd " << usr->getFD() << std::endl;
 	std::list<std::string> params = msg->getParams();
 	if (params.size() < 2)
 	{
@@ -300,6 +301,8 @@ void Server::handleKick(Message *msg, User *usr)
 	std::string reason = "";
 	if (!params.empty())
 		reason = params.front();
+	if (reason.empty())
+		reason = "Kicked";
 	// Normalise channel name
 	if (this->normaliseChanName(&chan) == false)
 	{
@@ -310,6 +313,12 @@ void Server::handleKick(Message *msg, User *usr)
 	if (!channel)
 	{
 		this->_toProcess.push(Message::_reply(*msg, ERR_NOSUCHCHANNEL));
+		return ;
+	}
+	// Sender must be on channel
+	if (!channel->isMember(usr))
+	{
+		this->_toProcess.push(Message::_reply(*msg, ERR_NOTONCHANNEL));
 		return ;
 	}
 	// Sender must be channel operator
@@ -334,9 +343,10 @@ void Server::handleKick(Message *msg, User *usr)
 	// Remove target from channel
 	channel->removeMember(target);
 	target->removeChannel(chan);	// NOTE This depends on User storing their Channels, which they don't, currently
-	if (reason.empty()) reason = "Kicked";
 	// Notify channel and target
-	_broadcastToChannel(channel, -1, ":server KICK " + chan + " " + nick + " :" + reason, true);
+	_toProcess.push(Message::_channelMessage(*msg, channel));
+// FIXME Notififying the KICKed user doesn't work through _replyNonNumeric()
+//	_toProcess.push(Message::_replyNonNumeric(*msg, channel));
 	_sendToFD(target->getFD(), ":server KICK " + chan + " " + nick + " :" + reason + "\r\n");
 }
 

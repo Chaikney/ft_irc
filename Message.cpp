@@ -321,6 +321,12 @@ Message*	Message::_channelMessage(Message &msg, Channel *chan)
 		params.push_back(chan->getName());	// channel name
 	 	params.push_back((msg.getParams().back()));	// PART message
 	}
+	// FIXME Need: channel userkicked reason -- cant get userkicked this way
+	else if (cmd_as_str.compare("KICK") == 0)
+	{
+		params.push_back(chan->getName());	// channel name
+	 	params.push_back((msg.getParams().back()));	// reason
+	}
 	else if (cmd_as_str.compare("AWAY") == 0)
 	 	params.push_back((msg.getParams().back()));
 	transmit = new Message(src, cmd_as_str, params, targets);
@@ -362,7 +368,7 @@ Message*	Message::_replyNonNumeric(Message &msg)
 // NOTE targets is a LIST so we can expand sending to multiple clients
 // ...that is maybe not needed now?
 // NOTE For this to work with PART you have to include the Reason, final parameter
-// FIXME We send a double channel for JOIN here
+// FIXME The user-specific KICK message is incorrect, lacks KICKed nick
 Message*	Message::_replyNonNumeric(Message &msg, Channel *chan)
 {
 	Message*	transmit;
@@ -385,6 +391,8 @@ Message*	Message::_replyNonNumeric(Message &msg, Channel *chan)
 	if (cmd_as_str.compare("JOIN") == 0)
 		targets.push_back(msg.getOrigin()->getFD());
 	else if (cmd_as_str.compare("PART") == 0)
+		targets.push_back(msg.getOrigin()->getFD());
+	else if (cmd_as_str.compare("KICK") == 0)
 		targets.push_back(msg.getOrigin()->getFD());
 	else
 		targets = chan->getBroadcastFDs();
@@ -485,6 +493,9 @@ Message*	Message::_reply(Message &msg, int rep_code)
 			break;
 		case ERR_BADCHANMASK:
 			params.push_back("Bad channel mask (i.e. name is not valid)");
+			break;
+		case ERR_NOTONCHANNEL:
+			params.push_back("You're not on this channel");
 			break;
 		case ERR_CHANOPRIVSNEEDED:
 			params.push_back("You're not channel operator");
