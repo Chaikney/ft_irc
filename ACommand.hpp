@@ -2,6 +2,8 @@
 # define ACOMMAND_HPP
 
 #include "Server.hpp"
+#include "Message.hpp"
+#include "ReplyEnums.hpp"
 
 // NOTE Causes compilation warning in Ping constructor, "unused"?
 //static	size_t	MAXPARAM = 10;
