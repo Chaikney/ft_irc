@@ -1,4 +1,6 @@
 #include "Server.hpp"
+#include "ACommand.hpp"
+#include "Ping.hpp"
 #include "Message.hpp"
 #include "ReplyEnums.hpp"
 #include "User.hpp"
@@ -881,21 +883,16 @@ void	Server::handleMode(Message *msg, User *usr)
 // TODO Use usr to update a "last seen" value for AWAY, autodisconnects, etc
 void	Server::handlePing(Message *msg, User *usr)
 {
+	ACommand* thingtodo = new Ping(*msg);
 	(void) usr;
-    std::list<std::string> params = msg->getParams();
-    if (params.empty())
-    {
-        this->_toProcess.push(Message::_reply(*msg, ERR_NEEDMOREPARAMS));
-        return ;
-    }
-    std::string origin = params.front();
-    if (origin.empty())
-    {
-        this->_toProcess.push(Message::_reply(*msg, ERR_NOORIGIN));
-        return ;
-    }
-	// HACK send NULL for lack of overload, dangerous!
-	this->_toProcess.push(Message::_replyNonNumeric(*msg));
+	if (thingtodo->numParamsOK())
+		thingtodo->executeCmd();
+	std::queue<Message *>	to_add = thingtodo->getResponses();
+	while (!to_add.empty())
+	{
+	this->_toProcess.push(to_add.front());
+	to_add.pop();
+	}
 }
 
 // NOTE When the Server destructor is called, all memory freed. This is good!
