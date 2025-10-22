@@ -626,13 +626,14 @@ void	Server::handleNames(Message *msg, User *usr)
 	}
 }
 
-// TODO This should handle a list of channels
+// TODO This should handle receiving a list of channels (comma-separated)
 // TODO Filter the channel list that we call before looping over and listing
 void	Server::handleList(Message *msg, User *usr)
 {
-	(void) usr;	// HACK surely we need this?
+	(void) usr;	// HACK surely we need this to check if user can see them
 	if (msg->getParams().size() == 0)	// list all channels
 	{
+		this->_toProcess.push(Message::_reply(*msg, RPL_LISTSTART));
 		for (std::map<std::string, Channel*>::const_iterator it = _channels.begin(); it != _channels.end(); ++it)
 		{
 			Channel *c = it->second;
@@ -640,8 +641,30 @@ void	Server::handleList(Message *msg, User *usr)
 		}
 		this->_toProcess.push(Message::_reply(*msg, RPL_LISTEND));
 	}
-	else
-		std::cerr << "LIST with selected channels not implemented yet" << std::endl;
+	else	// List SELECTED channels only
+	{
+		std::string	chans = msg->getParams().front();
+		if (chans.empty())
+			std::cerr << "Better handling for LIST params needed" << std::endl;
+		else if (chans.find_first_of(",") != std::string::npos)	// TODO Comma split needed
+			std::cerr << "LIST with selected channels not implemented yet" << std::endl;
+		else
+		{
+			this->normaliseChanName(&chans);
+			Channel*	c = this->_findChannel(chans);
+			if (!c)
+			{
+				this->_toProcess.push(Message::_reply(*msg, ERR_NOSUCHCHANNEL));
+				return;
+			}
+			else
+			{
+				this->_toProcess.push(Message::_reply(*msg, RPL_LISTSTART));
+				this->_toProcess.push(Message::_reply(*msg, RPL_LIST, c));
+				this->_toProcess.push(Message::_reply(*msg, RPL_LISTEND));
+			}
+		}
+	}
 }
 
 // FIXME Blank topic (RPL_TOPIC?) does not supply channel name (KVIRC)

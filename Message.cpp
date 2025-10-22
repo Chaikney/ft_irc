@@ -456,6 +456,10 @@ Message*	Message::_reply(Message &msg, int rep_code)
 			params.push_back(msg.getCommand());
 			params.push_back("Command not known on this server");
 			break;
+		case RPL_LISTSTART:
+			params.push_back("Channel");
+			params.push_back("Usernames");
+			break;
 		case RPL_LISTEND:
 			params.push_back("End of /LIST");
 			break;
