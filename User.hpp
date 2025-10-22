@@ -51,6 +51,7 @@ class	User
 		std::string			getReal() const;
 		bool				isVerified() const;
 		bool				isRegistered() const;
+		bool				isAway() const;
 		sockaddr_in			getAddress() const;		// NOTE This is too low-level to be public IMO
 		std::string			getHost() const;
 		std::list<std::string>	getWhoReply(void) const;

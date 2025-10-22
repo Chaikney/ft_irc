@@ -290,3 +290,8 @@ std::string	User::getModes(void) const
 		modes = "+" + modes;
 	return (modes);
 }
+
+bool	User::isAway(void) const
+{
+	return (this->_isAway);
+}

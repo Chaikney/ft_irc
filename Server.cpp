@@ -1090,16 +1090,18 @@ void	Server::_processQueue(void)
 // TODO Handle going-away message (e.g. broadcast to channel)
 void	Server::handleAway(Message *msg, User *usr)
 {
-	if (msg->getParams().empty())
-	{
-		usr->setAway(false);
-		this->_toProcess.push(Message::_reply(*msg, RPL_UNAWAY));
-	}
-
-	else
+	if (msg->getParams().empty() && (usr->isAway()))
+		{
+			usr->setAway(false);
+			this->_toProcess.push(Message::_reply(*msg, RPL_UNAWAY));
+		}
+	else if (!usr->isAway())
 	{
 		usr->setAway(true);
 		this->_toProcess.push(Message::_reply(*msg, RPL_NOWAWAY));
+		// TODO We need to get *all* the User's channels
+		// TODO If the user is Invisible, do we say anything?
+//		this->_toProcess.push(Message::_channelMessage(*msg, chan));
 	}
 }
 
