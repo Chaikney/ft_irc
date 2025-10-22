@@ -111,5 +111,8 @@ class	Server
 		std::string	getCreation(void) const;
 		std::string	getUserModes(void) const;
 		std::string	getChanModes(void) const;
+		// IDEA Add a Message to the Server Queue - step towards Command class?
+		// ...but how would it be called?? Static=> no changes to instance. not-static, impossible to reference...
+		// void		enqueueMsg(Message *);
 };
 #endif

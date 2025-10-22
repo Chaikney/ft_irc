@@ -479,15 +479,16 @@ void	Server::handleUser(Message *msg, User *usr)
 		this->_sendWelcome(msg, usr);
 }
 
-// FIXME This does not cause clients to realise they have joined a room :|
-// TODO Send acknowledgements per https://modern.ircdocs.horse/#join-message
-// [ ] A JOIN message with the client as the message <source> and the channel they have joined as the first parameter of the message.
+// DONE Send acknowledgements per https://modern.ircdocs.horse/#join-message
+// [X] A JOIN message with the client as the message <source> and the channel they have joined as the first parameter of the message.
 // [X] The channel’s topic (with RPL_TOPIC (332) and optionally RPL_TOPICWHOTIME (333)), and no message if the channel does not have a topic.
-// [ ] A list of users currently joined to the channel (with one or more RPL_NAMREPLY (353) numerics followed by a single RPL_ENDOFNAMES (366) numeric). These RPL_NAMREPLY messages sent by the server MUST include the requesting client that has just joined the channel.
+// [X] A list of users currently joined to the channel (with one or more RPL_NAMREPLY (353) numerics followed by a single RPL_ENDOFNAMES (366) numeric).
+// ....These RPL_NAMREPLY messages sent by the server MUST include the requesting client that has just joined the channel.
 // DONE Break out the name normalisation to a helper function
-// TODO JOIN can accept an alternative parameter of '0'
-// TODO Improve parameter handling so JOIN Can handle multiple Channels
-// FIXME the reply or broadcast message repeats the #channelname
+// TODO JOIN can accept an alternative parameter of '0' = PART all the user's channels
+// TODO Improve parameter handling so JOIN Can handle multiple Channels (comma separated)
+// TODO To support KEY mode channels, the 2nd paramter is a password
+// FIXED? the reply or broadcast message repeats the #channelname
 void	Server::handleJoin(Message *msg, User *usr)
 {
     std::list<std::string> params = msg->getParams();
@@ -600,14 +601,13 @@ void	Server::handlePart(Message *msg, User *usr)
         if (channel->isEmpty())
             _removeChannel(chan);
     }
-	else	// TODO Check that this is the only possible error here
+	else
 	{
 		this->_toProcess.push(Message::_reply(*msg, ERR_NOTONCHANNEL));
 		return ;
 	}
 }
 
-// FIXME Does not comply with specifications of NAMES command
 // https://modern.ircdocs.horse/#names-message
 // Read msg parameters and call to each named channel
 // - for each channel:
@@ -720,6 +720,21 @@ void	Server::handleTopic(Message *msg, User *usr)
 	this->_toProcess.push(Message::_channelMessage(*msg, channel));
 }
 
+// INVITE <nick> <channel>
+// The target channel SHOULD exist (at least one user is on it).
+// Otherwise, the server SHOULD reject the command with the ERR_NOSUCHCHANNEL numeric.
+// Only members of the channel are allowed to invite other users.
+// Otherwise, the server MUST reject the command with the ERR_NOTONCHANNEL numeric.
+// Servers MAY reject the command with the ERR_CHANOPRIVSNEEDED numeric.
+// In particular, they SHOULD reject it when the channel has invite-only mode set, and the user is not a channel operator.
+// If the user is already on the target channel,
+// the server MUST reject the command with the ERR_USERONCHANNEL numeric.
+// When the invite is successful,
+// the server MUST send a RPL_INVITING numeric to the command issuer,
+// and an INVITE message, with the issuer as <source>, to the target user.
+// Other channel members SHOULD NOT be notified.
+// TODO Invite notification through a standard method (that works)
+// TODO Add invited NICK to two of the responses (RPL_INVITING and ERR_USERONCHANNEL)
 void	Server::handleInvite(Message *msg, User *usr)
 {
     std::list<std::string> params = msg->getParams();
@@ -727,17 +742,34 @@ void	Server::handleInvite(Message *msg, User *usr)
     std::string nick = params.front(); params.pop_front();
     std::string chan = params.front();
     Channel *channel = _findChannel(chan);
-    if (!channel) return ;
-
+    if (!channel)
+    {
+		this->_toProcess.push(Message::_reply(*msg, ERR_NOSUCHCHANNEL));
+        return ;
+    }
+	if (!channel->isMember(usr))
+    {
+		this->_toProcess.push(Message::_reply(*msg, ERR_NOTONCHANNEL));
+        return ;
+    }
     if (!channel->isOperator(usr->getFD()))
     {
-        _sendToFD(usr->getFD(), ":server 482 " + chan + " :You're not channel operator\r\n");
+		this->_toProcess.push(Message::_reply(*msg, ERR_CHANOPRIVSNEEDED));
         return ;
     }
     channel->addInvite(nick);
     User *target = _findUserByNick(nick);
-    if (target)
-        _sendToFD(target->getFD(), ":server INVITE " + nick + " " + chan + "\r\n");
+	if ((target) && channel->isMember(target))
+    {
+		this->_toProcess.push(Message::_reply(*msg, ERR_USERONCHANNEL, channel));
+        return ;
+    }
+	else
+	{
+		this->_toProcess.push(Message::_reply(*msg, RPL_INVITING, channel));
+		if (target)
+			_sendToFD(target->getFD(), ":server INVITE " + nick + " " + chan + "\r\n");
+	}
 }
 
 // MODE command to deal with a User

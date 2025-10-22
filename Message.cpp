@@ -566,6 +566,17 @@ Message*	Message::_reply(Message &msg, int rep_code, Channel *chan)
 			who = chan->getListInfo();
 			params.splice(params.end(), who);
 			break;
+		case RPL_INVITING:
+			// FIXME Invited user nick should be the first parameter (after client)
+			//params.push_back(INVITEDUSER);
+			params.push_back(chan->getName());
+			break;
+		case ERR_USERONCHANNEL:
+			// FIXME Invited user nick should be the first parameter(after client)
+			//params.push_back(INVITEDUSER);
+			params.push_back(chan->getName());
+			params.push_back("User is already a channel member");
+			break;
 		case ERR_CHANOPRIVSNEEDED:
 			params.push_back(chan->getName());
 			params.push_back("You're not a channel operator");
