@@ -16,7 +16,9 @@ SRC		=	main.cpp \
 			Server.cpp \
 			Message.cpp \
 			User.cpp \
-			Channel.cpp
+			Channel.cpp \
+			ACommand.cpp \
+			Ping.cpp
 
 OBJ		= $(SRC:.cpp=.o)
 
