@@ -421,6 +421,14 @@ void	Server::handleNick(Message *msg, User *usr)
 	}
 	std::string	newNick = _params.front();
 	std::cout << "Trying to set nickname to " << newNick << std::endl;
+	
+	// Check length (IRC limit is 9 characters)
+	if (newNick.length() > 9)
+	{
+		this->_toProcess.push(Message::_reply(*msg, ERR_ERRONEUSNICKNAME));
+		return ;
+	}
+	
 	// NOTE These characters are forbidden from starting the nick
 	std::string	notLeading = "#:&123456789";
 	std::string	forbidden = " \b\n\r";
@@ -429,6 +437,7 @@ void	Server::handleNick(Message *msg, User *usr)
 		(newNick.find_first_of(forbidden) != std::string::npos))
 	{
 		this->_toProcess.push(Message::_reply(*msg, ERR_ERRONEUSNICKNAME));
+		return ;
 	}
 	else if (_isNickTaken(newNick, usr->getFD()))
 	{
@@ -738,9 +747,28 @@ void	Server::handleTopic(Message *msg, User *usr)
 void	Server::handleInvite(Message *msg, User *usr)
 {
     std::list<std::string> params = msg->getParams();
-    if (params.size() < 2) return ;
+    if (params.empty())
+    {
+        this->_toProcess.push(Message::_reply(*msg, ERR_NEEDMOREPARAMS));
+        return ;
+    }
+    if (params.size() < 2)
+    {
+        this->_toProcess.push(Message::_reply(*msg, ERR_NEEDMOREPARAMS));
+        return ;
+    }
     std::string nick = params.front(); params.pop_front();
     std::string chan = params.front();
+    
+    // First check if the user exists
+    User *target = _findUserByNick(nick);
+    if (!target)
+    {
+        this->_toProcess.push(Message::_reply(*msg, ERR_NOSUCHNICK));
+        return ;
+    }
+    
+    // Then check if the channel exists
     Channel *channel = _findChannel(chan);
     if (!channel)
     {
@@ -757,19 +785,14 @@ void	Server::handleInvite(Message *msg, User *usr)
 		this->_toProcess.push(Message::_reply(*msg, ERR_CHANOPRIVSNEEDED));
         return ;
     }
-    channel->addInvite(nick);
-    User *target = _findUserByNick(nick);
-	if ((target) && channel->isMember(target))
+    if (channel->isMember(target))
     {
-		this->_toProcess.push(Message::_reply(*msg, ERR_USERONCHANNEL, channel));
+        this->_toProcess.push(Message::_reply(*msg, ERR_USERONCHANNEL, channel));
         return ;
     }
-	else
-	{
-		this->_toProcess.push(Message::_reply(*msg, RPL_INVITING, channel));
-		if (target)
-			_sendToFD(target->getFD(), ":server INVITE " + nick + " " + chan + "\r\n");
-	}
+    channel->addInvite(nick);
+    this->_toProcess.push(Message::_reply(*msg, RPL_INVITING, channel));
+    _sendToFD(target->getFD(), ":server INVITE " + nick + " " + chan + "\r\n");
 }
 
 // MODE command to deal with a User
@@ -894,7 +917,7 @@ void	Server::handlePing(Message *msg, User *usr)
         this->_toProcess.push(Message::_reply(*msg, ERR_NOORIGIN));
         return ;
     }
-	// HACK send NULL for lack of overload, dangerous!
+	// Send PONG response
 	this->_toProcess.push(Message::_replyNonNumeric(*msg));
 }
 
@@ -922,9 +945,10 @@ Server::~Server(void)
 // TODO Consider being more lenient and allowing \r only to terminate commands
 bool	Server::_isFullMsg(std::string msg) const
 {
-	size_t	pos;
-
-	pos = msg.find('\n');
+	if (msg.empty() || msg.length() < 3)
+		return (false);
+	
+	size_t	pos = msg.find('\n');
 	if (pos == std::string::npos)
 		return (false);
 	else
@@ -954,8 +978,12 @@ std::string	Server::_getClientInput(int fd)
 	}
 	new_chars = read(fd, buf, (sizeof(buf) - 1 - chars_already));
 	if (new_chars <= 0)
-		throw std::runtime_error("failed to read new input");
-//		_removeClient(events[i]);
+	{
+		if (new_chars == 0)
+			throw std::runtime_error("client disconnected");
+		else
+			throw std::runtime_error("failed to read new input");
+	}
 	else
 		ret_val.append(buf);
 	return (ret_val);
@@ -1115,44 +1143,52 @@ void	Server::_processQueue(void)
 		}
 		else if (do_next->getOrigin()->isRegistered())
 		{
-			do_next->getOrigin()->updateTime();
-			if (command.compare("NICK") == 0)
-				handleNick(do_next, do_next->getOrigin());
-			else if (command.compare("USER") == 0)
-				handleUser(do_next, do_next->getOrigin());
-			else if (command.compare("JOIN") == 0)
-				handleJoin(do_next, do_next->getOrigin());
-			else if (command.compare("PART") == 0)
-				handlePart(do_next, do_next->getOrigin());
-			else if (command.compare("NAMES") == 0)
-			 	handleNames(do_next, do_next->getOrigin());
-			else if (command.compare("LIST") == 0)
-				handleList(do_next, do_next->getOrigin());
-			else if (command.compare("TOPIC") == 0)
-				handleTopic(do_next, do_next->getOrigin());
-			else if (command.compare("INVITE") == 0)
-				handleInvite(do_next, do_next->getOrigin());
-			else if (command.compare("MODE") == 0)
-				handleMode(do_next, do_next->getOrigin());
-			else if (command.compare("KICK") == 0)
-				handleKick(do_next, do_next->getOrigin());
-			else if (command == "PRIVMSG")
-				handlePrivmsg(do_next, do_next->getOrigin());
-			else if (command == "PING")
-				handlePing(do_next, do_next->getOrigin());
-			else if (command == "WHO")
-				handleWho(do_next, do_next->getOrigin());
-			// HACK Hexchat sends whois in lower case
-			else if ((command == "WHOIS") || (command == "whois"))
-				handleWhoIs(do_next, do_next->getOrigin());
-			else if (command == "AWAY")
-				handleAway(do_next, do_next->getOrigin());
-			else if (command == "USERHOST")
-				handleUserhost(do_next, do_next->getOrigin());
-			else if (command == "QUIT")
-				handleQuit(do_next, do_next->getOrigin());
+			// User is already registered, reject PASS command
+			if (command.compare("PASS") == 0)
+			{
+				this->_toProcess.push(Message::_reply(*do_next, ERR_ALREADYREGISTERED));
+			}
 			else
-				this->_toProcess.push(Message::_reply(*do_next, ERR_UNKNOWNCOMMAND));
+			{
+				do_next->getOrigin()->updateTime();
+				if (command.compare("NICK") == 0)
+					handleNick(do_next, do_next->getOrigin());
+				else if (command.compare("USER") == 0)
+					handleUser(do_next, do_next->getOrigin());
+				else if (command.compare("JOIN") == 0)
+					handleJoin(do_next, do_next->getOrigin());
+				else if (command.compare("PART") == 0)
+					handlePart(do_next, do_next->getOrigin());
+				else if (command.compare("NAMES") == 0)
+				 	handleNames(do_next, do_next->getOrigin());
+				else if (command.compare("LIST") == 0)
+					handleList(do_next, do_next->getOrigin());
+				else if (command.compare("TOPIC") == 0)
+					handleTopic(do_next, do_next->getOrigin());
+				else if (command.compare("INVITE") == 0)
+					handleInvite(do_next, do_next->getOrigin());
+				else if (command.compare("MODE") == 0)
+					handleMode(do_next, do_next->getOrigin());
+				else if (command.compare("KICK") == 0)
+					handleKick(do_next, do_next->getOrigin());
+				else if (command == "PRIVMSG")
+					handlePrivmsg(do_next, do_next->getOrigin());
+				else if (command == "PING")
+					handlePing(do_next, do_next->getOrigin());
+				else if (command == "WHO")
+					handleWho(do_next, do_next->getOrigin());
+				// HACK Hexchat sends whois in lower case
+				else if ((command == "WHOIS") || (command == "whois"))
+					handleWhoIs(do_next, do_next->getOrigin());
+				else if (command == "AWAY")
+					handleAway(do_next, do_next->getOrigin());
+				else if (command == "USERHOST")
+					handleUserhost(do_next, do_next->getOrigin());
+				else if (command == "QUIT")
+					handleQuit(do_next, do_next->getOrigin());
+				else
+					this->_toProcess.push(Message::_reply(*do_next, ERR_UNKNOWNCOMMAND));
+			}
 		}
 		// NOTE deleting the Message here seems to reduce "still reachable" type leaks
 		delete do_next;
@@ -1388,6 +1424,9 @@ bool	Server::normaliseChanName(std::string *chan)
 	// Channel must have at least one character after the # or &
 	if (chan->length() < 2)
 		return (false);
+	// Channel name too long (IRC limit is 200 characters)
+	if (chan->length() > 200)
+		return (false);
 	// Reject ## or && at the start (invalid channel names)
 	if (chan->length() >= 2 && (*chan)[0] == (*chan)[1])
 		return (false);
@@ -1440,9 +1479,8 @@ void	Server::handleUserhost(Message *msg, User *usr)
 				o_params.push_back(target->getUserHostMsg());
 			in_params.pop_front();
 		}
-		Message* reply;
-		reply = Message::_replyNonNumeric(*msg);
-		// TODO add o_params to reply
+		// Create proper USERHOST reply with code 302
+		Message* reply = Message::_reply(*msg, RPL_USERHOST);
 		reply->addParams(o_params);
 		this->_toProcess.push(reply);
 	}
