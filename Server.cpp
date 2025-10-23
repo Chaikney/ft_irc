@@ -1570,3 +1570,8 @@ void	Server::_sendWelcome(Message *msg, User *usr)
 	info->addParams(this->getChanModes());
 	this->_toProcess.push(info);
 }
+
+std::map<std::string, Channel*>	Server::getChannels(void) const
+{
+	return (this->_channels);
+}

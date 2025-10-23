@@ -61,7 +61,6 @@ class	Server
 
 		// --- Helpers for channels/users ---
 		User*		_findUserByNick(const std::string &nick) const;
-		Channel*	_findChannel(const std::string &name) const;
 		Channel*	_createChannel(const std::string &name);
 		void		_removeChannel(const std::string &name);
 		void		_channelMode(Message *msg, User *usr, std::string target);
@@ -111,6 +110,9 @@ class	Server
 		std::string	getCreation(void) const;
 		std::string	getUserModes(void) const;
 		std::string	getChanModes(void) const;
+		std::map<std::string, Channel*>		getChannels(void) const;
+		// TODO This could be protected instead? Only usable by commands running on it?
+		Channel*	_findChannel(const std::string &name) const;
 		// IDEA Add a Message to the Server Queue - step towards Command class?
 		// ...but how would it be called?? Static=> no changes to instance. not-static, impossible to reference...
 		// void		enqueueMsg(Message *);
