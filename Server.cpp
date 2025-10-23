@@ -1,6 +1,7 @@
 #include "Server.hpp"
 #include "ACommand.hpp"
 #include "Ping.hpp"
+#include "ListCmd.hpp"
 #include "Message.hpp"
 #include "ReplyEnums.hpp"
 #include "User.hpp"
@@ -651,41 +652,24 @@ void	Server::handleNames(Message *msg, User *usr)
 // TODO Filter the channel list that we call before looping over and listing
 void	Server::handleList(Message *msg, User *usr)
 {
+	ACommand* thingtodo;
+	thingtodo = new ListCmd(this, *msg);
+	if (thingtodo->numParamsOK())
+		thingtodo->executeCmd();
+	else
+	{
+        this->_toProcess.push(Message::_reply(*msg, ERR_NEEDMOREPARAMS));
+        return ;
+	}
+	std::queue<Message *>	to_add = thingtodo->getResponses();
+	// TODO This also seem like a common operation to be shared...
+	// NOTE Adding two queues together is not thought to be efficient
+	while (!to_add.empty())
+	{
+		this->_toProcess.push(to_add.front());
+		to_add.pop();
+	}
 	(void) usr;	// HACK surely we need this to check if user can see them
-	if (msg->getParams().size() == 0)	// list all channels
-	{
-		this->_toProcess.push(Message::_reply(*msg, RPL_LISTSTART));
-		for (std::map<std::string, Channel*>::const_iterator it = _channels.begin(); it != _channels.end(); ++it)
-		{
-			Channel *c = it->second;
-			this->_toProcess.push(Message::_reply(*msg, RPL_LIST, c));
-		}
-		this->_toProcess.push(Message::_reply(*msg, RPL_LISTEND));
-	}
-	else	// List SELECTED channels only
-	{
-		std::string	chans = msg->getParams().front();
-		if (chans.empty())
-			std::cerr << "Better handling for LIST params needed" << std::endl;
-		else if (chans.find_first_of(",") != std::string::npos)	// TODO Comma split needed
-			std::cerr << "LIST with selected channels not implemented yet" << std::endl;
-		else
-		{
-			this->normaliseChanName(&chans);
-			Channel*	c = this->_findChannel(chans);
-			if (!c)
-			{
-				this->_toProcess.push(Message::_reply(*msg, ERR_NOSUCHCHANNEL));
-				return;
-			}
-			else
-			{
-				this->_toProcess.push(Message::_reply(*msg, RPL_LISTSTART));
-				this->_toProcess.push(Message::_reply(*msg, RPL_LIST, c));
-				this->_toProcess.push(Message::_reply(*msg, RPL_LISTEND));
-			}
-		}
-	}
 }
 
 // FIXME Blank topic (RPL_TOPIC?) does not supply channel name (KVIRC)
