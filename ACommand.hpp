@@ -17,8 +17,11 @@ class	ACommand
 {
 	private:
 		ACommand(void);	// Don't anyone call this!
+		ACommand(const ACommand& no_copy_con_please);
+		ACommand& operator=(const ACommand& no_assignment_pls);
 
 	protected:
+		Server*		_srv;	// where the commands run; allows access to server-wide info like e channel listings.
 		// NOTE This being a reference, what does it imply?
 		Message&	_msg;	// The source of / trigger for the command
 		std::string	_cmd_as_str;
@@ -28,7 +31,9 @@ class	ACommand
 		// We maybe should *differentiate* the type of responses?
 		std::queue<Message *>	_responses;
 
-		ACommand(Message &seed);	// only sub-commands can call it
+		ACommand(Server *srv, Message &seed);	// only sub-commands can call it
+		// Constructor overrding default paramter limits
+		ACommand(Server *srv, Message &seed, size_t min, size_t max);
 
 	public:
 		virtual ~ACommand(void);

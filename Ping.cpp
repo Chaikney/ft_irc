@@ -8,7 +8,7 @@
 // 	std::cerr << "Bare Ping constructor should not be called" << std::endl;
 // }
 
-Ping::Ping(Message &seed) : ACommand(seed)
+Ping::Ping(Server* srv, Message &seed) : ACommand(srv, seed, 0, 1)
 {
 	std::cerr << "Bare Ping constructor called, hope that is not a problem..." << std::endl;
 }
@@ -19,11 +19,6 @@ void	Ping::executeCmd(void)
 {
 	Message	msg = this->_msg;
     std::list<std::string> params = this->_msg.getParams();
-    // if (params.empty())
-    // {
-    //     this->_responses.push(Message::_reply(msg, ERR_NEEDMOREPARAMS));
-    //     return ;
-    // }
     std::string origin = params.front();
     if (origin.empty())
     {

@@ -884,7 +884,7 @@ void	Server::handleMode(Message *msg, User *usr)
 // NOTE most of this could be replaced in-loop with the ACommand* =  and enqueue / processing...
 void	Server::handlePing(Message *msg, User *usr)
 {
-	ACommand* thingtodo = new Ping(*msg);
+	ACommand* thingtodo = new Ping(this, *msg);
 	(void) usr;
 	// NOTE this could be done in a main single loop not repeated for every command
 	if (thingtodo->numParamsOK())
@@ -896,6 +896,7 @@ void	Server::handlePing(Message *msg, User *usr)
 	};
 	std::queue<Message *>	to_add = thingtodo->getResponses();
 	// TODO This also seem like a common operation to be shared...
+	// NOTE Adding two queues together is not thought to be efficient
 	while (!to_add.empty())
 	{
 		this->_toProcess.push(to_add.front());

@@ -8,7 +8,7 @@
 class	Ping : public ACommand
 {
 	public:
-		Ping(Message &seed);
+		Ping(Server* srv, Message &seed);
 
 		virtual ~Ping(void);
 

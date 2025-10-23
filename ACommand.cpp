@@ -8,14 +8,26 @@
 // 	std::cerr << "Bare ACommand constructor should not be called" << std::endl;
 // }
 
-ACommand::ACommand(Message &seed) : _msg(seed),
-									_cmd_as_str(""),
-									_minParam(0),
-									_maxParam(10),
-									_responses()
+ACommand::ACommand(Server *srv, Message &seed) : _srv(srv),
+												 _msg(seed),
+												 _cmd_as_str(""),
+												 _minParam(0),
+												 _maxParam(10),
+												 _responses()
 {
     this->_cmd_as_str = seed.getCommand();
 	std::cerr << "Bare ACommand constructor called, hope that is not a problem..." << std::endl;
+}
+
+ACommand::ACommand(Server *srv, Message &seed, size_t min, size_t max) : _srv(srv),
+																		 _msg(seed),
+																		 _cmd_as_str(""),
+																		 _minParam(min),
+																		 _maxParam(max),
+																		 _responses()
+{
+    this->_cmd_as_str = seed.getCommand();
+	std::cerr << "ACommand constructor called with min/max overides" << std::endl;
 }
 
 ACommand::~ACommand(void) {}
