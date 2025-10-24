@@ -10,6 +10,7 @@
 #include "Message.hpp"
 #include "ReplyEnums.hpp"
 #include "Topic.hpp"
+#include "Invite.hpp"
 #include "User.hpp"
 #include "Channel.hpp"
 #include <iostream>
@@ -565,56 +566,26 @@ void	Server::handleTopic(Message *msg, User *usr)
 	(void) usr;	// HACK surely we need this to check if user can see them
 }
 
-// INVITE <nick> <channel>
-// The target channel SHOULD exist (at least one user is on it).
-// Otherwise, the server SHOULD reject the command with the ERR_NOSUCHCHANNEL numeric.
-// Only members of the channel are allowed to invite other users.
-// Otherwise, the server MUST reject the command with the ERR_NOTONCHANNEL numeric.
-// Servers MAY reject the command with the ERR_CHANOPRIVSNEEDED numeric.
-// In particular, they SHOULD reject it when the channel has invite-only mode set, and the user is not a channel operator.
-// If the user is already on the target channel,
-// the server MUST reject the command with the ERR_USERONCHANNEL numeric.
-// When the invite is successful,
-// the server MUST send a RPL_INVITING numeric to the command issuer,
-// and an INVITE message, with the issuer as <source>, to the target user.
-// Other channel members SHOULD NOT be notified.
-// TODO Invite notification through a standard method (that works)
-// TODO Add invited NICK to two of the responses (RPL_INVITING and ERR_USERONCHANNEL)
 void	Server::handleInvite(Message *msg, User *usr)
 {
-    std::list<std::string> params = msg->getParams();
-    if (params.size() < 2) return ;
-    std::string nick = params.front(); params.pop_front();
-    std::string chan = params.front();
-    Channel *channel = _findChannel(chan);
-    if (!channel)
-    {
-		this->_toProcess.push(Message::_reply(*msg, ERR_NOSUCHCHANNEL));
-        return ;
-    }
-	if (!channel->isMember(usr))
-    {
-		this->_toProcess.push(Message::_reply(*msg, ERR_NOTONCHANNEL));
-        return ;
-    }
-    if (!channel->isOperator(usr->getFD()))
-    {
-		this->_toProcess.push(Message::_reply(*msg, ERR_CHANOPRIVSNEEDED));
-        return ;
-    }
-    channel->addInvite(nick);
-    User *target = _findUserByNick(nick);
-	if ((target) && channel->isMember(target))
-    {
-		this->_toProcess.push(Message::_reply(*msg, ERR_USERONCHANNEL, channel));
-        return ;
-    }
+	ACommand* thingtodo;
+	thingtodo = new Invite(this, *msg);
+	if (thingtodo->numParamsOK())
+		thingtodo->executeCmd();
 	else
 	{
-		this->_toProcess.push(Message::_reply(*msg, RPL_INVITING, channel));
-		if (target)
-			_sendToFD(target->getFD(), ":server INVITE " + nick + " " + chan + "\r\n");
+        this->_toProcess.push(Message::_reply(*msg, ERR_NEEDMOREPARAMS));
+        return ;
 	}
+	std::queue<Message *>	to_add = thingtodo->getResponses();
+	// TODO This also seem like a common operation to be shared...
+	// NOTE Adding two queues together is not thought to be efficient
+	while (!to_add.empty())
+	{
+		this->_toProcess.push(to_add.front());
+		to_add.pop();
+	}
+	(void) usr;	// HACK surely we need this to check if user can see them
 }
 
 // MODE command to deal with a User
