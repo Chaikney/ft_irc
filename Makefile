@@ -29,7 +29,8 @@ SRC		=	main.cpp \
 			Invite.cpp \
 			Mode.cpp \
 			Away.cpp \
-			Who.cpp
+			Who.cpp \
+			Whois.cpp
 
 OBJ		= $(SRC:.cpp=.o)
 

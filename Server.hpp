@@ -54,7 +54,6 @@ class	Server
 		bool		_isFullMsg(std::string msg) const;
 		void		_storePartial(int fd_source, std::string msg);
 		std::string	_getClientInput(int fd);
-		bool		_isNickTaken(const std::string &nick, int except_fd = -1) const;
 		// If this works, it is important
 		void		_sendMessage(Message *to_send) const;
 
@@ -111,6 +110,7 @@ class	Server
 		// TODO This could be protected instead? Only usable by commands running on it?
 		Channel*	_findChannel(const std::string &name) const;
 		User*		_findUserByNick(const std::string &nick) const;
+		bool		_isNickTaken(const std::string &nick, int except_fd = -1) const;
 		// IDEA Add a Message to the Server Queue - step towards Command class?
 		// ...but how would it be called?? Static=> no changes to instance. not-static, impossible to reference...
 		// void		enqueueMsg(Message *);
