@@ -1,5 +1,6 @@
 #include "Server.hpp"
 #include "ACommand.hpp"
+#include "Join.hpp"
 #include "KickCmd.hpp"
 #include "Ping.hpp"
 #include "Privmsg.hpp"
@@ -432,7 +433,7 @@ void	Server::handleUser(Message *msg, User *usr)
 void	Server::handleJoin(Message *msg, User *usr)
 {
 	ACommand* thingtodo;
-	thingtodo = new Privmsg(this, *msg);
+	thingtodo = new Join(this, *msg);
 	if (thingtodo->numParamsOK())
 		thingtodo->executeCmd();
 	else
