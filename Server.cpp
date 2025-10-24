@@ -2,6 +2,7 @@
 #include "ACommand.hpp"
 #include "Join.hpp"
 #include "KickCmd.hpp"
+#include "Names.hpp"
 #include "Part.hpp"
 #include "Ping.hpp"
 #include "Privmsg.hpp"
@@ -493,32 +494,25 @@ void	Server::handlePart(Message *msg, User *usr)
 // TODO Test that this works with multiple channels
 void	Server::handleNames(Message *msg, User *usr)
 {
-	(void) usr;	// HACK for compilation again
-	std::list<std::string>	params = msg->getParams();
-	if (params.empty())
+
+	ACommand* thingtodo;
+	thingtodo = new Names(this, *msg);
+	if (thingtodo->numParamsOK())
+		thingtodo->executeCmd();
+	else
 	{
-		this->_toProcess.push(Message::_reply(*msg, ERR_NEEDMOREPARAMS));
-		return ;
+        this->_toProcess.push(Message::_reply(*msg, ERR_NEEDMOREPARAMS));
+        return ;
 	}
-	while (!params.empty())
+	std::queue<Message *>	to_add = thingtodo->getResponses();
+	// TODO This also seem like a common operation to be shared...
+	// NOTE Adding two queues together is not thought to be efficient
+	while (!to_add.empty())
 	{
-		std::string	cname = params.front();
-		this->normaliseChanName(&cname);
-		Channel*	target = _findChannel(cname);
-		if (target)
-		{
-			this->_toProcess.push(Message::_reply(*msg, RPL_NAMREPLY, target));
-			this->_toProcess.push(Message::_reply(*msg, RPL_ENDOFNAMES, target));
-		}
-		else	// send end of names without touching channel
-			// NOTE This triggers a false "not implemented 366" error message
-		{
-			Message*	no_channel = Message::_reply(*msg, RPL_ENDOFNAMES);
-			no_channel->addParams(cname);
-			this->_toProcess.push(no_channel);
-		}
-		params.pop_front();
+		this->_toProcess.push(to_add.front());
+		to_add.pop();
 	}
+	(void) usr;	// HACK surely we need this to check if user can see them
 }
 
 // TODO This should handle receiving a list of channels (comma-separated)

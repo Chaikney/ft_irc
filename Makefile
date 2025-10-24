@@ -23,7 +23,8 @@ SRC		=	main.cpp \
 			Privmsg.cpp \
 			KickCmd.cpp \
 			Join.cpp \
-			Part.cpp
+			Part.cpp \
+			Names.cpp
 
 OBJ		= $(SRC:.cpp=.o)
 
