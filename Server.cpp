@@ -1,6 +1,7 @@
 #include "Server.hpp"
 #include "ACommand.hpp"
 #include "Ping.hpp"
+#include "Privmsg.hpp"
 #include "ListCmd.hpp"
 #include "Message.hpp"
 #include "ReplyEnums.hpp"
@@ -360,48 +361,24 @@ void Server::handleKick(Message *msg, User *usr)
 // FIXME Mesage formatting is wrong. sender? Message must be precede by :
 void Server::handlePrivmsg(Message *msg, User *usr)
 {
-	std::list<std::string> params = msg->getParams();
-	if (params.size() < 2)
-	{
-		this->_toProcess.push(Message::_reply(*msg, ERR_NEEDMOREPARAMS));
-		return ;
-	}
-	std::string target = params.front();
-	params.pop_front();
-	std::string text = params.front();
-	// Channel message
-	if (!target.empty() && target[0] == '#')
-	{
-		// Only allow if sender is member of the channel
-		Channel *channel = _findChannel(target);
-		if (!channel)
-		{
-			this->_toProcess.push(Message::_reply(*msg, ERR_NOSUCHCHANNEL));
-			return ;
-		}
-		// TODO Faster to find Channel membership directly with User? Or not?
-		if (!channel->isMember(usr))
-		{
-			// 404 ERR_CANNOTSENDTOCHAN
-			this->_toProcess.push(Message::_reply(*msg, ERR_CANNOTSENDTOCHAN));
-			return ;
-		}
-		else
-			_toProcess.push(Message::_channelMessage(*msg, channel));
-	}
+	ACommand* thingtodo;
+	thingtodo = new Privmsg(this, *msg);
+	if (thingtodo->numParamsOK())
+		thingtodo->executeCmd();
 	else
-	{	// For individual user
-		// TODO Need to change the text format in PRIVMSG e.g. source, or not?
-		User *to = _findUserByNick(target);
-		if (to)
-		{
-			// FIXME This won't work without yet another overload. (to what?)
-//			_toProcess.push(Message::_replyNonNumeric(*msg, to));
-		}
-		//	_sendToFD(to->getFD(), text + "\r\n");
-		else
-			this->_toProcess.push(Message::_reply(*msg, ERR_NOSUCHNICK));
+	{
+        this->_toProcess.push(Message::_reply(*msg, ERR_NEEDMOREPARAMS));
+        return ;
 	}
+	std::queue<Message *>	to_add = thingtodo->getResponses();
+	// TODO This also seem like a common operation to be shared...
+	// NOTE Adding two queues together is not thought to be efficient
+	while (!to_add.empty())
+	{
+		this->_toProcess.push(to_add.front());
+		to_add.pop();
+	}
+	(void) usr;
 }
 
 // Get user
