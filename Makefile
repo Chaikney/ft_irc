@@ -21,7 +21,8 @@ SRC		=	main.cpp \
 			Ping.cpp \
 			ListCmd.cpp \
 			Privmsg.cpp \
-			KickCmd.cpp
+			KickCmd.cpp \
+			Join.cpp
 
 OBJ		= $(SRC:.cpp=.o)
 

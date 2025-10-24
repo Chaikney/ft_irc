@@ -60,7 +60,6 @@ class	Server
 
 
 		// --- Helpers for channels/users ---
-		Channel*	_createChannel(const std::string &name);
 		void		_removeChannel(const std::string &name);
 		void		_channelMode(Message *msg, User *usr, std::string target);
 		void		_userMode(Message *msg, User *usr, std::string target);
@@ -116,5 +115,7 @@ class	Server
 		// IDEA Add a Message to the Server Queue - step towards Command class?
 		// ...but how would it be called?? Static=> no changes to instance. not-static, impossible to reference...
 		// void		enqueueMsg(Message *);
+		// NOTE also maybe protected, or a "friend" function?
+		Channel*	_createChannel(const std::string &name);
 };
 #endif

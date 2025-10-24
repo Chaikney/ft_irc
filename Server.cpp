@@ -431,73 +431,24 @@ void	Server::handleUser(Message *msg, User *usr)
 // FIXED? the reply or broadcast message repeats the #channelname
 void	Server::handleJoin(Message *msg, User *usr)
 {
-    std::list<std::string> params = msg->getParams();
-    if (params.empty())
+	ACommand* thingtodo;
+	thingtodo = new Privmsg(this, *msg);
+	if (thingtodo->numParamsOK())
+		thingtodo->executeCmd();
+	else
 	{
-		this->_toProcess.push(Message::_reply(*msg, ERR_NEEDMOREPARAMS));
+        this->_toProcess.push(Message::_reply(*msg, ERR_NEEDMOREPARAMS));
         return ;
 	}
-    std::string chan = params.front();
-	if (chan.compare("0") == 0)
+	std::queue<Message *>	to_add = thingtodo->getResponses();
+	// TODO This also seem like a common operation to be shared...
+	// NOTE Adding two queues together is not thought to be efficient
+	while (!to_add.empty())
 	{
-		std::cerr << "JOIN 0 not yet implemented." << std::endl;
+		this->_toProcess.push(to_add.front());
+		to_add.pop();
 	}
-    // If the channel name is valid, store and remove from our params
-	if (!this->normaliseChanName(&chan))
-	{
-		// Send error message and stop processing message
-		this->_toProcess.push(Message::_reply(*msg, ERR_BADCHANMASK));
-		return ;
-	}
-	else
-    	params.pop_front();
-
-	// If the channel cannot be found, create it
-    Channel *channel = this->_findChannel(chan);
-    if (!channel)
-        channel = this->_createChannel(chan);
-
-	// NOTE This logic is odd, why remove an invite? Just to keep the list clean?
-	// FIXME I had this fail recently there is a problem somewhere.
-	// TODO Encapsulate this in some kind of Channel:addUser method
-    if (channel->isInviteOnly())
-    {
-        if (!channel->isInvited(usr->getNick()))
-        {
-			this->_toProcess.push(Message::_reply(*msg, ERR_INVITEONLYCHAN, channel));
-            return ;
-        }
-        else
-        {
-            channel->removeInvite(usr->getNick());
-        }
-    }
-
-	// Add member to channel
-    if (channel->addMember(usr))
-    {
-        usr->addChannel(chan);
-		// Send JOIN confirmation
-		this->_toProcess.push(Message::_replyNonNumeric(*msg, channel));
-
-		// Send topic if channel has one
-		if (!channel->getTopic().empty())
-		{
-			this->_toProcess.push(Message::_reply(*msg, RPL_TOPIC, channel));
-			this->_toProcess.push(Message::_reply(*msg, RPL_TOPICWHOTIME, channel));
-		}
-
-		// Send names list (shows who is in the channel)
-		this->_toProcess.push(Message::_reply(*msg, RPL_NAMREPLY, channel));
-		this->_toProcess.push(Message::_reply(*msg, RPL_ENDOFNAMES, channel));
-
-        // Notify channel (simple join message, or should it be a NOTICE?)
-        // "This message may be sent from a server to a client to notify the client
-        // that someone has joined a channel. In this case, the message <source>
-        // will be the client who is joining,
-        // and <channel> will be the channel which that client has joined
-		this->_toProcess.push(Message::_channelMessage(*msg, channel));
-    }
+	(void) usr;
 	return ;
 }
 
