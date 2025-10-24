@@ -15,6 +15,7 @@
 #include "Away.hpp"
 #include "Who.hpp"
 #include "Whois.hpp"
+#include "Userhost.hpp"
 #include "User.hpp"
 #include "Channel.hpp"
 #include <iostream>
@@ -1116,33 +1117,26 @@ std::string	Server::getCreation(void) const
 	return (creationmsg);
 }
 
-// Return RPL_USERHOST 302 for up to 5 NICKs
-// This is one list with a space-spearated parameter list of the userHostMsg ouptuts
-// TODO Test with multiple NICKs
 void	Server::handleUserhost(Message *msg, User *usr)
 {
-	(void) usr;	// HACK this should be used to check permission to view nicks
-	std::list<std::string>	in_params = msg->getParams();
-	std::list<std::string>	o_params;
-	if (in_params.size() > 5)
-		return ;	// Silently ignore
+	ACommand* thingtodo = new Userhost(this, *msg);
+
+	(void) usr;
+	// NOTE this could be done in a main single loop not repeated for every command
+	if (thingtodo->numParamsOK())
+		thingtodo->executeCmd();
 	else
 	{
-		while (!in_params.empty())
-		{
-			std::string	nick = in_params.front();
-			// Find User by Nick
-			User*	target = this->_findUserByNick(nick);
-			// TODO This should *do* something with the return!
-			if (target)
-				o_params.push_back(target->getUserHostMsg());
-			in_params.pop_front();
-		}
-		Message* reply;
-		reply = Message::_replyNonNumeric(*msg);
-		// TODO add o_params to reply
-		reply->addParams(o_params);
-		this->_toProcess.push(reply);
+        this->_toProcess.push(Message::_reply(*msg, ERR_NEEDMOREPARAMS));
+        return ;
+	};
+	std::queue<Message *>	to_add = thingtodo->getResponses();
+	// TODO This also seem like a common operation to be shared...
+	// NOTE Adding two queues together is not thought to be efficient
+	while (!to_add.empty())
+	{
+		this->_toProcess.push(to_add.front());
+		to_add.pop();
 	}
 }
 

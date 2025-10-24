@@ -30,7 +30,8 @@ SRC		=	main.cpp \
 			Mode.cpp \
 			Away.cpp \
 			Who.cpp \
-			Whois.cpp
+			Whois.cpp \
+			Userhost.cpp
 
 OBJ		= $(SRC:.cpp=.o)
 
