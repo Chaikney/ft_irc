@@ -1316,3 +1316,8 @@ std::map<std::string, Channel*>	Server::getChannels(void) const
 {
 	return (this->_channels);
 }
+
+Channel*	Server::getChannel(std::string target)
+{
+	return (this->_channels[target]);
+}

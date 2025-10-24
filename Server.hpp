@@ -106,6 +106,8 @@ class	Server
 		std::string	getUserModes(void) const;
 		std::string	getChanModes(void) const;
 		std::map<std::string, Channel*>		getChannels(void) const;
+		Channel*	getChannel(std::string target) ;
+
 		// TODO This could be protected instead? Only usable by commands running on it?
 		Channel*	_findChannel(const std::string &name) const;
 		User*		_findUserByNick(const std::string &nick) const;
