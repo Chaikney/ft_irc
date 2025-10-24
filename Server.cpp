@@ -1,5 +1,6 @@
 #include "Server.hpp"
 #include "ACommand.hpp"
+#include "KickCmd.hpp"
 #include "Ping.hpp"
 #include "Privmsg.hpp"
 #include "ListCmd.hpp"
@@ -293,65 +294,24 @@ void	Server::_printMessageQueue(std::queue<Message *> toPrint) const
 // the limit.)"
 void Server::handleKick(Message *msg, User *usr)
 {
-	std::list<std::string> params = msg->getParams();
-	if (params.size() < 2)
+	ACommand* thingtodo;
+	thingtodo = new KickCmd(this, *msg);
+	if (thingtodo->numParamsOK())
+		thingtodo->executeCmd();
+	else
 	{
-		this->_toProcess.push(Message::_reply(*msg, ERR_NEEDMOREPARAMS));
-		return ;
+        this->_toProcess.push(Message::_reply(*msg, ERR_NEEDMOREPARAMS));
+        return ;
 	}
-	std::string chan = params.front(); params.pop_front();
-	std::string nick = params.front(); params.pop_front();
-	// Optional reason (rest of params)
-	std::string reason = "";
-	if (!params.empty())
-		reason = params.front();
-	if (reason.empty())
-		reason = "Kicked";
-	// Normalise channel name
-	if (this->normaliseChanName(&chan) == false)
+	std::queue<Message *>	to_add = thingtodo->getResponses();
+	// TODO This also seem like a common operation to be shared...
+	// NOTE Adding two queues together is not thought to be efficient
+	while (!to_add.empty())
 	{
-		this->_toProcess.push(Message::_reply(*msg, ERR_BADCHANMASK));
-		return ;
+		this->_toProcess.push(to_add.front());
+		to_add.pop();
 	}
-	Channel *channel = _findChannel(chan);
-	if (!channel)
-	{
-		this->_toProcess.push(Message::_reply(*msg, ERR_NOSUCHCHANNEL));
-		return ;
-	}
-	// Sender must be on channel
-	if (!channel->isMember(usr))
-	{
-		this->_toProcess.push(Message::_reply(*msg, ERR_NOTONCHANNEL));
-		return ;
-	}
-	// Sender must be channel operator
-	if (!channel->isOperator(usr->getFD()))
-	{
-		this->_toProcess.push(Message::_reply(*msg, ERR_CHANOPRIVSNEEDED));
-		return ;
-	}
-	// Find target user
-	User *target = _findUserByNick(nick);
-	if (!target)
-	{
-		this->_toProcess.push(Message::_reply(*msg, ERR_NOSUCHNICK));
-		return ;
-	}
-	// Target must be member of channel
-	if (!channel->isMember(target))
-	{
-		this->_toProcess.push(Message::_reply(*msg, ERR_USERNOTINCHANNEL));
-		return ;
-	}
-	// Remove target from channel
-	channel->removeMember(target);
-	target->removeChannel(chan);	// NOTE This depends on User storing their Channels, which they don't, currently
-	// Notify channel and target
-	_toProcess.push(Message::_channelMessage(*msg, channel));
-// FIXME Notififying the KICKed user doesn't work through _replyNonNumeric()
-//	_toProcess.push(Message::_replyNonNumeric(*msg, channel));
-	_sendToFD(target->getFD(), ":server KICK " + chan + " " + nick + " :" + reason + "\r\n");
+	(void) usr;
 }
 
 // Aquí va la lógica para enviar mensajes privados o a canales
