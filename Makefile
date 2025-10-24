@@ -24,7 +24,8 @@ SRC		=	main.cpp \
 			KickCmd.cpp \
 			Join.cpp \
 			Part.cpp \
-			Names.cpp
+			Names.cpp \
+			Topic.cpp
 
 OBJ		= $(SRC:.cpp=.o)
 

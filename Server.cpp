@@ -9,6 +9,7 @@
 #include "ListCmd.hpp"
 #include "Message.hpp"
 #include "ReplyEnums.hpp"
+#include "Topic.hpp"
 #include "User.hpp"
 #include "Channel.hpp"
 #include <iostream>
@@ -544,33 +545,24 @@ void	Server::handleList(Message *msg, User *usr)
 // FIXME Parsing not putting the : in the correct place (sometimes?)
 void	Server::handleTopic(Message *msg, User *usr)
 {
-    std::list<std::string> params = msg->getParams();
-    if (params.empty())
+	ACommand* thingtodo;
+	thingtodo = new Topic(this, *msg);
+	if (thingtodo->numParamsOK())
+		thingtodo->executeCmd();
+	else
 	{
-		this->_toProcess.push(Message::_reply(*msg, ERR_NEEDMOREPARAMS));
-		return;
+        this->_toProcess.push(Message::_reply(*msg, ERR_NEEDMOREPARAMS));
+        return ;
 	}
-    std::string chan = params.front();
-    Channel *channel = _findChannel(chan);
-    if (!channel)
+	std::queue<Message *>	to_add = thingtodo->getResponses();
+	// TODO This also seem like a common operation to be shared...
+	// NOTE Adding two queues together is not thought to be efficient
+	while (!to_add.empty())
 	{
-		this->_toProcess.push(Message::_reply(*msg, ERR_NOSUCHCHANNEL));
-		return;
+		this->_toProcess.push(to_add.front());
+		to_add.pop();
 	}
-    if (params.size() == 1)
-    {
-		this->_toProcess.push(Message::_reply(*msg, RPL_TOPIC));
-        return ;
-    }
-    if (channel->isTopicProtected() && !channel->isOperator(usr->getFD()))
-    {
-		this->_toProcess.push(Message::_reply(*msg, ERR_CHANOPRIVSNEEDED));
-        return ;
-    }
-    params.pop_front();
-    std::string newTopic = params.front();
-    channel->setTopic(newTopic, usr->getNick());
-	this->_toProcess.push(Message::_channelMessage(*msg, channel));
+	(void) usr;	// HACK surely we need this to check if user can see them
 }
 
 // INVITE <nick> <channel>
