@@ -20,7 +20,8 @@ SRC		=	main.cpp \
 			ACommand.cpp \
 			Ping.cpp \
 			ListCmd.cpp \
-			Privmsg.cpp
+			Privmsg.cpp \
+			KickCmd.cpp
 
 OBJ		= $(SRC:.cpp=.o)
 
