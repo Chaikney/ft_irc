@@ -11,6 +11,7 @@
 #include "ReplyEnums.hpp"
 #include "Topic.hpp"
 #include "Invite.hpp"
+#include "Mode.hpp"
 #include "User.hpp"
 #include "Channel.hpp"
 #include <iostream>
@@ -588,107 +589,26 @@ void	Server::handleInvite(Message *msg, User *usr)
 	(void) usr;	// HACK surely we need this to check if user can see them
 }
 
-// MODE command to deal with a User
-// NOTE User modes don't need the modearg
-// TODO Notify on changed modes
-void	Server::_userMode(Message *msg, User *usr, std::string target)
-{
-	User* target_user = this->_findUserByNick(target);
-	if (!target_user)
-	{
-		this->_toProcess.push(Message::_reply(*msg, ERR_NOSUCHNICK));
-		return ;
-	}
-	if (*usr != *target_user)
-	{
-		this->_toProcess.push(Message::_reply(*msg, ERR_USERSDONTMATCH));
-		return;
-	}
-	std::list<std::string> params = msg->getParams();
-	params.pop_front();	// that was the target
-	if (params.empty() || (params.back() == ""))
-	{
-		this->_toProcess.push(Message::_reply(*msg, RPL_UMODEIS, msg->getOrigin()));
-	}
-	else
-	{
-		std::string	modestring = params.front();
-		target_user->setMode(modestring);
-	}
-}
-
-// MODE command to deal with a Channel
-// TODO If channel mode changes, broadcast the change to channel
-// NOTE Here, params has popped off the first (target), it is not like msg->getParams()
-// TODO How to handle +b ? (request for a ban list)? In channel i suppose
-void	Server::_channelMode(Message *msg, User *usr, std::string target)
-{
-	std::list<std::string>	params = msg->getParams();
-	Channel *channel = _findChannel(target);
-	if (!channel)
-	{
-		// TODO How do we include the "wrong" name here? add target somehow
-		this->_toProcess.push(Message::_reply(*msg, ERR_NOSUCHCHANNEL));
-		return ;
-	}
-	params.pop_front();	// discard target
-	// NOTE 2nd check to work around Hexchat sending final blank parameter
-	if (params.empty() || (params.back() == ""))
-	{
-		// We only got a channel so we list the modes and return
-		this->_toProcess.push(Message::_reply(*msg, RPL_CHANNELMODEIS, channel));
-		this->_toProcess.push(Message::_reply(*msg, RPL_CREATIONTIME, channel));
-		return ;
-	}
-	// NOTE Below here only if more than 1 param was given
-	// NOTE No privileges needed to get a listing, but from here we change things
-	if (!channel->isOperator(usr->getFD()))
-	{
-		this->_toProcess.push(Message::_reply(*msg, ERR_CHANOPRIVSNEEDED, channel));
-		return ;
-	}
-	// get the modestring from the second parameter
-	// and any mode parameters from the third
-	std::string	modestring = params.front();
-	std::string	modearg;
-	params.pop_front();
-	if (params.empty())
-		modearg = "";
-	else
-		modearg = params.front();
-	channel->setMode(modestring, modearg);
-}
-
-// TODO Handle modestring-less commands with a reply
-// - param 1 = target, either Nick or Channel
-// - param 2 = optional modestring
-// - param 3 = optional mode arguments
-// First we decide if we are targetting a channel or aa user, and direct appropriately
-// After changes are made, we have to notify them - individually or together?
-// NOTE Workaround for Hexchat which sends a blank final parameter.
 void	Server::handleMode(Message *msg, User *usr)
 {
-    std::list<std::string> params = msg->getParams();
-	if (params.empty())
+	ACommand* thingtodo;
+	thingtodo = new Mode(this, *msg);
+	if (thingtodo->numParamsOK())
+		thingtodo->executeCmd();
+	else
 	{
         this->_toProcess.push(Message::_reply(*msg, ERR_NEEDMOREPARAMS));
         return ;
 	}
-    std::string target = params.front();
-//	params.pop_front();	// NOTE This causes a crash below if we remove the final parameter...
-	std::cout << "Directing mode for:" << target << std::endl;	// HACK debug statement
-	if (target.find_first_of("#&") == 0)// Do MODE as Channel
+	std::queue<Message *>	to_add = thingtodo->getResponses();
+	// TODO This also seem like a common operation to be shared...
+	// NOTE Adding two queues together is not thought to be efficient
+	while (!to_add.empty())
 	{
-		std::cout << "Choosing channel" << std::endl;	// HACK debug statement
-		this->_channelMode(msg, usr, target);
-		return;
+		this->_toProcess.push(to_add.front());
+		to_add.pop();
 	}
-	else // treat target as NICK
-	{
-		std::cout << "Choosing user" << std::endl;	// HACK debug statement
-		this->_userMode(msg, usr, target);
-		return ;
-	}
+	(void) usr;	// HACK surely we need this to check if user can see them
 }
 
 // Client says PING <token> then we return PONG <token>
