@@ -13,6 +13,7 @@
 #include "Invite.hpp"
 #include "Mode.hpp"
 #include "Away.hpp"
+#include "Who.hpp"
 #include "User.hpp"
 #include "Channel.hpp"
 #include <iostream>
@@ -965,54 +966,25 @@ void	Server::handleQuit(Message *msg, User *usr)
 // Reply with multiple 352 terminated by RPL_ENDOFWHO (315)
 void	Server::handleWho(Message *msg, User *usr)
 {
-	std::list<std::string>	params = msg->getParams();
-	if (params.empty())
+	ACommand* thingtodo = new Who(this, *msg);
+
+	(void) usr;
+	// NOTE this could be done in a main single loop not repeated for every command
+	if (thingtodo->numParamsOK())
+		thingtodo->executeCmd();
+	else
 	{
-		this->_toProcess.push(Message::_reply(*msg, ERR_NEEDMOREPARAMS));
-		return ;
-	}
-	std::string	mask = params.front();
-	(void) usr;	// HACK for compilation
-	if (mask.empty())
+        this->_toProcess.push(Message::_reply(*msg, ERR_NEEDMOREPARAMS));
+        return ;
+	};
+	std::queue<Message *>	to_add = thingtodo->getResponses();
+	// TODO This also seem like a common operation to be shared...
+	// NOTE Adding two queues together is not thought to be efficient
+	while (!to_add.empty())
 	{
-		this->_toProcess.push(Message::_reply(*msg, ERR_NEEDMOREPARAMS));
-		return ;
+		this->_toProcess.push(to_add.front());
+		to_add.pop();
 	}
-	if (mask.find_first_of("#&") == 0)
-	{
-		// treat as Channel. Return all members of that Channel
-		Channel*	target = this->_channels[mask];
-		if (!target)
-			std::cerr << "Oops channel not found what we do?" << std::endl;
-		else
-		{
-			std::set<User *>	users = target->getMembers();
-			std::set<User *>::const_iterator it = users.begin();
-			while (it != users.end())
-			{
-				User*	user = *it;
-			 	this->_toProcess.push(Message::_reply(*msg, RPL_WHOREPLY, user));
-				it++;
-			}
-//			std::cerr << "WHO for channels not implemented yet" << std::endl;
-			// // FIXME Needs channel in the params, this solution doesnt cut it
-			// // FIXME This is a C++11 form
-			// for (User* user : users)
-			// {
-			// 	this->_toProcess.push(Message::_reply(*msg, RPL_WHOREPLY, user));
-			// }
-		}
-	}
-	else // treating it as a NICK
-	{
-		User*	user = this->_findUserByNick(mask);
-		if (!user)
-			this->_toProcess.push(Message::_reply(*msg, ERR_NOSUCHNICK, user));
-		else
-			this->_toProcess.push(Message::_reply(*msg, RPL_WHOREPLY, user));
-	}
-	// send final 315
-	this->_toProcess.push(Message::_reply(*msg, RPL_ENDOFWHO));
 }
 
 // TODO implement WHOIS command, various responses terminated with RPL_ENDOFWHOIS
