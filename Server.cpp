@@ -12,6 +12,7 @@
 #include "Topic.hpp"
 #include "Invite.hpp"
 #include "Mode.hpp"
+#include "Away.hpp"
 #include "User.hpp"
 #include "Channel.hpp"
 #include <iostream>
@@ -749,6 +750,7 @@ void	Server::_broadcastToChannel(const std::string &chan, int from_fd, const std
         _broadcastToChannel(channel, from_fd, text, include_sender);
 }
 
+// FIXME Is anything still using this?
 void	Server::_broadcastToChannel(Channel *channel, int from_fd, const std::string &text, bool include_sender) const
 {
 	if (!channel)
@@ -904,18 +906,23 @@ void	Server::_processQueue(void)
 // TODO Handle going-away message (e.g. broadcast to channel)
 void	Server::handleAway(Message *msg, User *usr)
 {
-	if (msg->getParams().empty() && (usr->isAway()))
-		{
-			usr->setAway(false);
-			this->_toProcess.push(Message::_reply(*msg, RPL_UNAWAY));
-		}
-	else if (!usr->isAway())
+	ACommand* thingtodo = new Away(this, *msg);
+	(void) usr;
+	// NOTE this could be done in a main single loop not repeated for every command
+	if (thingtodo->numParamsOK())
+		thingtodo->executeCmd();
+	else
 	{
-		usr->setAway(true);
-		this->_toProcess.push(Message::_reply(*msg, RPL_NOWAWAY));
-		// TODO We need to get *all* the User's channels
-		// TODO If the user is Invisible, do we say anything?
-//		this->_toProcess.push(Message::_channelMessage(*msg, chan));
+        this->_toProcess.push(Message::_reply(*msg, ERR_NEEDMOREPARAMS));
+        return ;
+	};
+	std::queue<Message *>	to_add = thingtodo->getResponses();
+	// TODO This also seem like a common operation to be shared...
+	// NOTE Adding two queues together is not thought to be efficient
+	while (!to_add.empty())
+	{
+		this->_toProcess.push(to_add.front());
+		to_add.pop();
 	}
 }
 
