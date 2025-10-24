@@ -60,7 +60,6 @@ class	Server
 
 
 		// --- Helpers for channels/users ---
-		void		_removeChannel(const std::string &name);
 		void		_channelMode(Message *msg, User *usr, std::string target);
 		void		_userMode(Message *msg, User *usr, std::string target);
 		// TODO These three "direct"  comms methods should be removed, too dangerous
@@ -117,5 +116,6 @@ class	Server
 		// void		enqueueMsg(Message *);
 		// NOTE also maybe protected, or a "friend" function?
 		Channel*	_createChannel(const std::string &name);
+		void		_removeChannel(const std::string &name);
 };
 #endif

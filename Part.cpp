@@ -10,37 +10,39 @@ Part::~Part() {}
 
 void Part::executeCmd(void)
 {
+    std::list<std::string> params =_msg.getParams();
+	User*	usr = _msg.getOrigin();
     std::string chan = params.front();
-	if (!this->normaliseChanName(&chan))
+	if (!this->_srv->normaliseChanName(&chan))
 	{
 		// Send error message and stop processing message
-		this->_toProcess.push(Message::_reply(*msg, ERR_BADCHANMASK));
+		this->_responses.push(Message::_reply(_msg, ERR_BADCHANMASK));
 		return ;
 	}
 	else
     	params.pop_front();
 
-    Channel *channel = _findChannel(chan);
+    Channel *channel = this->_srv->_findChannel(chan);
     if (!channel)
 	{
-		this->_toProcess.push(Message::_reply(*msg, ERR_NOSUCHCHANNEL));
+		this->_responses.push(Message::_reply(_msg, ERR_NOSUCHCHANNEL));
         return ;
 	}
 
     if (channel->removeMember(usr))
     {
 		// Send a PART confirmation to the User
-		this->_toProcess.push(Message::_replyNonNumeric(*msg, channel));
+		this->_responses.push(Message::_replyNonNumeric(_msg, channel));
         usr->removeChannel(chan);
 		// ...and to the Channel
-		this->_toProcess.push(Message::_channelMessage(*msg, channel));
+		this->_responses.push(Message::_channelMessage(_msg, channel));
         // If channel is empty, remove it
         if (channel->isEmpty())
-            _removeChannel(chan);
+            this->_srv->_removeChannel(chan);
     }
 	else
 	{
-		this->_toProcess.push(Message::_reply(*msg, ERR_NOTONCHANNEL));
+		this->_responses.push(Message::_reply(_msg, ERR_NOTONCHANNEL));
 		return ;
 	}
 }

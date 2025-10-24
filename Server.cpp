@@ -2,6 +2,7 @@
 #include "ACommand.hpp"
 #include "Join.hpp"
 #include "KickCmd.hpp"
+#include "Part.hpp"
 #include "Ping.hpp"
 #include "Privmsg.hpp"
 #include "ListCmd.hpp"
@@ -462,42 +463,25 @@ void	Server::handleJoin(Message *msg, User *usr)
 // FIXED Sending PART twice to channel
 void	Server::handlePart(Message *msg, User *usr)
 {
-    std::list<std::string> params = msg->getParams();
-    if (params.empty())
-        return ;
-    std::string chan = params.front();
-	if (!this->normaliseChanName(&chan))
-	{
-		// Send error message and stop processing message
-		this->_toProcess.push(Message::_reply(*msg, ERR_BADCHANMASK));
-		return ;
-	}
-	else
-    	params.pop_front();
-
-    Channel *channel = _findChannel(chan);
-    if (!channel)
-	{
-		this->_toProcess.push(Message::_reply(*msg, ERR_NOSUCHCHANNEL));
-        return ;
-	}
-
-    if (channel->removeMember(usr))
-    {
-		// Send a PART confirmation to the User
-		this->_toProcess.push(Message::_replyNonNumeric(*msg, channel));
-        usr->removeChannel(chan);
-		// ...and to the Channel
-		this->_toProcess.push(Message::_channelMessage(*msg, channel));
-        // If channel is empty, remove it
-        if (channel->isEmpty())
-            _removeChannel(chan);
-    }
+	ACommand* thingtodo;
+	thingtodo = new Part(this, *msg);
+	if (thingtodo->numParamsOK())
+		thingtodo->executeCmd();
 	else
 	{
-		this->_toProcess.push(Message::_reply(*msg, ERR_NOTONCHANNEL));
-		return ;
+        this->_toProcess.push(Message::_reply(*msg, ERR_NEEDMOREPARAMS));
+        return ;
 	}
+	std::queue<Message *>	to_add = thingtodo->getResponses();
+	// TODO This also seem like a common operation to be shared...
+	// NOTE Adding two queues together is not thought to be efficient
+	while (!to_add.empty())
+	{
+		this->_toProcess.push(to_add.front());
+		to_add.pop();
+	}
+	(void) usr;
+	return ;
 }
 
 // https://modern.ircdocs.horse/#names-message
