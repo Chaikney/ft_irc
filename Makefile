@@ -32,7 +32,9 @@ SRC		=	main.cpp \
 			Who.cpp \
 			Whois.cpp \
 			Userhost.cpp \
-			Pass.cpp
+			Pass.cpp \
+			UserCmd.cpp \
+			Nick.cpp
 
 OBJ		= $(SRC:.cpp=.o)
 

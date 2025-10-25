@@ -353,48 +353,27 @@ void Server::handlePrivmsg(Message *msg, User *usr)
 	(void) usr;
 }
 
-// Get user
-// Get parameters
-// Check the requested nick is valid and does not already exist
-// Set new nickname on User (will need a setter on User?)
-// FIXME IF the nick name is already in use that doesn't seem to stop registration?
-// TODO Acknowledge successful NICK:
-// The NICK message may be sent from the server to clients to acknowledge their
-// NICK command was successful, and to inform other clients about the change of nickname.
-// In these cases, the <source> of the message will be the old nickname
-// [ [ "!" user ] "@" host ] of the user who is changing their nickname.
 void	Server::handleNick(Message *msg, User *usr)
 {
-	std::list<std::string>	_params = msg->getParams();
-	if (_params.empty())
-	{
-		this->_toProcess.push(Message::_reply(*msg, ERR_NONICKNAMEGIVEN));
-		return ;
-	}
-	std::string	newNick = _params.front();
-	std::cout << "Trying to set nickname to " << newNick << std::endl;
-	// NOTE These characters are forbidden from starting the nick
-	std::string	notLeading = "#:&123456789";
-	std::string	forbidden = " \b\n\r";
-
-	if ((newNick.find_first_of(notLeading) == 0) ||
-		(newNick.find_first_of(forbidden) != std::string::npos))
-	{
-		this->_toProcess.push(Message::_reply(*msg, ERR_ERRONEUSNICKNAME));
-	}
-	else if (_isNickTaken(newNick, usr->getFD()))
-	{
-		this->_toProcess.push(Message::_reply(*msg, ERR_NICKNAMEINUSE));
-	}
+	ACommand* thingtodo;
+	thingtodo = new UserCmd(this, *msg);
+	if (thingtodo->numParamsOK())
+		thingtodo->executeCmd();
 	else
 	{
-		std::cout << "setting nickname to " << newNick << std::endl;
-		bool wasRegistered = usr->isRegistered();
-		usr->setNick(newNick);
-		// If user just became registered (had USER but was missing NICK), send welcome
-		if (!wasRegistered && usr->isRegistered())
-			this->_sendWelcome(msg, usr);
+        this->_toProcess.push(Message::_reply(*msg, ERR_NEEDMOREPARAMS));
+        return ;
 	}
+	std::queue<Message *>	to_add = thingtodo->getResponses();
+	// TODO This also seem like a common operation to be shared...
+	// NOTE Adding two queues together is not thought to be efficient
+	while (!to_add.empty())
+	{
+		this->_toProcess.push(to_add.front());
+		to_add.pop();
+	}
+	(void) usr;
+	return ;
 }
 
 void	Server::handleUser(Message *msg, User *usr)
