@@ -1266,3 +1266,11 @@ Channel*	Server::getChannel(std::string target)
 {
 	return (this->_channels[target]);
 }
+
+bool	Server::checkPasswd(std::string &to_check) const
+{
+	if (to_check.compare(this->_password) == 0)
+		return (true);
+	else
+		return (false);
+}

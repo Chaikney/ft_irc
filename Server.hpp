@@ -93,6 +93,7 @@ class	Server
 
 		// TODO Server::run() could be private, who else calls it?
 		void		run(void);
+		bool		checkPasswd(std::string &to_check) const;
 //		bool		_checkPass(Message &msg) const;	//public to act as friend of Message
 		void		_processQueue(void);	//public to act as friend of Message
 		// TODO SHould this be a public method in Channel?
