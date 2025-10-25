@@ -774,30 +774,23 @@ void	Server::_broadcastToChannel(Channel *channel, int from_fd, const std::strin
 
 void	Server::handlePass(Message *msg, User *usr)
 {
-	std::string	_sPass = this->_password;
-	std::list<std::string>	_cPass = msg->getParams();
-	std::string	_cmd = msg->getCommand();
-
-	if (_cPass.empty())
-	{
-		this->_toProcess.push(Message::_reply(*msg, ERR_NEEDMOREPARAMS));
-		return ;
-	}
-	if (_sPass.compare(_cPass.front()) == 0)
-	{
-		std::cout << "Password match!" << std::endl;
-		if (!(usr->isVerified()))
-			usr->switchVerification();
-		else
-		{
-			this->_toProcess.push(Message::_reply(*msg, ERR_ALREADYREGISTERED));
-		}
-		// TODO Server sends some kind of acknowledgment?
-	}
+	ACommand* thingtodo = new Pass(this, *msg);
+	(void) usr;
+	// NOTE this could be done in a main single loop not repeated for every command
+	if (thingtodo->numParamsOK())
+		thingtodo->executeCmd();
 	else
 	{
-		this->_toProcess.push(Message::_reply(*msg, ERR_PASSWORDMISMATCH));
-		// TODO disconnect them by implementing the ERROR command
+        this->_toProcess.push(Message::_reply(*msg, ERR_NEEDMOREPARAMS));
+        return ;
+	};
+	std::queue<Message *>	to_add = thingtodo->getResponses();
+	// TODO This also seem like a common operation to be shared...
+	// NOTE Adding two queues together is not thought to be efficient
+	while (!to_add.empty())
+	{
+		this->_toProcess.push(to_add.front());
+		to_add.pop();
 	}
 }
 
