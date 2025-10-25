@@ -17,6 +17,7 @@
 #include "Whois.hpp"
 #include "Userhost.hpp"
 #include "Pass.hpp"
+#include "UserCmd.hpp"
 #include "User.hpp"
 #include "Channel.hpp"
 #include <iostream>
@@ -396,38 +397,27 @@ void	Server::handleNick(Message *msg, User *usr)
 	}
 }
 
-// FIXME IF the nick name is already in use that doesn't seem to stop registration?
-// TODO Sure there are other errors to catch here...
-// FIXME Hexchat at least does not get given a Real Name
 void	Server::handleUser(Message *msg, User *usr)
 {
-	if (usr->isRegistered())
+	ACommand* thingtodo;
+	thingtodo = new UserCmd(this, *msg);
+	if (thingtodo->numParamsOK())
+		thingtodo->executeCmd();
+	else
 	{
-		this->_toProcess.push(Message::_reply(*msg, ERR_ALREADYREGISTERED));
-		return ;
+        this->_toProcess.push(Message::_reply(*msg, ERR_NEEDMOREPARAMS));
+        return ;
 	}
-	std::list<std::string>	_params = msg->getParams();
-	if ((_params.size() != 4) || (_params.front().empty()))
+	std::queue<Message *>	to_add = thingtodo->getResponses();
+	// TODO This also seem like a common operation to be shared...
+	// NOTE Adding two queues together is not thought to be efficient
+	while (!to_add.empty())
 	{
-		this->_toProcess.push(Message::_reply(*msg, ERR_NEEDMOREPARAMS));
-		return ;
+		this->_toProcess.push(to_add.front());
+		to_add.pop();
 	}
-	std::string	newUser = _params.front();
-	// Skip to the final entry (used the first, ignore the middle 2)
-	_params.pop_front();
-	_params.pop_front();
-	_params.pop_front();
-	std::string	newRName = _params.front();
-	if (newUser.empty())
-		newUser = usr->getNick();
-	if (newRName.empty())
-		newRName = newUser;
-	usr->setUser(newUser);
-	usr->setReal(newRName);
-	std::cout << "User: " << newUser << ", Really: " << newRName << std::endl;
-	// Only send welcome bundle if user is fully registered (has valid nickname)
-	if (usr->isRegistered())
-		this->_sendWelcome(msg, usr);
+	(void) usr;
+	return ;
 }
 
 // DONE Send acknowledgements per https://modern.ircdocs.horse/#join-message

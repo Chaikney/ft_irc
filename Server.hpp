@@ -63,7 +63,6 @@ class	Server
 		void		_sendToFD(int fd, const std::string &text) const;
 		void		_broadcastToChannel(const std::string &chan, int from_fd, const std::string &text, bool include_sender=false) const;
 		void		_broadcastToChannel(Channel *channel, int from_fd, const std::string &text, bool include_sender=false) const;
-		void		_sendWelcome(Message *msg, User *usr);
 
 		// --- Manejo de comandos IRC ---
 		// NOTE Possibly these could be abstracted away into a Command interface class?
@@ -118,5 +117,7 @@ class	Server
 		// NOTE also maybe protected, or a "friend" function?
 		Channel*	_createChannel(const std::string &name);
 		void		_removeChannel(const std::string &name);
+		// NOTE With restructuring this has to be public, may not be best
+		void		_sendWelcome(Message *msg, User *usr);
 };
 #endif
