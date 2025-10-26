@@ -18,6 +18,8 @@
 #include "Userhost.hpp"
 #include "Pass.hpp"
 #include "UserCmd.hpp"
+#include "Nick.hpp"
+#include "QuitCmd.hpp"
 #include "User.hpp"
 #include "Channel.hpp"
 #include <iostream>

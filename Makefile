@@ -34,7 +34,8 @@ SRC		=	main.cpp \
 			Userhost.cpp \
 			Pass.cpp \
 			UserCmd.cpp \
-			Nick.cpp
+			Nick.cpp \
+			QuitCmd.cpp
 
 OBJ		= $(SRC:.cpp=.o)
 
