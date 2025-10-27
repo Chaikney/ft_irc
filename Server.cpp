@@ -718,6 +718,32 @@ void	Server::handlePass(Message *msg, User *usr)
 	}
 }
 
+// NOTE This is what the processQueue *could* look like using ACommands
+// TODO Implement matchCmd
+// TODO Decide if we are to have an "in" and an "out" queue
+void	Server::_processQueue(void)
+{
+	while (this->_toProcess.empty() == false)
+	{
+		do_next = this->_toProcess.front();
+		this->_toProcess.pop();
+		ACommand*	thingtodo = matchCmd(do_next);
+		if (thingtodo->numParamsOK())
+			thingtodo->executeCmd();
+		else
+		{
+			this->_toProcess.push(Message::_reply(*msg, ERR_NEEDMOREPARAMS));
+			return ;
+		};
+		std::queue<Message *>	to_add = thingtodo->getResponses();
+		while (!to_add.empty())
+		{
+			this->_toProcess.push(to_add.front());
+			to_add.pop();
+		}
+	}
+}
+
 // Run through the Messages in the _toProcess queue
 // Act on them, delete them.
 // TODO Make this spin off thread(s) to process the command efficiently
@@ -730,7 +756,7 @@ void	Server::handlePass(Message *msg, User *usr)
 // NOTE This is focused a lot on actions the Server must do.
 // ...sometimes all that needs to happen is to send a reply...
 // https://modern.ircdocs.horse/#userhost-message
-void	Server::_processQueue(void)
+void	Server::_processQueue2(void)
 {
 	Message*	do_next;
 
