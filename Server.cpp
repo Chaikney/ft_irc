@@ -718,122 +718,133 @@ void	Server::handlePass(Message *msg, User *usr)
 	}
 }
 
-// NOTE This is what the processQueue *could* look like using ACommands
-// TODO Implement matchCmd
-// TODO Decide if we are to have an "in" and an "out" queue
-void	Server::_processQueue(void)
-{
-	while (this->_toProcess.empty() == false)
-	{
-		do_next = this->_toProcess.front();
-		this->_toProcess.pop();
-		ACommand*	thingtodo = matchCmd(do_next);
-		if (thingtodo->numParamsOK())
-			thingtodo->executeCmd();
-		else
-		{
-			this->_toProcess.push(Message::_reply(*msg, ERR_NEEDMOREPARAMS));
-			return ;
-		};
-		std::queue<Message *>	to_add = thingtodo->getResponses();
-		while (!to_add.empty())
-		{
-			this->_toProcess.push(to_add.front());
-			to_add.pop();
-		}
-	}
-}
-
 // Run through the Messages in the _toProcess queue
 // Act on them, delete them.
 // TODO Make this spin off thread(s) to process the command efficiently
 // NOTE How do we make sure that this is non-blocking?
 // TODO This function has friend-based access to Message so it can extract the User involved - still needed?
-// The server MAY then send other numerics and messages.
-// The server SHOULD then respond as though the client sent the LUSERS command and return the appropriate numerics.
-// The server MUST then respond as though the client sent it the MOTD command, i.e. it must send either the successful Message of the Day numerics or the ERR_NOMOTD (422) numeric.
-// If the user has client modes set on them automatically upon joining the network, the server SHOULD send the client the RPL_UMODEIS (221) reply or a MODE message with the client as target, preferably the former.
-// NOTE This is focused a lot on actions the Server must do.
-// ...sometimes all that needs to happen is to send a reply...
-// https://modern.ircdocs.horse/#userhost-message
-void	Server::_processQueue2(void)
+// NOTE This is what the processQueue *could* look like using ACommands
+// DONE Implement matchCmd
+// TODO Decide if we are to have an "in" and an "out" queue
+// - Get the next message
+// - If it is from the Server, send it straight out
+// - else, find the command it is
+// -- do simple validation
+// -- run the command actions
+// -- add its output messages back into the queue for processing
+// -- delete the command object
+void	Server::_processQueue(void)
 {
-	Message*	do_next;
-
 	while (this->_toProcess.empty() == false)
 	{
+		Message*	do_next;
 		do_next = this->_toProcess.front();
 		this->_toProcess.pop();
-		std::cout << "Processing:" << *do_next << std::endl;
-		std::string command = do_next->getCommand();
-//		std::cout << "Comando parseado: [" << command << "]" << std::endl;
-		// NOTE No origin => message is from us / the server, we send it straight out
 		if (!do_next->getOrigin())
 			this->_sendMessage(do_next);
-		else if (command.compare("CAP") == 0)
-			std::cout << "Ignoring capability negotiation request" << std::endl;
-		// Only allow NICK/USER/PASS before registration. All others require full registration.
-		// NOTE This check should not be done with Server messages.
-		else if (!do_next->getOrigin()->isRegistered())
+		else
 		{
-			do_next->getOrigin()->updateTime();
-			if (command.compare("PASS") == 0)
-				handlePass(do_next, do_next->getOrigin());
-			else if ((do_next->getOrigin()->isVerified()) &&
-					  (command.compare("NICK") == 0))
-				handleNick(do_next, do_next->getOrigin());
-			else if ((do_next->getOrigin()->isVerified()) &&
-					 (command.compare("USER") == 0))
-				handleUser(do_next, do_next->getOrigin());
-			else
+			ACommand*	thingtodo = matchCmd(do_next);
+			if (thingtodo)
 			{
-				this->_toProcess.push(Message::_reply(*do_next, ERR_NOTREGISTERED));
+				if (thingtodo->numParamsOK())
+					thingtodo->executeCmd();
+				else
+				{
+					this->_toProcess.push(Message::_reply(*do_next, ERR_NEEDMOREPARAMS));
+					return ;
+				};
+				std::queue<Message *>	to_add = thingtodo->getResponses();
+				while (!to_add.empty())
+				{
+					this->_toProcess.push(to_add.front());
+					to_add.pop();
+				}
 			}
+			delete thingtodo;	// Make sure the instance is destroyed after processing.
 		}
-		else if (do_next->getOrigin()->isRegistered())
+	}
+}
+
+// NOTE Does this belong in ACommand?
+// No, because the base class is not going to know about all its derived classes.
+// - Get command text
+// - uppercase it (to work around Hexchat)
+// - match against the commands we have defined (unavoidably ugly)
+// - return the derived class
+// TODO Decide what to do if we don't get a match. Return NULL?
+ACommand*	Server::matchCmd(Message* do_next)
+{
+	std::cout << "Processing:" << *do_next << std::endl;
+	std::string command = do_next->getCommand();
+	ACommand*	thingtodo = 0;	// TODO Make sure this is the right place to declare this
+	// NOTE No origin => message is from us / the server, we send it straight out
+	if (command.compare("CAP") == 0)
+		std::cout << "Ignoring capability negotiation request" << std::endl;
+	// Only allow NICK/USER/PASS before registration. All others require full registration.
+	else if (!do_next->getOrigin()->isRegistered())
+	{
+		do_next->getOrigin()->updateTime();
+		if (command.compare("PASS") == 0)
+			thingtodo = new Pass(this, *do_next);
+		else if ((do_next->getOrigin()->isVerified()) &&
+				 (command.compare("NICK") == 0))
+			thingtodo = new Nick(this, *do_next);
+		else if ((do_next->getOrigin()->isVerified()) &&
+				 (command.compare("USER") == 0))
+			thingtodo = new UserCmd(this, *do_next);
+		else
 		{
-			do_next->getOrigin()->updateTime();
-			if (command.compare("NICK") == 0)
-				handleNick(do_next, do_next->getOrigin());
-			else if (command.compare("USER") == 0)
-				handleUser(do_next, do_next->getOrigin());
-			else if (command.compare("JOIN") == 0)
-				handleJoin(do_next, do_next->getOrigin());
-			else if (command.compare("PART") == 0)
-				handlePart(do_next, do_next->getOrigin());
-			else if (command.compare("NAMES") == 0)
-			 	handleNames(do_next, do_next->getOrigin());
-			else if (command.compare("LIST") == 0)
-				handleList(do_next, do_next->getOrigin());
-			else if (command.compare("TOPIC") == 0)
-				handleTopic(do_next, do_next->getOrigin());
-			else if (command.compare("INVITE") == 0)
-				handleInvite(do_next, do_next->getOrigin());
-			else if (command.compare("MODE") == 0)
-				handleMode(do_next, do_next->getOrigin());
-			else if (command.compare("KICK") == 0)
-				handleKick(do_next, do_next->getOrigin());
-			else if (command == "PRIVMSG")
-				handlePrivmsg(do_next, do_next->getOrigin());
-			else if (command == "PING")
-				handlePing(do_next, do_next->getOrigin());
-			else if (command == "WHO")
-				handleWho(do_next, do_next->getOrigin());
-			// HACK Hexchat sends whois in lower case
-			else if ((command == "WHOIS") || (command == "whois"))
-				handleWhoIs(do_next, do_next->getOrigin());
-			else if (command == "AWAY")
-				handleAway(do_next, do_next->getOrigin());
-			else if (command == "USERHOST")
-				handleUserhost(do_next, do_next->getOrigin());
-			else if (command == "QUIT")
-				handleQuit(do_next, do_next->getOrigin());
-			else
-				this->_toProcess.push(Message::_reply(*do_next, ERR_UNKNOWNCOMMAND));
+			this->_toProcess.push(Message::_reply(*do_next, ERR_NOTREGISTERED));
 		}
-		// NOTE deleting the Message here seems to reduce "still reachable" type leaks
-		delete do_next;
- 	}
+	}
+	else if (do_next->getOrigin()->isRegistered())
+	{
+		do_next->getOrigin()->updateTime();
+		if (command.compare("NICK") == 0)
+			thingtodo = new Nick(this, *do_next);
+		else if (command.compare("USER") == 0)
+			thingtodo = new UserCmd(this, *do_next);
+		else if (command.compare("JOIN") == 0)
+			thingtodo = new Join(this, *do_next);
+		else if (command.compare("PART") == 0)
+			thingtodo = new Part(this, *do_next);
+		else if (command.compare("NAMES") == 0)
+			thingtodo = new Names(this, *do_next);
+		else if (command.compare("LIST") == 0)
+			thingtodo = new ListCmd(this, *do_next);
+		else if (command.compare("TOPIC") == 0)
+			thingtodo = new Topic(this, *do_next);
+		else if (command.compare("INVITE") == 0)
+			thingtodo = new Invite(this, *do_next);
+		else if (command.compare("MODE") == 0)
+			thingtodo = new Mode(this, *do_next);
+		else if (command.compare("KICK") == 0)
+			thingtodo = new KickCmd(this, *do_next);
+		else if (command == "PRIVMSG")
+			thingtodo = new Privmsg(this, *do_next);
+		else if (command == "PING")
+			thingtodo = new Ping(this, *do_next);
+		else if (command == "WHO")
+			thingtodo = new Who(this, *do_next);
+		// HACK Hexchat sends whois in lower case
+		else if ((command == "WHOIS") || (command == "whois"))
+			thingtodo = new Whois(this, *do_next);
+		else if (command == "AWAY")
+			thingtodo = new Away(this, *do_next);
+		else if (command == "USERHOST")
+			thingtodo = new Userhost(this, *do_next);
+		else if (command == "QUIT")
+			thingtodo = new QuitCmd(this, *do_next);
+		else
+		{
+			thingtodo = NULL;
+			this->_toProcess.push(Message::_reply(*do_next, ERR_UNKNOWNCOMMAND));
+		}
+	}
+	// NOTE Uncertain if deleting the message messes up the ACommand! Check it.
+//		delete do_next;
+	return (thingtodo);
 }
 
 void	Server::handleAway(Message *msg, User *usr)

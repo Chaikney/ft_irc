@@ -12,6 +12,7 @@
 class	Message;
 class	User;
 class	Channel;
+class	ACommand;
 
 const std::string SERVERNAME	= "ft_irc";
 const std::string VERSION	= "0.0.2";	// NOTE Increment this when we get bored
@@ -66,6 +67,7 @@ class	Server
 
 		// --- Manejo de comandos IRC ---
 		// NOTE Possibly these could be abstracted away into a Command interface class?
+		ACommand*	matchCmd(Message* do_next);
 		void        	handleKick(Message *msg, User *usr);
 		void        	handlePrivmsg(Message *msg, User *usr);
 		void		handlePass(Message *msg, User *usr);
