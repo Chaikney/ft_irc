@@ -201,46 +201,50 @@ void Server::run()
 				try
 				{
 					std::string	str_buf = _getClientInput(events[i].data.fd);
+					std::cout << "Mensaje recibido de fd " << events[i].data.fd << ": " << str_buf << std::endl;
 					if (!this->_isFullMsg(str_buf))	// buffer does not form a complete message
 					{
 						std::cout << "Can NOT be parsed, store partial" << std::endl;
 						this->_storePartial(events[i].data.fd, str_buf);
 //						std::cout << "Done. Stored:" << _partial_msgs[events[i].data.fd] << std::endl;
 					}
+					// NOTE str_buf might contain multiple \n and we *must* handle that
 					else	// Parse into Message and queue for further action
 					{
 						// With a complete message, must delete partials
 						// If there are multiple messages here, parse them *all*
 						this->_partial_msgs[events[i].data.fd].erase();
 						std::cout << "Can be parsed" << std::endl;
-						// NOTE What does the User line do here? Document it.
-						// ....What happens if not found in _clients?
+						// NOTE ....What happens if User not found in _clients?
 						User*	msgFrom =  this->_clients[events[i].data.fd];
-						while (this->_isFullMsg(str_buf))
+//						while (this->_isFullMsg(str_buf))
+						while (!str_buf.empty())
 						{
 							Message	*nxtMessage = Message::makeMessage(str_buf, msgFrom);
-							this->_toProcess.push(nxtMessage);
+							if (nxtMessage)
+								this->_toProcess.push(nxtMessage);
 							// Strip some text from str_buf
-//							std::cout << "strbuf before:" << str_buf << std::endl;
-							str_buf.erase(0, str_buf.find_first_of('\n'));
-							str_buf.erase(0,1);	// HACK To get rid of the \n at the start now?
+			//				std::cout << "strbuf before:" << str_buf << std::endl;
+							str_buf.erase(0, str_buf.find_first_of("\n\r"));
+							while (str_buf.find_first_of("\n\r") == 0)
+								str_buf.erase(0,1);	// HACK To get rid of the \n at the start now?
 							// if (!str_buf.empty())
 							// 	std::cout << "strbuf after:" << str_buf << std::endl;
 							// else
 							// 	std::cout << "strbuf emptied" << std::endl;
 						}
 					}
-					std::cout << "Mensaje recibido de fd " << events[i].data.fd << ": " << str_buf << std::endl;
 					// HACK debugging print statement below
 					//this->_printMessageQueue(this->_toProcess);
 				}
 				// TODO Work out how to handle / merge the 2 different exceptions.
 				// - cant parse message- silently ignore or send ERR_NOTENOUGH PARAMS type reply
 				// - connection dodgy - is that what they are?
-				catch (std::exception &e)
+				// NOTE Cannot disconnect a client just because they sent a message that looks too small!
+				catch (std::invalid_argument &e)
 				{
 					std::cerr << e.what() <<std::endl;
-					_removeClient(events[i]);
+//					_removeClient(events[i]);
 				}
 				// catch (std::exception &e)
 				// {

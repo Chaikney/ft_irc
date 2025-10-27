@@ -33,6 +33,11 @@ void	runMessageParsingTests(void)
 	test_msg = Message::makeMessage(test_str);
 	std::cout << *test_msg << std::endl;
 	delete test_msg;
+	// NOTE right now, this only handles the first part due to a Message::_parseMessage limitation
+	test_str = ("CAP LS 302\n PASS noh \r\nNICK hexie\rUSER chaikney 0 * :realname");
+	test_msg = Message::makeMessage(test_str);
+	std::cout << *test_msg << std::endl;
+	delete test_msg;
 }
 
 

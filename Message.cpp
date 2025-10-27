@@ -27,8 +27,8 @@ Message::Message(std::string text_recvd) : _tags(""), _source(""),
 {
     if (text_recvd.empty())
         throw std::invalid_argument("Tried to create message with empty string");
-    if (text_recvd.length() < 3)
-        throw std::invalid_argument("Message too short");
+    // if (text_recvd.length() < 3)
+    //     throw std::invalid_argument("Message too short");
     if (text_recvd.length() > MSG_LEN)
 		throw std::invalid_argument("Message too long");
 	_parseMessage(text_recvd);
@@ -54,9 +54,18 @@ void	stripFinalNewline(std::string *str)
 	}
 }
 
+// NOTE If text_recvd has a newline in it, then that text has to go into the next message.
+// ...we throw away anything after a newline that reaches us here.
+// That *must* be handled outside the constructor.
 void	Message::_parseMessage(std::string text_recvd)
 {
 	char	c;
+	if (text_recvd.find_first_of(("\n\r")) != std::string::npos)
+	{
+		// erase up to the first nl
+		size_t	first_nl = text_recvd.find_first_of("\n\r");
+		text_recvd = text_recvd.erase(first_nl, text_recvd.length());
+	}
 	std::istringstream	strm(text_recvd);
 
     c = strm.get();
