@@ -894,39 +894,27 @@ void	Server::handleAway(Message *msg, User *usr)
 	}
 }
 
-// On quit, send ERROR to the client
-// broadcast QUIT to their channels
-// remove them from all channels and clean up traces
-// NOTE The ERROR probably has to act directly as the FD will disappear...
-// TODO Test (refactor?) the user-removal logic
-// - all channels (should be encapsulated in removeMember method)
-// - Server listings (perhaps roll into ERROR)
-// FIXME _removeUser() and _removeCLient() are too similar, confusing
 void	Server::handleQuit(Message *msg, User *usr)
 {
-    std::list<std::string> params = msg->getParams();
-    std::string reason ("Quit: " + params.back());
+	ACommand* thingtodo = new QuitCmd(this, *msg);
 
-//    std::string quitMsg = ":" + usr->getNick() + " QUIT :" + reason;
-//    std::string quitMsg = byethen->serialiseMsg();
-
-    // Get all channels the user is on and broadcast QUIT message
-    // TODO The channel collection should be when filling the list of FDs
-    for (std::map<std::string, Channel*>::iterator it = _channels.begin(); it != _channels.end(); ++it)
-    {
-        Channel *channel = it->second;
-        if (channel->isMember(usr))
-        {
-			Message *broadcast = Message::_channelMessage(*msg, channel);
-			broadcast->addParams(reason);
-			this->_toProcess.push(broadcast);
-//            _broadcastToChannel(channel, usr->getFD(), quitMsg, false);
-			// FIXME This has caused a segfault; must be protected.
-            channel->removeMember(usr);
-        }
-    }
-	// Then we call handleError to remove the User themselves from the Server
-	this->handleError(msg, usr);
+	(void) usr;
+	// NOTE this could be done in a main single loop not repeated for every command
+	if (thingtodo->numParamsOK())
+		thingtodo->executeCmd();
+	else
+	{
+        this->_toProcess.push(Message::_reply(*msg, ERR_NEEDMOREPARAMS));
+        return ;
+	};
+	std::queue<Message *>	to_add = thingtodo->getResponses();
+	// TODO This also seem like a common operation to be shared...
+	// NOTE Adding two queues together is not thought to be efficient
+	while (!to_add.empty())
+	{
+		this->_toProcess.push(to_add.front());
+		to_add.pop();
+	}
 }
 
 // The parameter is either a NICK or a Channel name (we can ignore wildcards)
