@@ -18,7 +18,7 @@ void Part::executeCmd(void)
     std::list<std::string> params =_msg.getParams();
 	User*	usr = _msg.getOrigin();
     std::string chan = params.front();
-	if (!this->_srv->normaliseChanName(&chan))
+	if (!Channel::normaliseChanName(&chan))
 	{
 		// Send error message and stop processing message
 		this->_responses.push(Message::_reply(_msg, ERR_BADCHANMASK));

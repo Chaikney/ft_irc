@@ -33,7 +33,7 @@ void Join::executeCmd(void)
 		std::cerr << "JOIN 0 not yet implemented." << std::endl;
 	}
     // If the channel name is valid, store and remove from our params
-	if (!this->_srv->normaliseChanName(&chan))
+	if (!Channel::normaliseChanName(&chan))
 	{
 		// Send error message and stop processing message
 		this->_responses.push(Message::_reply(_msg, ERR_BADCHANMASK));

@@ -6,7 +6,6 @@
 #include <string>
 #include <queue>// Messages to be processed
 #include <map>	// dictionary of partial messages
-#include <list>	// parameters in user/channelMode
 #include <ctime>
 
 class	Message;
@@ -55,9 +54,9 @@ class	Server
 		bool		_isFullMsg(std::string msg) const;
 		void		_storePartial(int fd_source, std::string msg);
 		std::string	_getClientInput(int fd);
+
 		// If this works, it is important
 		void		_sendMessage(Message *to_send) const;
-
 
 		// --- Helpers for channels/users ---
 		// TODO These three "direct"  comms methods should be removed, too dangerous
@@ -74,14 +73,12 @@ class	Server
 		Server(int port, std::string password);
 		~Server(void);	// NOTE Destructor will have to cleanly close connections and whatever partial / pending messages we have
 
-		// TODO Server::run() could be private, who else calls it?
 		void		run(void);
 		bool		checkPasswd(std::string &to_check) const;
 //		bool		_checkPass(Message &msg) const;	//public to act as friend of Message
+//		TODO Check if still has to be friend / public
 		void		_processQueue(void);	//public to act as friend of Message
-		// TODO SHould this be a public method in Channel?
-		bool		normaliseChanName(std::string *chan);
-		// TODO All Message* returning functions might move to that class
+
 		// Simple public getters
 		int		get_fd(void) const;
 		std::string	getUptime(void) const;

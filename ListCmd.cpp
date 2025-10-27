@@ -43,7 +43,7 @@ void	ListCmd::executeCmd(void)
 			std::cerr << "LIST with selected channels not implemented yet" << std::endl;
 		else
 		{
-			this->_srv->normaliseChanName(&chans);
+			Channel::normaliseChanName(&chans);
 			Channel*	c = this->_srv->_findChannel(chans);
 			if (!c)
 			{

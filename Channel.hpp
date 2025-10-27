@@ -100,6 +100,7 @@ class Channel
 		// Utility
 		bool						isEmpty(void) const;
 		void						clear(void);	// TODO Give this a less-ambiguous name
+		static bool	normaliseChanName(std::string *chan);
 };
 
 #endif

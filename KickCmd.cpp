@@ -32,7 +32,7 @@ void KickCmd::executeCmd(void)
     if (!params.empty())
         reason = params.front();
 
-    if (_srv->normaliseChanName(&chan) == false)
+    if (Channel::normaliseChanName(&chan) == false)
     {
         _responses.push(Message::_reply(_msg, ERR_BADCHANMASK));
         return;

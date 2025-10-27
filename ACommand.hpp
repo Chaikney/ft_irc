@@ -4,6 +4,7 @@
 #include "Server.hpp"
 #include "Message.hpp"
 #include "ReplyEnums.hpp"
+#include "Channel.hpp"
 
 // NOTE Causes compilation warning in Ping constructor, "unused"?
 //static	size_t	MAXPARAM = 10;

@@ -27,7 +27,8 @@ void Names::executeCmd(void)
 	while (!params.empty())
 	{
 		std::string	cname = params.front();
-		this->_srv->normaliseChanName(&cname);
+		// TODO Check for this returning false and handle the error.
+		Channel::normaliseChanName(&cname);
 		Channel*	target = this->_srv->_findChannel(cname);
 		if (target)
 		{
