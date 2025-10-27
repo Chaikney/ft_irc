@@ -8,6 +8,16 @@ Join::Join(Server *srv, Message &msg) : ACommand(srv, msg) {}
 
 Join::~Join() {}
 
+// DONE Send acknowledgements per https://modern.ircdocs.horse/#join-message
+// [X] A JOIN message with the client as the message <source> and the channel they have joined as the first parameter of the message.
+// [X] The channel’s topic (with RPL_TOPIC (332) and optionally RPL_TOPICWHOTIME (333)), and no message if the channel does not have a topic.
+// [X] A list of users currently joined to the channel (with one or more RPL_NAMREPLY (353) numerics followed by a single RPL_ENDOFNAMES (366) numeric).
+// ....These RPL_NAMREPLY messages sent by the server MUST include the requesting client that has just joined the channel.
+// DONE Break out the name normalisation to a helper function
+// TODO JOIN can accept an alternative parameter of '0' = PART all the user's channels
+// TODO Improve parameter handling so JOIN Can handle multiple Channels (comma separated)
+// TODO To support KEY mode channels, the 2nd paramter is a password
+// FIXED? the reply or broadcast message repeats the #channelname
 void Join::executeCmd(void)
 {
 	User* usr = _msg.getOrigin();

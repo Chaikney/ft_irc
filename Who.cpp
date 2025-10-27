@@ -20,6 +20,8 @@ Who::~Who(void) {}
 
 //    Command: WHO
 // Parameters: <mask>
+// The parameter is either a NICK or a Channel name (we can ignore wildcards)
+// Reply with multiple 352 terminated by RPL_ENDOFWHO (315)
 void	Who::executeCmd(void)
 {
 	std::list<std::string>	params = _msg.getParams();
@@ -32,7 +34,6 @@ void	Who::executeCmd(void)
 	if (mask.find_first_of("#&") == 0)
 	{
 		// treat as Channel. Return all members of that Channel
-		// FIXME this is private
 		Channel*	target = this->_srv->getChannel(mask);
 		if (!target)
 			std::cerr << "Oops channel not found what we do?" << std::endl;

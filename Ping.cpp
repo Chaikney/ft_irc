@@ -15,6 +15,11 @@ Ping::Ping(Server* srv, Message &seed) : ACommand(srv, seed, 0, 1)
 
 Ping::~Ping(void) {}
 
+// Client says PING <token> then we return PONG <token>
+// As PONG only comes back in reponse to PING,
+// if we don't *send* a PING then there's no need to handle PONG
+// TODO Use usr to update a "last seen" value for AWAY, autodisconnects, etc
+// NOTE most of this could be replaced in-loop with the ACommand* =  and enqueue / processing...
 void	Ping::executeCmd(void)
 {
 	Message	msg = this->_msg;

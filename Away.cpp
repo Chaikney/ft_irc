@@ -18,6 +18,9 @@ Away::Away(Server* srv, Message &seed) : ACommand(srv, seed, 2, 2)
 
 Away::~Away(void) {}
 
+// No, or empty parameter = NOT away
+// otherwise: going away, broadcast message
+// TODO Handle going-away message (e.g. broadcast to channel)
 void	Away::executeCmd(void)
 {
 	User*	usr = _msg.getOrigin();

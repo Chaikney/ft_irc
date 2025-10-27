@@ -22,7 +22,6 @@ Pass::~Pass(void) {}
 // Parameters: <password>
 void	Pass::executeCmd(void)
 {
-	// FIXME private member, how to check? Pass vlue to server and get a bool back
 	std::string	cPass = _msg.getParams().front();
 	User*	usr = _msg.getOrigin();
 

@@ -15,6 +15,11 @@
 // <target> is the nickname of a client or the name of a channel.
 // When the PRIVMSG message is sent from a server to a client and <target> starts with a dollar character ('$', 0x24), the message is a broadcast sent to all clients on one or multiple servers.
 // Optional: If <target> is a channel name, it may be prefixed with one or more channel membership prefix character (@, +, etc) and the message will be delivered only to the members of that channel with the given or higher status in the channel. Servers that support this feature will list the prefixes which this is supported for in the STATUSMSG RPL_ISUPPORT parameter, and this SHOULD NOT be attempted by clients unless the prefix has been advertised in this token.
+// Aquí va la lógica para enviar mensajes privados o a canales
+// TODO There are further checks needed on whether a message is allowed, see docs
+// Sends a message to user(s) or channel(s)
+// https://modern.ircdocs.horse/#privmsg-message
+// FIXME Mesage formatting is wrong. sender? Message must be precede by :
 Privmsg::Privmsg(Server* srv, Message &seed) : ACommand(srv, seed, 2, 2)
 {
 	std::cerr << "Privmsg constructor called" << std::endl;

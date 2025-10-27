@@ -8,6 +8,14 @@ KickCmd::KickCmd(Server *srv, Message &msg) : ACommand(srv, msg) {}
 
 KickCmd::~KickCmd() {}
 
+// KICK <channel> <user> [<comment>]
+// TODO Remove repetitive parts like checking the channel name, that should be in Channel::_findChannel
+// TODO isOperator() probably is based on NICK or USER not a fd? What happens if they reconnect?
+// TODO Unified message creation / sending not the hardcoded parameters
+// TODO Adapt to handle multiple Users getting kicked from the one channel
+// (Although: "Servers MAY limit the number of target users per KICK command via the TARGMAX parameter
+// of RPL_ISUPPORT, and silently drop targets if the number of targets exceeds
+// the limit.)"
 void KickCmd::executeCmd(void)
 {
     User *usr = _msg.getOrigin();

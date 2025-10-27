@@ -7,6 +7,13 @@ Names::Names(Server *srv, Message &msg) : ACommand(srv, msg) {}
 
 Names::~Names() {}
 
+/// https://modern.ircdocs.horse/#names-message
+// Read msg parameters and call to each named channel
+// - for each channel:
+// -- enumerate users
+// -- send RPL_NAMEREPLY per user
+// -- send RPL_ENDOFNAMES with the channel name
+// TODO Test that this works with multiple channels
 // TODO There should be ome filtering of visible names based on user modes
 void Names::executeCmd(void)
 {

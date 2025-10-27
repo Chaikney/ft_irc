@@ -159,7 +159,6 @@ void	Server::_addNewClient()
 // - remove that fd from the epoll listening set
 // NOTE Should the events array we pass in be stored as part of the class instead?
 // NOTE This could work on an int fd only, but this allows other actions if needed.
-// DONE Once we have User instances, this should remove those too
 // TODO All of the Channels that contain this User should be notified of the disconnection
 void	Server::_removeClient(struct epoll_event &goodbye)
 {
@@ -298,14 +297,6 @@ void	Server::_printMessageQueue(std::queue<Message *> toPrint) const
 	std::cout << n << " Messages printed" << std::endl;
 }
 
-// KICK <channel> <user> [<comment>]
-// TODO Remove repetitive parts like checking the channel name, that should be in Channel::_findChannel
-// TODO isOperator() probably is based on NICK or USER not a fd? What happens if they reconnect?
-// TODO Unified message creation / sending not the hardcoded parameters
-// TODO Adapt to handle multiple Users getting kicked from the one channel
-// (Although: "Servers MAY limit the number of target users per KICK command via the TARGMAX parameter
-// of RPL_ISUPPORT, and silently drop targets if the number of targets exceeds
-// the limit.)"
 void Server::handleKick(Message *msg, User *usr)
 {
 	ACommand* thingtodo;
@@ -328,11 +319,6 @@ void Server::handleKick(Message *msg, User *usr)
 	(void) usr;
 }
 
-// Aquí va la lógica para enviar mensajes privados o a canales
-// TODO There are further checks needed on whether a message is allowed, see docs
-// Sends a message to user(s) or channel(s)
-// https://modern.ircdocs.horse/#privmsg-message
-// FIXME Mesage formatting is wrong. sender? Message must be precede by :
 void Server::handlePrivmsg(Message *msg, User *usr)
 {
 	ACommand* thingtodo;
@@ -401,16 +387,6 @@ void	Server::handleUser(Message *msg, User *usr)
 	return ;
 }
 
-// DONE Send acknowledgements per https://modern.ircdocs.horse/#join-message
-// [X] A JOIN message with the client as the message <source> and the channel they have joined as the first parameter of the message.
-// [X] The channel’s topic (with RPL_TOPIC (332) and optionally RPL_TOPICWHOTIME (333)), and no message if the channel does not have a topic.
-// [X] A list of users currently joined to the channel (with one or more RPL_NAMREPLY (353) numerics followed by a single RPL_ENDOFNAMES (366) numeric).
-// ....These RPL_NAMREPLY messages sent by the server MUST include the requesting client that has just joined the channel.
-// DONE Break out the name normalisation to a helper function
-// TODO JOIN can accept an alternative parameter of '0' = PART all the user's channels
-// TODO Improve parameter handling so JOIN Can handle multiple Channels (comma separated)
-// TODO To support KEY mode channels, the 2nd paramter is a password
-// FIXED? the reply or broadcast message repeats the #channelname
 void	Server::handleJoin(Message *msg, User *usr)
 {
 	ACommand* thingtodo;
@@ -434,13 +410,6 @@ void	Server::handleJoin(Message *msg, User *usr)
 	return ;
 }
 
-// PART command
-// - Check name and channel exists.
-// - Remove User, send confirmation and to channel
-// - Remove channel if now empty
-// TODO Will need to be able to handle *multiple* Channel PARTs (comma separated)
-// FIXED? I think the PART mesasge lacks the channel name
-// FIXED Sending PART twice to channel
 void	Server::handlePart(Message *msg, User *usr)
 {
 	ACommand* thingtodo;
@@ -464,13 +433,6 @@ void	Server::handlePart(Message *msg, User *usr)
 	return ;
 }
 
-// https://modern.ircdocs.horse/#names-message
-// Read msg parameters and call to each named channel
-// - for each channel:
-// -- enumerate users
-// -- send RPL_NAMEREPLY per user
-// -- send RPL_ENDOFNAMES with the channel name
-// TODO Test that this works with multiple channels
 void	Server::handleNames(Message *msg, User *usr)
 {
 
@@ -494,8 +456,6 @@ void	Server::handleNames(Message *msg, User *usr)
 	(void) usr;	// HACK surely we need this to check if user can see them
 }
 
-// TODO This should handle receiving a list of channels (comma-separated)
-// TODO Filter the channel list that we call before looping over and listing
 void	Server::handleList(Message *msg, User *usr)
 {
 	ACommand* thingtodo;
@@ -518,9 +478,6 @@ void	Server::handleList(Message *msg, User *usr)
 	(void) usr;	// HACK surely we need this to check if user can see them
 }
 
-// FIXME Blank topic (RPL_TOPIC?) does not supply channel name (KVIRC)
-// The broadcast message must include the channel name (and goes to all in channel)
-// FIXME Parsing not putting the : in the correct place (sometimes?)
 void	Server::handleTopic(Message *msg, User *usr)
 {
 	ACommand* thingtodo;
@@ -587,11 +544,6 @@ void	Server::handleMode(Message *msg, User *usr)
 	(void) usr;	// HACK surely we need this to check if user can see them
 }
 
-// Client says PING <token> then we return PONG <token>
-// As PONG only comes back in reponse to PING,
-// if we don't *send* a PING then there's no need to handle PONG
-// TODO Use usr to update a "last seen" value for AWAY, autodisconnects, etc
-// NOTE most of this could be replaced in-loop with the ACommand* =  and enqueue / processing...
 void	Server::handlePing(Message *msg, User *usr)
 {
 	ACommand* thingtodo = new Ping(this, *msg);
@@ -770,25 +722,14 @@ void	Server::handlePass(Message *msg, User *usr)
 // Act on them, delete them.
 // TODO Make this spin off thread(s) to process the command efficiently
 // NOTE How do we make sure that this is non-blocking?
-// TODO Need some kind of matching / switch-case logic here (I guess)
-// NOTE This function has friend-based access to Message so it can extract the User involved
-// TODO Send messages to client on succesful registration:
-// RPL_WELCOME (001),
-// RPL_YOURHOST (002),
-// RPL_CREATED (003),
-// RPL_MYINFO (004),
-// at least one RPL_ISUPPORT (005) numeric to the client.
+// TODO This function has friend-based access to Message so it can extract the User involved - still needed?
 // The server MAY then send other numerics and messages.
 // The server SHOULD then respond as though the client sent the LUSERS command and return the appropriate numerics.
 // The server MUST then respond as though the client sent it the MOTD command, i.e. it must send either the successful Message of the Day numerics or the ERR_NOMOTD (422) numeric.
 // If the user has client modes set on them automatically upon joining the network, the server SHOULD send the client the RPL_UMODEIS (221) reply or a MODE message with the client as target, preferably the former.
-// FIXED Segfaults if given a Server numeric reply - bypass the checks?
 // NOTE This is focused a lot on actions the Server must do.
 // ...sometimes all that needs to happen is to send a reply...
-// TODO implement WHO command
-// TODO implement USERHOST command
 // https://modern.ircdocs.horse/#userhost-message
-// TODO implement QUIT command (port from branch)
 void	Server::_processQueue(void)
 {
 	Message*	do_next;
@@ -869,9 +810,6 @@ void	Server::_processQueue(void)
  	}
 }
 
-// No, or empty parameter = NOT away
-// otherwise: going away, broadcast message
-// TODO Handle going-away message (e.g. broadcast to channel)
 void	Server::handleAway(Message *msg, User *usr)
 {
 	ACommand* thingtodo = new Away(this, *msg);
@@ -917,8 +855,6 @@ void	Server::handleQuit(Message *msg, User *usr)
 	}
 }
 
-// The parameter is either a NICK or a Channel name (we can ignore wildcards)
-// Reply with multiple 352 terminated by RPL_ENDOFWHO (315)
 void	Server::handleWho(Message *msg, User *usr)
 {
 	ACommand* thingtodo = new Who(this, *msg);

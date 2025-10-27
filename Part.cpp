@@ -8,6 +8,11 @@ Part::Part(Server *srv, Message &msg) : ACommand(srv, msg) {}
 
 Part::~Part() {}
 
+// PART command
+// - Check name and channel exists.
+// - Remove User, send confirmation and to channel
+// - Remove channel if now empty
+// TODO Will need to be able to handle *multiple* Channel PARTs (comma separated)
 void Part::executeCmd(void)
 {
     std::list<std::string> params =_msg.getParams();
