@@ -66,26 +66,8 @@ class	Server
 		void		_broadcastToChannel(Channel *channel, int from_fd, const std::string &text, bool include_sender=false) const;
 
 		// --- Manejo de comandos IRC ---
-		// NOTE Possibly these could be abstracted away into a Command interface class?
+		// NOTE Most of these have been abstracted away into their own classes
 		ACommand*	matchCmd(Message* do_next);
-		void        	handleKick(Message *msg, User *usr);
-		void        	handlePrivmsg(Message *msg, User *usr);
-		void		handlePass(Message *msg, User *usr);
-		void		handleNick(Message *msg, User *usr);
-		void		handleUser(Message *msg, User *usr);
-		void		handleJoin(Message *msg, User *usr);
-		void		handlePart(Message *msg, User *usr);
-		void		handleNames(Message *msg, User *usr);
-		void		handleList(Message *msg, User *usr);
-		void		handleTopic(Message *msg, User *usr);
-		void		handleInvite(Message *msg, User *usr);
-		void		handleMode(Message *msg, User *usr);
-		void		handlePing(Message *msg, User *usr);
-		void		handleWho(Message *msg, User *usr);
-		void		handleWhoIs(Message *msg, User *usr);
-		void		handleAway(Message *msg, User *usr);
-		void		handleQuit(Message *msg, User *usr);
-		void		handleUserhost(Message *msg, User *usr);
 		void		handleError(Message *msg, User *usr);
 
 	public:
