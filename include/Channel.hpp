@@ -49,6 +49,7 @@ class Channel
 		const std::set<User *>&		getMembers(void) const;
 		const std::set<int>&		getOperators(void) const;
 		const std::set<std::string>& getInvitedNicks(void) const;
+		const std::set<std::string>& getBannedNicks(void) const;
 		bool						isTopicProtected(void) const;
 		bool						isInviteOnly(void) const;
 		bool						hasPassword(void) const;
@@ -63,8 +64,8 @@ class Channel
 		std::list<std::string>	getNameReply(void) const;	// for use in RPL_NAMREPLY
 		User*		findMemberByNick(std::string target) const;
 
-
 		// Setters
+		// TODO Need an "add banned" method
 //		void						setTopic(const std::string &topic);
 		void						setTopic(const std::string &topic, const std::string &set_by);
 		void						setTopicProtected(bool topicProtected);

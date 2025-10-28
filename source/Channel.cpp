@@ -102,6 +102,13 @@ const std::set<std::string>& Channel::getInvitedNicks(void) const
 {
 	return _invitedNicks;
 }
+
+// Return the set of banned Nicks for this channel
+const std::set<std::string>& Channel::getBannedNicks(void) const
+{
+	return (this->_banList);
+}
+
 bool Channel::isTopicProtected(void) const
 {
 	return _topicProtected;
