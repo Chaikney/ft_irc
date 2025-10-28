@@ -12,7 +12,11 @@
 
 NAME	=	ircserv
 
-SRC		=	main.cpp \
+SRC_DIR	=	source
+
+# NOTE addprefix allows us to add the path before each file, without needing a wildcard
+# i.e. we still explicitly list our source files
+SRC		=	$(addprefix $(SRC_DIR)/, main.cpp \
 			Server.cpp \
 			Message.cpp \
 			User.cpp \
@@ -35,12 +39,20 @@ SRC		=	main.cpp \
 			Pass.cpp \
 			UserCmd.cpp \
 			Nick.cpp \
-			QuitCmd.cpp
+			QuitCmd.cpp )
 
-OBJ		= $(SRC:.cpp=.o)
+# Define a folder for the intermediate files to keep it clean
+OBJ_DIR = obj
+OBJ		= $(SRC:$(SRC_DIR)/%.cpp=$(OBJ_DIR)/%.o)
+
+# NOTE make built-in rules no longer work, so must explicitly
+# say where the object files are
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp | $(OBJ_DIR)
+	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
 
 # NOTE -Weffc++ adds stricter C++ compilation warnings
-CFLAGS = -Werror -Wall -Wextra -ggdb -std=c++98 -O0 -Weffc++
+# -Iinclude says to get the headers from ./include
+CFLAGS = -Iinclude -Werror -Wall -Wextra -ggdb -std=c++98 -O0 -Weffc++
 CC		= c++
 
 all: $(NAME)
@@ -48,13 +60,18 @@ all: $(NAME)
 $(NAME): $(OBJ)
 	$(CC) $(CFLAGS) $(OBJ) -o $(NAME)
 
+# if the obj dir does not exist, create it
+$(OBJ_DIR):
+	mkdir -p $@
+
+# NOTE See above, this does not work with the OBJ_DIR so can be removed
 %.o: %.cpp
 	$(CC) $(CFLAGS) -c $< -o $@
 
 .PHONY: clean, all, fclean, re
 
 clean:
-	/bin/rm -f *.o
+	/bin/rm -f $(OBJ_DIR)/*.o
 	/bin/rm -f __.SYMDEF
 	/bin/rm -rf *.dSYM
 
