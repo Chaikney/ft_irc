@@ -57,6 +57,7 @@ class	Server
 
 		// If this works, it is important
 		void		_sendMessage(Message *to_send) const;
+		void		_processQueue(void);	// runs through the Message queue and runs the Commands
 
 		// --- Helpers for channels/users ---
 		// TODO These three "direct"  comms methods should be removed, too dangerous
@@ -77,7 +78,6 @@ class	Server
 		bool		checkPasswd(std::string &to_check) const;
 //		bool		_checkPass(Message &msg) const;	//public to act as friend of Message
 //		TODO Check if still has to be friend / public
-		void		_processQueue(void);	//public to act as friend of Message
 
 		// Simple public getters
 		int		get_fd(void) const;

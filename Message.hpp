@@ -13,40 +13,41 @@ class	User;
 // Static member variable. All messages of the same max length bytes
 const int	MSG_LEN = 512;
 
-// TODO Add getters for any relevant attribute
-// TODO Decide if any other information is useful to us here - destination?
+// Each instance of this holds a message received by, or to be sent by, the Server
+// They can be constructed from a single string, or with the various parts
+// serialiseMsg() converts it back to a IRC-friendly format
 // TODO We need something to check that the message is complete and logical
 class	Message
 {
 	private:
-		std::string				_tags;		// IF we supported these, they should be stored as multi?MAP of strings
-		std::string				_source;	// TODO This might be the wrong format
-		std::string				_command;	// Could be an int instead if we convert to the numeric?
-		std::list<std::string>	_params;
-		User*					_origin;	// Link to who sent this? Allows key info to be retrieved
-		std::list<int>			_targets;	// fds where the Message shuold be sent
-
-
+		std::string				_tags;		// Unsupported but included for completion. IF we supported these, they should be stored as multi?MAP of strings
+		std::string				_source;	// On outgoing messages, this is typically the User whose action is being responded to.
+		std::string				_command;	// Used to identify what ACommand derivative to instantiate
+		std::list<std::string>	_params;	// These vary with the message type
+		User*					_origin;	// Link to sending User. If NULL, this is an outbound message.
+		std::list<int>			_targets;	// FDs to which the Message should be sent
 
 		// Constructor and overload that we may not use
-					Message(void);	// private so not called - no blank messages please
+		Message(void);	// private so not called - no blank messages please
 		Message		operator=(const Message &irc);	// NOTE Not sure about assignment to a Message, this could be public
 
+		// Helpers used in parsing messages
 		void		_stepOver(std::istringstream &strm) const;
 		void		_parseMessage(std::string text_recvd);
 		std::string	_paramToString(std::list<std::string> lst) const;	// NOTE Helper for making transmittable messages
 
 	public:
 		// Constructors of various types; review to make sure they're all needed.
-					Message(std::string raw_text);
-					Message(std::string text_recvd, User *usr);
-					Message(std::string &src, std::string &cmd, std::list<std::string> params, std::list<int> targets);
-					Message(const Message &irc);	// Copying a Message seems reasonable to allow
-					~Message(void);
+		Message(std::string raw_text);
+		Message(std::string text_recvd, User *usr);
+		Message(std::string &src, std::string &cmd, std::list<std::string> params, std::list<int> targets);
+		Message(const Message &irc);	// Copying a Message seems reasonable to allow
+		~Message(void);
 
 		// Turn a received string into a formatted Message for queuing
 		static Message*			makeMessage(std::string &str);
 		static Message*			makeMessage(std::string &str, User *origin);
+
 		// Getters
 		std::string				getTags() const;
 		std::string				getSource() const;
@@ -55,11 +56,14 @@ class	Message
 		int						getParamCount() const;
 		User*					getOrigin() const;
 		std::list<int>			getTargets() const;
+		// All the pieces into a one-line string to send over a socket
+		std::string				serialiseMsg(void) const;
 
+		// Limited number of setters to finish off the basic message types
 		bool					addParams(std::list<std::string> &addme);
 		bool					addParams(const std::string &addme);
 
-		// from server
+		// TODO Check which of these are still needed
 		static Message*	_channelMessage(Message &msg, Channel *chan);
 		static Message*	_replyNonNumeric(Message &msg, Channel *chan);
 		static Message*	_replyNonNumeric(Message &msg);
@@ -69,13 +73,6 @@ class	Message
 		// NOTE Not sure if this one is any use
 		static Message*	_reply(Message &msg, int rep_code, User *usr);
 
-		// All the pieces into a one-line string to send over a socket
-		std::string	serialiseMsg(void) const;
-
-		// Declared as friend so it can access User._origin
-		friend	void	Server::_processQueue(void);
-		// TODO is this needed? It was wrong before and the prgram still compiled...
-//		friend	Message*	Server::_reply(Message &msg, int num_rep) const;
 };
 
 // TODO How can we make this return nothing when Message is absent/empty?
