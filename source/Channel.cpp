@@ -93,9 +93,9 @@ const std::set<User *>& Channel::getMembers(void) const
 	return (_members);
 }
 
-const std::set<int>& Channel::getOperators(void) const
+const std::set<User *>& Channel::getOperators(void) const
 {
-	return _operators;
+	return (this->_operators);
 }
 
 const std::set<std::string>& Channel::getInvitedNicks(void) const
@@ -199,13 +199,10 @@ bool Channel::addMember(User *usr)
 		return (false);	// TODO Maybe this should raise an exception? It is a big problem...
 	if (_members.find(usr) != _members.end())
 		return false; // Already a member
-
 	_members.insert(usr);
-
 	// First member becomes operator
 	if (_members.size() == 1)
-		_operators.insert(usr->getFD());
-
+		this->_operators.insert(usr);
 	return true;
 }
 
@@ -216,7 +213,7 @@ bool Channel::removeMember(User *usr)
 	if (_members.find(usr) == _members.end())
 		return false; // Not a member
 	_members.erase(usr);
-	_operators.erase(usr->getFD()); // Remove operator status if they had it
+	_operators.erase(usr); // Remove operator status if they had it
 	return true;
 }
 
@@ -228,9 +225,10 @@ bool Channel::isMember(User *usr) const
 		return (_members.find(usr) != _members.end());
 }
 
-bool Channel::isOperator(int userFd) const
+// If the user is an operator, it will be found in the set
+bool Channel::isOperator(User *usr) const
 {
-	return _operators.find(userFd) != _operators.end();
+	return _operators.find(usr) != _operators.end();
 }
 
 // TODO Needs updated when Operators stores User*
@@ -240,16 +238,15 @@ bool Channel::addOperator(User *usr)
 		return (false);
 	if (_members.find(usr) == _members.end())
 		return false; // Must be a member first
-	_operators.insert(usr->getFD());
+	_operators.insert(usr);
 	return true;
 }
 
-bool Channel::removeOperator(int userFd)
+bool Channel::removeOperator(User *usr)
 {
-	if (_operators.find(userFd) == _operators.end())
+	if (this->_operators.find(usr) == _operators.end())
 		return false; // Not an operator
-
-	_operators.erase(userFd);
+	_operators.erase(usr);
 	return true;
 }
 
@@ -490,7 +487,7 @@ std::list<std::string>	Channel::getNameReply(void) const
 	while (it != members.end())
 	{
 		User* member = *it;
-		if (this->isOperator(member->getFD()))
+		if (this->isOperator(member))
 			name += "@";
 		name += member->getNick();
 		params.push_back(name);

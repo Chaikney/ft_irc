@@ -43,7 +43,7 @@ void KickCmd::executeCmd(void)
         _responses.push(Message::_reply(_msg, ERR_NOSUCHCHANNEL));
         return;
     }
-    if (!channel->isOperator(usr->getFD()))
+    if (!channel->isOperator(usr))
     {
         _responses.push(Message::_reply(_msg, ERR_CHANOPRIVSNEEDED));
         return;

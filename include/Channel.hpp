@@ -19,7 +19,7 @@ class Channel
 		std::string			_topicSetBy;
 		std::set<User *>		_members;		// Users in the channel
 		// TODO Seems to me that these should store User* not just file descriptors....
-		std::set<int>			_operators;		// User FDs with operator rights
+		std::set<User *>		_operators;		// User FDs with operator rights
 		std::set<std::string>		_invitedNicks;	// Invited nicks (by name)
 		bool				_topicProtected;	// +t mode
 		bool				_noExtMsg;			// +n no external messages can be sent to the channel (this is kind of implicit in how we have coded it though)
@@ -47,7 +47,7 @@ class Channel
 		const std::string&			getTopicSetter(void) const;
 		const std::string			getTopicTime(void) const;	// NOTE Not returning a reference because using a local variable
 		const std::set<User *>&		getMembers(void) const;
-		const std::set<int>&		getOperators(void) const;
+		const std::set<User *>&		getOperators(void) const;
 		const std::set<std::string>& getInvitedNicks(void) const;
 		const std::set<std::string>& getBannedNicks(void) const;
 		bool						isTopicProtected(void) const;
@@ -78,9 +78,9 @@ class Channel
 		bool						addMember(User *usr);
 		bool						removeMember(User *usr);
 		bool						isMember(User *usr) const;
-		bool						isOperator(int userFd) const;
+		bool						isOperator(User *usr) const;
 		bool						addOperator(User *usr);
-		bool						removeOperator(int userFd);
+		bool						removeOperator(User *usr);
 
 		// Invite management
 		bool						addInvite(const std::string &nick);

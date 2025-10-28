@@ -28,7 +28,7 @@ void Topic::executeCmd(void)
 		this->_responses.push(Message::_reply(_msg, RPL_TOPIC));
         return ;
     }
-    if (channel->isTopicProtected() && !channel->isOperator(usr->getFD()))
+    if (channel->isTopicProtected() && !channel->isOperator(usr))
     {
 		this->_responses.push(Message::_reply(_msg, ERR_CHANOPRIVSNEEDED));
         return ;

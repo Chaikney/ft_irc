@@ -66,7 +66,7 @@ void	Mode::_channelMode(Message *msg, User *usr, std::string target)
 	}
 	// NOTE Below here only if more than 1 param was given
 	// NOTE No privileges needed to get a listing, but from here we change things
-	if (!channel->isOperator(usr->getFD()))
+	if (!channel->isOperator(usr))
 	{
 		this->_responses.push(Message::_reply(*msg, ERR_CHANOPRIVSNEEDED, channel));
 		return ;

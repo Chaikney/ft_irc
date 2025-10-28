@@ -51,7 +51,7 @@ void	Invite::executeCmd(void)
 		this->_responses.push(Message::_reply(_msg, ERR_NOTONCHANNEL));
         return ;
     }
-    if (!channel->isOperator(usr->getFD()))
+    if (!channel->isOperator(usr))
     {
 		this->_responses.push(Message::_reply(_msg, ERR_CHANOPRIVSNEEDED));
         return ;
