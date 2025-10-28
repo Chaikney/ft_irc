@@ -6,6 +6,9 @@
 #include <iostream>
 #include <ctime>
 #include <list>	// Returned by getWhoReply()
+#include <set>	// Stores pointers to all Channels the User is in
+
+class	Channel;
 
 // TODO Decide if any other information is useful to us here
 // DONE Add a last seen timestamp (what format?) to allow for timeouts
@@ -34,6 +37,7 @@ class	User
 		bool					_isAway;
 		bool					_isServerOp;	// +o Has power to shutdown Server, etc
 		bool					_isInvisible;	// +i implications for user listings
+		std::set<Channel *>		_memberships;
 
 		User		operator=(const User &irc);	// NOTE Not sure about assignment to a User, this could be public
 
@@ -59,6 +63,7 @@ class	User
 		std::string			getFlags(void) const;
 		std::string			getUserHostMsg(void) const;
 		std::string			getModes(void) const;
+		std::set<Channel *> getMemberships(void) const;
 
 		// Set values
 		void				switchVerification();
@@ -71,8 +76,8 @@ class	User
 		bool 				_setModeLetter(char mode, bool add, const std::string &param);
 
 		// Channel-related operations
-		void				addChannel(const std::string &channel);
-		void				removeChannel(const std::string &channel);
+		void				addChannel(Channel* chan);
+		void				removeChannel(Channel* chan);
 
 		// Comparison overloads
 		friend bool	operator==(const User &lhs, const User &rhs);

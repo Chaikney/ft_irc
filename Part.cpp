@@ -38,12 +38,13 @@ void Part::executeCmd(void)
     {
 		// Send a PART confirmation to the User
 		this->_responses.push(Message::_replyNonNumeric(_msg, channel));
-        usr->removeChannel(chan);
+        usr->removeChannel(channel);
 		// ...and to the Channel
 		this->_responses.push(Message::_channelMessage(_msg, channel));
+        // FIXME is this the way to remove an empty Channel? or should it be an internal Channel method?
         // If channel is empty, remove it
-        if (channel->isEmpty())
-            this->_srv->_removeChannel(chan);
+        // if (channel->isEmpty())
+        //     this->_srv->_removeChannel(channel);
     }
 	else
 	{

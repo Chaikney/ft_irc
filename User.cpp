@@ -2,14 +2,15 @@
 #include <arpa/inet.h>	// inet_ntop() ("network-to-printable")
 #include <netinet/in.h>
 #include <unistd.h>
-#include <sstream>
+#include <sstream>	// used in setMode()
+#include <set>	// store the user's set of memberships
 
 // Start with blank names, password FALSE
 // ...but the connection information?
 // The first thing we see is a file descriptor I think. What else in the socket
 User::User(void) : _fd(-1), _nick(""), _uname(""), _rname(""),
 				   _gavepass(false), _address(), _host(), last_seen(), _isAway(false), _isServerOp(false),
-				   _isInvisible(false)
+				   _isInvisible(false), _memberships()
 {
 	std::cerr << "Cannot create User instance without a socket fd" << std::endl;
 }
@@ -19,7 +20,7 @@ User::User(void) : _fd(-1), _nick(""), _uname(""), _rname(""),
 // NOTE Cannot get hostname so taking the IP addr
 User::User(int fd) : _fd(fd), _nick(""), _uname(""), _rname(""),
 					 _gavepass(false), _address(), _host(), last_seen(), _isAway(false), _isServerOp(false),
-					 _isInvisible(false)
+					 _isInvisible(false), _memberships()
 {
 	socklen_t	addr_size = INET_ADDRSTRLEN;	// I only made this for getsockname and I guess error checking
 	char	ip_addr[INET_ADDRSTRLEN];
@@ -55,7 +56,7 @@ User::User(const User &original): _fd(original._fd), _nick(original._nick), _una
 										   _rname(original._rname), _gavepass(original._gavepass),
 								  _address(original._address), _host(original._host),
 								  last_seen(original.last_seen), _isAway(original._isAway), _isServerOp(original._isServerOp),
-								  _isInvisible(original._isInvisible)
+								  _isInvisible(original._isInvisible), _memberships(original._memberships)
 {}
 
 int	User::getFD() const
@@ -127,22 +128,20 @@ void	User::setReal(std::string realname)
 	this->_rname = realname;
 }
 
-// FIXME Implement or remove this function
-void	User::addChannel(const std::string &channel)
+// Add a channel to the user's set of memberships
+void	User::addChannel(Channel* channel)
 {
-	// Simple implementation - just store channel name
-	// In a full implementation, this would add to a set of channels
-	(void)channel;
-	std::cerr << "User::addChannel is not implemented yet" << std::endl;
+	if (channel)
+		this->_memberships.erase(channel);
 }
 
-// FIXME Implement or remove this function
-void	User::removeChannel(const std::string &channel)
+// Remove a channel from the user's set of memberships
+void	User::removeChannel(Channel* channel)
 {
 	// Simple implementation - just remove channel name
 	// In a full implementation, this would remove from a set of channels
-	(void)channel;
-	std::cerr << "User::removeChannel is not implemented yet" << std::endl;
+	if (channel)
+		this->_memberships.erase(channel);
 }
 
 // Method to be triggered by Server when we receive a message from the user
@@ -294,4 +293,9 @@ std::string	User::getModes(void) const
 bool	User::isAway(void) const
 {
 	return (this->_isAway);
+}
+
+std::set<Channel *>	User::getMemberships(void) const
+{
+	return (this->_memberships);
 }

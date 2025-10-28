@@ -66,7 +66,7 @@ void Join::executeCmd(void)
 	// Add member to channel
     if (channel->addMember(usr))
     {
-        usr->addChannel(chan);
+        usr->addChannel(channel);
 		// Send JOIN confirmation
 		this->_responses.push(Message::_replyNonNumeric(_msg, channel));
 

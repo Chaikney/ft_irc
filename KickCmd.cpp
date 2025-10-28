@@ -60,10 +60,11 @@ void KickCmd::executeCmd(void)
         return;
     }
     channel->removeMember(target);
-    target->removeChannel(chan);
+    target->removeChannel(channel);
     if (reason.empty()) reason = "Kicked";
     _responses.push(Message::_channelMessage(_msg, channel));
     Message *direct = Message::_replyNonNumeric(_msg);
+	// FIXME hardcoded notification parameters in KICK
     direct->addParams(std::string(":server KICK " + chan + " " + nick + " :" + reason));
     _responses.push(direct);
 }
