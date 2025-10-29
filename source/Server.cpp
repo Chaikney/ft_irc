@@ -30,7 +30,34 @@
 #include <cerrno>	// for error checking in send calls
 #include <cstdlib>	// for the EXIT code
 #include <cstring>	// for memset. Too many includes!
-#include <fcntl.h>	// NOTE Consider not using this, it may be OSX only (see requirements doc)
+#include <fcntl.h>	// NOTE IS there a C++ equivalent we should prefer?
+// TODO DO we need *both* of these signal includes?
+#include <csignal>	// for signal handling
+#include <signal.h>	// for signal handling
+
+// Variable estática para controlar el bucle principal del servidor
+static volatile sig_atomic_t g_server_running = 1;
+
+// Función manejadora de señales
+void signalHandler(int signal)
+{
+	switch (signal)
+	{
+		case SIGINT:
+			std::cout << "\n[INFO] Señal SIGINT recibida. Cerrando servidor..." << std::endl;
+			break;
+		case SIGTERM:
+			std::cout << "\n[INFO] Señal SIGTERM recibida. Cerrando servidor..." << std::endl;
+			break;
+		case SIGPIPE:
+			std::cout << "\n[INFO] Señal SIGPIPE recibida. Cliente desconectado." << std::endl;
+			return; // No cerrar el servidor por SIGPIPE
+		default:
+			std::cout << "\n[INFO] Señal " << signal << " recibida. Cerrando servidor..." << std::endl;
+			break;
+	}
+	g_server_running = 0;
+}
 
 // Helper para poner un socket en modo no bloqueante
 // Set socket to non-blocking by:
@@ -111,6 +138,12 @@ Server::Server(int port, std::string password) : _socketFD(0), _epollFD(0),
 		throw std::runtime_error("Could not add server input to epoll set.");
 	}
 	this->_creationTime = time(0);
+
+	// Configurar manejadores de señales
+	signal(SIGINT, signalHandler);
+	signal(SIGTERM, signalHandler);
+	signal(SIGPIPE, signalHandler);
+
 }
 
 // What needs to be done when we get the first contact from a new client
@@ -190,7 +223,9 @@ void Server::run()
 	std::cout << "server on, waiting for conections (epoll)..." << std::endl;
 	const int MAX_EVENTS = 10;
 	struct epoll_event events[MAX_EVENTS];
-	while (true)
+	// NOTE This is set as static / volatile above.
+	// TODO Must be able to explain how that global variable works and is set
+	while (g_server_running)
 	{
 		// n is the number of fds ready for action
 		int n = epoll_wait(_epollFD, events, MAX_EVENTS, -1);
@@ -273,6 +308,9 @@ void Server::run()
 		}
 		_processQueue();
 	}
+
+	// Cierre limpio del servidor
+	_cleanupServer();
 }
 
 // Simple gettter for the Server socket's file descriptor.
@@ -320,6 +358,9 @@ Server::~Server(void)
 		delete it->second;
 	}
 	_clients.clear();
+
+	// Limpiar recursos del servidor
+	_cleanupServer();
 }
 
 // TODO Consider being more lenient and allowing \r only to terminate commands
@@ -776,4 +817,43 @@ bool	Server::checkPasswd(std::string &to_check) const
 		return (true);
 	else
 		return (false);
+}
+
+// Función para limpieza de recursos del servidor
+// TODO Check ERROR sending, possibly use ERROR method and direct send method
+void Server::_cleanupServer()
+{
+	std::cout << "Limpiando recursos del servidor..." << std::endl;
+
+	// Notificar a todos los clientes que el servidor se está cerrando
+	for (std::map<int, User*>::iterator it = _clients.begin(); it != _clients.end(); ++it)
+	{
+		User* user = it->second;
+		if (user)
+		{
+			_sendToFD(user->getFD(), "ERROR :Server shutting down\r\n");
+		}
+	}
+
+	// Cerrar todos los sockets de clientes
+	for (std::map<int, User*>::iterator it = _clients.begin(); it != _clients.end(); ++it)
+	{
+		close(it->first);
+	}
+
+	// Cerrar socket del servidor
+	if (_socketFD > 0)
+	{
+		close(_socketFD);
+		_socketFD = 0;
+	}
+
+	// Cerrar epoll
+	if (_epollFD > 0)
+	{
+		close(_epollFD);
+		_epollFD = 0;
+	}
+
+	std::cout << "Recursos del servidor limpiados." << std::endl;
 }

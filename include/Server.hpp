@@ -58,6 +58,7 @@ class	Server
 		// If this works, it is important
 		void		_sendMessage(Message *to_send) const;
 		void		_processQueue(void);	// runs through the Message queue and runs the Commands
+		void		_cleanupServer();	// Limpieza de recursos del servidor
 
 		// --- Helpers for channels/users ---
 		// TODO These three "direct"  comms methods should be removed, too dangerous
