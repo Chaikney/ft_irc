@@ -276,6 +276,8 @@ void Server::run()
 							Message	*nxtMessage = Message::makeMessage(str_buf, msgFrom);
 							if (nxtMessage)
 								this->_toProcess.push(nxtMessage);
+							else
+								delete nxtMessage;
 							// Strip some text from str_buf
 			//				std::cout << "strbuf before:" << str_buf << std::endl;
 							str_buf.erase(0, str_buf.find_first_of("\n\r"));
@@ -340,6 +342,7 @@ void	Server::_printMessageQueue(std::queue<Message *> toPrint) const
 }
 
 // NOTE When the Server destructor is called, all memory freed. This is good!
+// FIXME This can be triggered from within ~ACommand. This is very bad!
 Server::~Server(void)
 {
 	// Libera recursos si es necesario
@@ -649,6 +652,7 @@ void	Server::_sendMessage(Message *msg_to_send) const
 		// move through the list - does this handle memory OK?
 		send_to.pop_front();
 	}
+	delete msg_to_send;
 }
 
 // Check if a nickname is already in use by any connected user
@@ -825,6 +829,10 @@ bool	Server::checkPasswd(std::string &to_check) const
 
 // Función para limpieza de recursos del servidor
 // TODO Check ERROR sending, possibly use ERROR method and direct send method
+// - Notify all users
+// - close all sockets
+// - what about the things remaining in the process queue?
+// - what about channels?
 void Server::_cleanupServer()
 {
 	std::cout << "Limpiando recursos del servidor..." << std::endl;
@@ -837,6 +845,12 @@ void Server::_cleanupServer()
 		{
 			_sendToFD(user->getFD(), "ERROR :Server shutting down\r\n");
 		}
+	}
+	while (!_toProcess.empty())
+	{
+		Message *tmp = _toProcess.front();
+		delete tmp;
+		_toProcess.pop();
 	}
 
 	// Cerrar todos los sockets de clientes
