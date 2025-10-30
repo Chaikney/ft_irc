@@ -49,11 +49,31 @@ void	Mode::_userMode(Message *msg, User *usr, std::string target)
 	}
 }
 
+// RPL_BANLIST (367)
+//   "<client> <channel> <mask> [<who> <set-ts>]"
+// RPL_ENDOFBANLIST (368)
+//  "<client> <channel> :End of channel ban list"
+//  FIXME These are not the correct _reply calls to use
+void	Mode::_sendBanList(Channel* chan)
+{
+	std::set<std::string>	banned = chan->getBannedNicks();
+	std::set<std::string>::const_iterator it = banned.begin();
+	while (it != banned.end())
+	{
+		// TODO Must add parameter to this
+		this->_responses.push(Message::_reply(*msg, RPL_BANLIST, channel));
+		it++;
+	}
+	this->_responses.push(Message::_reply(*msg, RPL_ENDOFBANLIST, channel));
+}
+
 // MODE command to deal with a Channel
 // TODO If channel mode changes, broadcast the change to channel
 // NOTE Here, params has popped off the first (target), it is not like msg->getParams()
 // TODO How to handle +b ? (request for a ban list)? In channel i suppose
-// FIXME dont need all these to be passed...
+// When the server is done processing the modes,
+// a MODE command is sent to all members of the channel containing the mode changes.
+// Servers MAY choose to hide sensitive information when sending the mode changes.
 void	Mode::_channelMode(Message *msg, User *usr, std::string target)
 {
 	std::list<std::string>	params = _msg.getParams();

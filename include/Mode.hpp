@@ -17,9 +17,11 @@ class	Mode : public ACommand
 		// Here, all the meat from "handleWhatever" will go in the subcommands
 		// NOTE No parameters as they are in ACommand->msg
 		virtual void	executeCmd(void);
+
 	private:
 		void	_userMode(Message *msg, User *usr, std::string target);
 		void	_channelMode(Message *msg, User *usr, std::string target);
+		void	_sendBanList(Channel* chan);
 
 };
 #endif
