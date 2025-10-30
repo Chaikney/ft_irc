@@ -412,6 +412,8 @@ std::string	Server::_getClientInput(int fd)
 	return (ret_val);
 }
 
+// TODO Consider calling User::normaliseNick here
+// (Currently callers use it before sending)
 User* Server::_findUserByNick(const std::string &nick) const
 {
     for (std::map<int, User*>::const_iterator it = this->_clients.begin(); it != this->_clients.end(); ++it)

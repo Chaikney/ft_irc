@@ -299,3 +299,19 @@ std::set<Channel *>	User::getMemberships(void) const
 {
 	return (this->_memberships);
 }
+
+// Remove any valid but confusing prefix characters from the Nick
+// return true if we can work with the string after modifications
+// TODO Confirm all the possible prefix characters
+// TODO Make sure no spaces in the parameter - this should not happen but seems to...
+bool	User::normaliseNick(std::string *nick)
+{
+	if (nick->empty())
+		return (false);
+	if (nick->find(' ') != std::string::npos)
+		return (false);
+	while (nick->find_first_of("@:") == 0)
+		nick->erase(0, 1);
+	std::cout << "Nick targeted will be:" << *nick << std::endl;	// HACK for debugging
+	return (true);
+}

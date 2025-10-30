@@ -79,6 +79,7 @@ class	User
 		void				addChannel(Channel* chan);
 		void				removeChannel(Channel* chan);
 
+		static bool			normaliseNick(std::string *nick);
 		// Comparison overloads
 		friend bool	operator==(const User &lhs, const User &rhs);
 		friend bool	operator!=(const User &lhs, const User &rhs);

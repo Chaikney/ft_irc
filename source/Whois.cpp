@@ -11,7 +11,8 @@
 // 	std::cerr << "Bare Whois constructor should not be called" << std::endl;
 // }
 
-Whois::Whois(Server* srv, Message &seed) : ACommand(srv, seed, 1, 1)
+// NOTE Hardcoded 10 as the max parameters, perhaps we should have an overal limit?
+Whois::Whois(Server* srv, Message &seed) : ACommand(srv, seed, 1, 10)
 {
 	std::cerr << "Bare Whois constructor called, hope that is not a problem..." << std::endl;
 }
@@ -39,12 +40,14 @@ Whois::~Whois(void) {}
     // RPL_WHOISMODES (379)	--	maybe later if we develop modes fully
     // RPL_WHOISSECURE (671)	--	no one will be using a secure connection, ignore it
     // RPL_AWAY (301)	--	this seems easy to do
+    // FIXME Hexchat sends 2 parameters for a self-check and we don't cope with that
+    // FIXME WHOIS may be sent with @preceding the nick, check that
 void	Whois::executeCmd(void)
 {
 	std::string	inick =_msg.getParams().front();
-	if (inick.empty())
+	if (!User::normaliseNick(&inick))
 	{
-		this->_responses.push(Message::_reply(_msg, ERR_NEEDMOREPARAMS));
+		this->_responses.push(Message::_reply(_msg, ERR_NOSUCHNICK));
 		return ;
 	}
 	if (!this->_srv->_isNickTaken(inick))

@@ -58,11 +58,12 @@ void	Who::executeCmd(void)
 	}
 	else // treating it as a NICK
 	{
-		User*	user = this->_srv->_findUserByNick(mask);
-		if (!user)
-			this->_responses.push(Message::_reply(_msg, ERR_NOSUCHNICK, user));
-		else
-			this->_responses.push(Message::_reply(_msg, RPL_WHOREPLY, user));
+		if (User::normaliseNick(&mask))
+		{
+			User*	user = this->_srv->_findUserByNick(mask);
+			if (user)
+				this->_responses.push(Message::_reply(_msg, RPL_WHOREPLY, user));
+		}
 	}
 	// send final 315
 	this->_responses.push(Message::_reply(_msg, RPL_ENDOFWHO));
