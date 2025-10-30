@@ -53,18 +53,20 @@ void	Mode::_userMode(Message *msg, User *usr, std::string target)
 //   "<client> <channel> <mask> [<who> <set-ts>]"
 // RPL_ENDOFBANLIST (368)
 //  "<client> <channel> :End of channel ban list"
-//  FIXME These are not the correct _reply calls to use
+//  FIXME These might not be the correct _reply calls to use
 void	Mode::_sendBanList(Channel* chan)
 {
 	std::set<std::string>	banned = chan->getBannedNicks();
 	std::set<std::string>::const_iterator it = banned.begin();
 	while (it != banned.end())
 	{
-		// TODO Must add parameter to this
-		this->_responses.push(Message::_reply(*msg, RPL_BANLIST, channel));
+		Message* reply;
+		reply = Message::_reply(_msg, RPL_BANLIST, chan);
+		reply->addParams(*it);
+		this->_responses.push(reply);
 		it++;
 	}
-	this->_responses.push(Message::_reply(*msg, RPL_ENDOFBANLIST, channel));
+	this->_responses.push(Message::_reply(_msg, RPL_ENDOFBANLIST, chan));
 }
 
 // MODE command to deal with a Channel
@@ -84,7 +86,7 @@ void	Mode::_channelMode(Message *msg, User *usr, std::string target)
 		this->_responses.push(Message::_reply(*msg, ERR_NOSUCHCHANNEL));
 		return ;
 	}
-	params.pop_front();	// discard target
+	params.pop_front();	// discard target, we already have it
 	// NOTE 2nd check to work around Hexchat sending final blank parameter
 	if (params.empty() || (params.back() == ""))
 	{
@@ -95,6 +97,7 @@ void	Mode::_channelMode(Message *msg, User *usr, std::string target)
 	}
 	// NOTE Below here only if more than 1 param was given
 	// NOTE No privileges needed to get a listing, but from here we change things
+	// FIXME So how then do we treat +b for banlist? Could still be privileged information.
 	if (!channel->isOperator(usr))
 	{
 		this->_responses.push(Message::_reply(*msg, ERR_CHANOPRIVSNEEDED, channel));
@@ -109,15 +112,12 @@ void	Mode::_channelMode(Message *msg, User *usr, std::string target)
 		modearg = "";
 	else
 		modearg = params.front();
-	channel->setMode(modestring, modearg);
+	if (channel->setMode(modestring, modearg))
+	{
+		// TODO Notify all in channel of changed mode (target->getModeString() and what else?)
+		std::cout << "Channel modes for " << target << "have been changed" << std::endl;
+	}
 }
-
-Mode::Mode(Server* srv, Message &seed) : ACommand(srv, seed, 2, 2)
-{
-	std::cerr << "Bare Mode constructor called, hope that is not a problem..." << std::endl;
-}
-
-Mode::~Mode(void) {}
 
 // Command: MODE
 // Parameters: <target> [<modestring> [<mode arguments>...]]
@@ -128,16 +128,26 @@ Mode::~Mode(void) {}
 // First we decide if we are targetting a channel or aa user, and direct appropriately
 // After changes are made, we have to notify them - individually or together?
 // NOTE Workaround for Hexchat which sends a blank final parameter.
+// FIXME Sends not enough params for MODE #channel +b which is absolutely fine
+// TODO Return Ban list on MODE #channel +b
+// There are four categories of channel modes, defined as follows:
+// Type A: Modes that add or remove an address to or from a list.
+// ...These modes MUST always have a parameter when sent from the server to a client.
+// ....A client MAY issue this type of mode without an argument to obtain the current contents of the list. The numerics used to retrieve contents of Type A modes depends on the specific mode. Also see the EXTBAN parameter.
+// Type B: Modes that change a setting on a channel.
+// ...These modes MUST always have a parameter.
+// Type C: Modes that change a setting on a channel.
+// ...These modes MUST have a parameter when being set, and MUST NOT have a parameter when being unset.
+// Type D: Modes that change a setting on a channel.
+// ...These modes MUST NOT have a parameter.
 void	Mode::executeCmd(void)
 {
     std::list<std::string> params = _msg.getParams();
-	if (params.empty())
-	{
-        this->_responses.push(Message::_reply(_msg, ERR_NEEDMOREPARAMS));
-        return ;
-	}
-    std::string target = params.front();
-//	params.pop_front();	// NOTE This causes a crash below if we remove the final parameter...
+	std::string	target;
+	if (!params.empty())
+		target = params.front();
+	else
+		throw (std::logic_error ("MODE command with empty parameters"));
 	std::cout << "Directing mode for:" << target << std::endl;	// HACK debug statement
 	if (target.find_first_of("#&") == 0)// Do MODE as Channel
 	{
