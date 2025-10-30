@@ -231,7 +231,8 @@ void	User::setAway(bool are)
 // (see https://defs.ircdocs.horse/defs/usermodes.html - only 2 have parameters, ignorable)
 bool	User::setMode(std::string modestring)
 {
-	bool adding = true;
+	bool	adding = true;
+	bool	changes = false;
 	std::stringstream	strm(modestring);
 	char	c = 0;
 
@@ -243,32 +244,46 @@ bool	User::setMode(std::string modestring)
 		else if (c ==  '-')
 			adding = false;
 		else
-			_setModeLetter(c, adding, "");	// HACK ignores parameters (because I don't understand them)
+			changes = _setModeLetter(c, adding);	// FIXME Can only work for one change
 	}
-	return true;	// just because
+	return (changes);
 }
 
 // TODO Support supported user modes:
 // +oO
-// +i (lter)
+// +i (later) invisible has to be referred to in other functions
 // NOTE OPER command is needed to support isOp properly
-bool User::_setModeLetter(char mode, bool add, const std::string &param)
+// NOTE User modes are all Type D, i.e. must not have  a parameter.
+// Returns true if a change was made, false otherwise
+bool User::_setModeLetter(char mode, bool add)
 {
-	(void) param;	// HACK because no modes use this (yet?)
 	switch (mode)
 	{
 		case 'o':
-			this->_isServerOp = add;
-			return (true);	// TODO Probably should check for ability to take this away...
+			if (this->_isServerOp != add)
+			{
+				this->_isServerOp = add;
+				return (true);
+			}
+			break;
 		case 'O':
-			this->_isServerOp = add;
-			return (true);	// TODO Probably should check for ability to take this away...
+			if (this->_isServerOp != add)
+			{
+				this->_isServerOp = add;
+				return (true);
+			}
+			break;
 		case 'i':
-			this->_isInvisible = add;
-			return (true);
-	default:
-		return false;
+			if (this->_isInvisible != add)
+			{
+				this->_isInvisible = add;
+				return (true);
+			}
+			break;
+		default:
+			return false;
 	}
+	return (false);
 }
 
 // Return the User's active modes, as used in RPL_UMODEIS

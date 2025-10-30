@@ -6,14 +6,18 @@
 
 # include <iostream>
 
-// Mode::Mode(void)
-// {
-// 	std::cerr << "Bare Mode constructor should not be called" << std::endl;
-// }
+// MODE target (modestring) (mode parameters)
+Mode::Mode(Server* srv, Message &seed) : ACommand(srv, seed, 1, 3)
+{
+	std::cerr << "Mode constructor called..." << std::endl;
+}
+
+Mode::~Mode(void) {}
+
 // MODE command to deal with a User
-// NOTE User modes don't need the modearg
-// TODO Notify on changed modes
-// FIXME dont need all these to be passed...
+// NOTE User modes don't need the modearg, are all type D
+// TODO Notify on changed modes, will need to call User::+setModeLetter and act on the return
+// (This is partly done but will be unreliable)
 void	Mode::_userMode(Message *msg, User *usr, std::string target)
 {
 	User* target_user = this->_srv->_findUserByNick(target);
@@ -36,7 +40,12 @@ void	Mode::_userMode(Message *msg, User *usr, std::string target)
 	else
 	{
 		std::string	modestring = params.front();
-		target_user->setMode(modestring);
+		if (target_user->setMode(modestring))
+		{
+			// Send a MODE change notification to the user
+			this->_responses.push(Message::_reply(*msg, RPL_UMODEIS, msg->getOrigin()));
+			std::cout << "User mode has changed" << std::endl;	// HACK debugging
+		}
 	}
 }
 
@@ -119,6 +128,7 @@ void	Mode::executeCmd(void)
 	else // treat target as NICK
 	{
 		std::cout << "Choosing user" << std::endl;	// HACK debug statement
+		User::normaliseNick(&target);
 		this->_userMode(&_msg, _msg.getOrigin(), target);
 		return ;
 	}

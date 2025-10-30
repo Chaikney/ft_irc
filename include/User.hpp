@@ -73,7 +73,7 @@ class	User
 		void				setAway(bool areyou);
 		void				updateTime(void);
 		bool				setMode(std::string modestr);	// return if changes made (tbc?)
-		bool 				_setModeLetter(char mode, bool add, const std::string &param);
+		bool 				_setModeLetter(char mode, bool add);
 
 		// Channel-related operations
 		void				addChannel(Channel* chan);
