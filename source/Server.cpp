@@ -401,7 +401,9 @@ std::string	Server::_getClientInput(int fd)
 	if (new_chars <= 0)
 	{
 		if (new_chars == 0)
-			throw std::runtime_error("client disconnected");
+			// NOTE Can't throw because this brings the whole server down once a client disconnects with QUIT!
+			//throw std::runtime_error("client disconnected");
+			std::cerr << "Client disconnected, no exception thrown, was this expected?" << std::endl;
 		else
 			throw std::runtime_error("failed to read new input");
 	}
