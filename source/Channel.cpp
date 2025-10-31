@@ -292,8 +292,6 @@ bool Channel::isBanned(const std::string &mask) const
 	return _banList.find(mask) != _banList.end();
 }
 
-// Mode management
-
 // Return the channel's mode string
 // NOTE We support here tkil -
 // how do we handle reporting the ones with parametrers, i.e. limit?
@@ -321,9 +319,12 @@ std::string Channel::getModeString(void) const
 // get a value for adding, flag and param
 // Identify the final modestring char and only then
 // pass param to the other setMode function
+// TODO THis maybe has to be passed back out to Mode.cpp
+// FIXME Can only notify of changes based on the last change made
 bool	Channel::setMode(std::string modestring, std::string modearg)
 {
 	bool adding = true;
+	bool	changes = false;
 	std::stringstream	strm(modestring);
 	char	c = 0;
 	int	strm_size = modestring.length();
@@ -335,18 +336,18 @@ bool	Channel::setMode(std::string modestring, std::string modearg)
 			adding = true;
 		else if (c ==  '-')
 			adding = false;
-		else if (strm.tellg() == strm_size)
+		else if (strm.tellg() == strm_size - 1)
 		{
 			std::cout << "Last modestr:" << c << "\tpassing param" << std::endl;
-			setMode(c, adding, modearg);
+			changes = setMode(c, adding, modearg);
 		}
 		else
 		{
 			std::cout << "modestr:" << c << "\twithout param" << std::endl;
-			setMode(c, adding, "");
+			changes = setMode(c, adding, "");
 		}
 	}
-	return true;	// just because
+	return (changes);
 }
 
 // Take a char, boolean and optional string
