@@ -132,7 +132,7 @@ void	User::setReal(std::string realname)
 void	User::addChannel(Channel* channel)
 {
 	if (channel)
-		this->_memberships.erase(channel);
+		this->_memberships.insert(channel);
 }
 
 // Remove a channel from the user's set of memberships
