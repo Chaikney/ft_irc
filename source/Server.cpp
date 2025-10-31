@@ -108,6 +108,7 @@ Server::Server(int port, std::string password) : _socketFD(0), _epollFD(0),
 	if (bind(_socketFD, (struct sockaddr *)&_serverAddress, sizeof(_serverAddress)) == -1)
 	{
 		close(_socketFD);
+//		delete this;		// NOTE This does not work!
 		throw std::runtime_error("Binding failed");
 	}
 	std::cout << " Socket successfully bound" << std::endl;

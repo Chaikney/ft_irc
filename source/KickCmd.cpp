@@ -16,6 +16,7 @@ KickCmd::~KickCmd() {}
 // (Although: "Servers MAY limit the number of target users per KICK command via the TARGMAX parameter
 // of RPL_ISUPPORT, and silently drop targets if the number of targets exceeds
 // the limit.)"
+// FIXME The KICK broadacast is wrong. KICK ::server KICK #whoistest chris_ :User terminated!
 void KickCmd::executeCmd(void)
 {
     User *usr = _msg.getOrigin();

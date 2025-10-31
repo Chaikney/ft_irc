@@ -19,7 +19,10 @@ QuitCmd::QuitCmd(Server* srv, Message &seed) : ACommand(srv, seed, 0, 1)
 	std::cerr << "Bare QuitCmd constructor called, hope that is not a problem..." << std::endl;
 }
 
-QuitCmd::~QuitCmd(void) {}
+QuitCmd::~QuitCmd(void)
+{
+	std::cerr << "QuitCmd destructor called, hope that is not a problem..." << std::endl;
+}
 
 // On quit, send ERROR to the client
 // broadcast QUIT to their channels
@@ -28,6 +31,8 @@ QuitCmd::~QuitCmd(void) {}
 // TODO Test (refactor?) the user-removal logic
 // - all channels (should be encapsulated in removeMember method)
 // - Server listings (perhaps roll into ERROR)
+// FIXME This does not cause the User to be removed from channels (at least in Konv.)
+// ...i.e. still appearted in a WHOIS listing after Quit
 void	QuitCmd::executeCmd(void)
 {
     std::list<std::string> params = _msg.getParams();

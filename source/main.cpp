@@ -54,7 +54,7 @@ int	main(int argc, char **argv)
 {
 	std::string password;
 	int port_num;
-	runMessageParsingTests();	// HACK for debugging remove later
+//	runMessageParsingTests();	// HACK for debugging remove later
 //	exit(EXIT_SUCCESS);
 	try
 	{
@@ -90,6 +90,7 @@ int	main(int argc, char **argv)
 	}
 	catch (std::runtime_error &e)
 	{
+		// TODO Try direct output and see if that reduces memory leakage here.
 		std::stringstream ss;
 		ss << "Unable to start up Server: " << e.what();
 		std::cerr << ss.str() << std::endl;
