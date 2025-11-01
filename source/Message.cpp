@@ -35,7 +35,7 @@ Message::Message(std::string text_recvd) : _tags(""), _source(""),
 }
 
 // This should be easy but it has not been
-// TODO Move this to a shared "helpers" file?
+// TODO Move stripFinalNewline to a shared "helpers" file?
 void	stripFinalNewline(std::string *str)
 {
 	size_t	hunt_it = str->find('\n') ;
@@ -344,9 +344,10 @@ Message*	Message::_channelMessage(Message &msg, Channel *chan)
 	return (transmit);
 }
 
-// Simplest possible reply construction,
+// Simplest possible reply construction: no client name, only to sender
 // This is for commands like PING where we don't need to refer to channel or user
 // No source
+// TODO I am not sure if this is the right way to handle QUIT / ERROR
 Message*	Message::_replyNonNumeric(Message &msg)
 {
 	Message*	transmit;
@@ -413,12 +414,12 @@ Message*	Message::_replyNonNumeric(Message &msg, Channel *chan)
 	return (transmit);
 }
 
+// Use this for NUMERIC REPLIES that only require information from the original message
 // Use the Message and code to create a reply Message to be queued
 // - source
 // - command = reply code
-// - parameters: add client by default (msg->usr-getNick())
-// - use a switch to add other parameters
-// DONE src here should be a Server class variable
+// - parameters: first parameter is client by default (msg->usr-getNick())
+// - uses a switch to add any further parameters
 // TODO More protection needed, i.e. on rep_code
 // TODO Consider renaming this to be more specific
 // NOTE When rep_code is < 100, it should be padded to 3 digits
@@ -521,7 +522,7 @@ Message*	Message::_reply(Message &msg, int rep_code)
 		default:
 			std::cerr << "Reply not handled yet (simple version):" << rep_code << std::endl;
 	}
-	std::cout << "Added " << params.size() << "parameters" <<std::endl;
+	std::cout << "Added " << params.size() << "parameters" <<std::endl;	// HACK debugging
 	transmit = new Message(src, cmd_as_str, params, targets);
 	return (transmit);
 }

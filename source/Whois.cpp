@@ -39,9 +39,10 @@ Whois::~Whois(void) {}
     // RPL_WHOISHOST (378)	--	verty similar to WHOISSERVER...
     // RPL_WHOISMODES (379)	--	maybe later if we develop modes fully
     // RPL_WHOISSECURE (671)	--	no one will be using a secure connection, ignore it
-    // RPL_AWAY (301)	--	this seems easy to do
+    // RPL_AWAY (301)	--	this seems easy to do except we don't store their AWAY message
     // FIXME Hexchat sends 2 parameters for a self-check and we don't cope with that
     // FIXME WHOIS may be sent with @preceding the nick, check that
+    // FIXME WHOIS can return details of a User that has QUIT and should be forgotten
 void	Whois::executeCmd(void)
 {
 	std::string	inick =_msg.getParams().front();

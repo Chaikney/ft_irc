@@ -38,6 +38,7 @@ class	Message
 
 	public:
 		// Constructors of various types; review to make sure they're all needed.
+		// In practical use, these would all be called via one of the makeMessage type methods
 		Message(std::string raw_text);
 		Message(std::string text_recvd, User *usr);
 		Message(std::string &src, std::string &cmd, std::list<std::string> params, std::list<int> targets);
@@ -63,7 +64,8 @@ class	Message
 		bool					addParams(std::list<std::string> &addme);
 		bool					addParams(const std::string &addme);
 
-		// TODO Check which of these are still needed
+		// TODO Consolidate these into more ACommand and user-friendly interfaces
+		// TODO Rename to reflect their Public visibility
 		static Message*	_channelMessage(Message &msg, Channel *chan);
 		static Message*	_replyNonNumeric(Message &msg, Channel *chan);
 		static Message*	_replyNonNumeric(Message &msg);

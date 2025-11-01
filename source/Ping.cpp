@@ -20,6 +20,7 @@ Ping::~Ping(void) {}
 // if we don't *send* a PING then there's no need to handle PONG
 // TODO Use usr to update a "last seen" value for AWAY, autodisconnects, etc
 // NOTE most of this could be replaced in-loop with the ACommand* =  and enqueue / processing...
+// FIXME Sends a MORE PARAMETERS to KVIrC, uncertain reasons
 void	Ping::executeCmd(void)
 {
 	Message	msg = this->_msg;

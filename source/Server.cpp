@@ -444,6 +444,7 @@ Channel* Server::_createChannel(const std::string &name)
     return channel;
 }
 
+// TODO Consider if this needs safety checks before removing the Channel...
 void Server::_removeChannel(const std::string &name)
 {
     std::map<std::string, Channel*>::iterator it = _channels.find(name);
