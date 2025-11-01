@@ -9,7 +9,8 @@
 // ...but the connection information?
 // The first thing we see is a file descriptor I think. What else in the socket
 User::User(void) : _fd(-1), _nick(""), _uname(""), _rname(""),
-				   _gavepass(false), _address(), _host(), last_seen(), _isAway(false), _isServerOp(false),
+				   _gavepass(false), _address(), _host(), last_seen(), _isAway(false), _awayMsg(""),
+				   _isServerOp(false),
 				   _isInvisible(false), _memberships()
 {
 	std::cerr << "Cannot create User instance without a socket fd" << std::endl;
@@ -19,7 +20,8 @@ User::User(void) : _fd(-1), _nick(""), _uname(""), _rname(""),
 // TODO Catch more possible problems with the creation
 // NOTE Cannot get hostname so taking the IP addr
 User::User(int fd) : _fd(fd), _nick(""), _uname(""), _rname(""),
-					 _gavepass(false), _address(), _host(), last_seen(), _isAway(false), _isServerOp(false),
+					 _gavepass(false), _address(), _host(), last_seen(), _isAway(false),_awayMsg(""),
+					 _isServerOp(false),
 					 _isInvisible(false), _memberships()
 {
 	socklen_t	addr_size = INET_ADDRSTRLEN;	// I only made this for getsockname and I guess error checking
@@ -53,9 +55,10 @@ User	*User::makeUser(int fd)
 }
 
 User::User(const User &original): _fd(original._fd), _nick(original._nick), _uname(original._uname),
-										   _rname(original._rname), _gavepass(original._gavepass),
+								  _rname(original._rname), _gavepass(original._gavepass),
 								  _address(original._address), _host(original._host),
-								  last_seen(original.last_seen), _isAway(original._isAway), _isServerOp(original._isServerOp),
+								  last_seen(original.last_seen), _isAway(original._isAway),
+								  _awayMsg(original._awayMsg), _isServerOp(original._isServerOp),
 								  _isInvisible(original._isInvisible), _memberships(original._memberships)
 {}
 
@@ -329,4 +332,17 @@ bool	User::normaliseNick(std::string *nick)
 		nick->erase(0, 1);
 	std::cout << "Nick targeted will be:" << *nick << std::endl;	// HACK for debugging
 	return (true);
+}
+
+std::string			User::getAwayMsg(void) const
+{
+	return (this->_awayMsg);
+}
+
+void	User::setAwayMsg(std::string str)
+{
+	if (str.empty())
+		this->_awayMsg = "";
+	else
+		this->_awayMsg = str;
 }

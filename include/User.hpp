@@ -35,6 +35,7 @@ class	User
 		std::string				_host;		// readable socket address for use in messages
 		time_t					last_seen;	// to refer to in case of partial registration
 		bool					_isAway;
+		std::string				_awayMsg;
 		bool					_isServerOp;	// +o Has power to shutdown Server, etc
 		bool					_isInvisible;	// +i implications for user listings
 		std::set<Channel *>		_memberships;
@@ -64,6 +65,7 @@ class	User
 		std::string			getUserHostMsg(void) const;
 		std::string			getModes(void) const;
 		std::set<Channel *> getMemberships(void) const;
+		std::string			getAwayMsg(void) const;
 
 		// Set values
 		void				switchVerification();
@@ -71,6 +73,7 @@ class	User
 		void				setUser(std::string user);
 		void				setReal(std::string rname);
 		void				setAway(bool areyou);
+		void				setAwayMsg(std::string str);
 		void				updateTime(void);
 		bool				setMode(std::string modestr);	// return if changes made (tbc?)
 		bool 				_setModeLetter(char mode, bool add);
