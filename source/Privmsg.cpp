@@ -3,6 +3,7 @@
 
 # include <iostream>
 # include "Channel.hpp"
+# include "User.hpp"
 #include "ReplyEnums.hpp"
 
 // Privmsg::Privmsg(void)
@@ -27,6 +28,10 @@ Privmsg::Privmsg(Server* srv, Message &seed) : ACommand(srv, seed, 2, 2)
 
 Privmsg::~Privmsg(void) {}
 
+// If sent directly to  a user that is Away, reply RPL_AWAY
+// If sent to a channel, check membership
+// TODO Split into Channel / User methods?
+// TODO Allow for multiple targets?
 void	Privmsg::executeCmd(void)
 {
 	// TODO Would this work?
@@ -86,8 +91,12 @@ void	Privmsg::executeCmd(void)
 		User *to = this->_srv->_findUserByNick(target);
 		if (to)
 		{
+			if (to->isAway())
+				this->_responses.push(Message::_reply(_msg, RPL_AWAY, to));
+			else {
 			// FIXME This won't work without yet another overload. (to what?)
 //			_responses.push(Message::_replyNonNumeric(*msg, to));
+			}
 		}
 		//	_sendToFD(to->getFD(), text + "\r\n");
 		else

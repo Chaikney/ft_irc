@@ -9,6 +9,7 @@ enum ReplyCodes
     RPL_CREATED		=	3,
     RPL_MYINFO 		=	4,
 	RPL_UMODEIS		=	221,
+	RPL_AWAY			=	301,
 	RPL_USERHOST		=	302,
 	RPL_UNAWAY			=	305,
 	RPL_NOWAWAY		=	306,

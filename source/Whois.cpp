@@ -57,6 +57,10 @@ void	Whois::executeCmd(void)
 	}
 	User*	target = this->_srv->_findUserByNick(inick);
 	if (target)
+	{
 		this->_responses.push(Message::_reply(_msg, RPL_WHOISUSER, target));
+		if (target->isAway())
+			this->_responses.push(Message::_reply(_msg, RPL_AWAY, target));
+	}
 	this->_responses.push(Message::_reply(_msg, RPL_ENDOFWHOIS));
 }
