@@ -530,6 +530,7 @@ void	Server::_processQueue(void)
 			}
 			delete thingtodo;	// Make sure the instance is destroyed after processing.
 		}
+		delete do_next;
 	}
 }
 
