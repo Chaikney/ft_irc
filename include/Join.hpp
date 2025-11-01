@@ -16,5 +16,10 @@ class	Join : public ACommand
 		// NOTE No parameters as they are in ACommand->msg
 		virtual void	executeCmd(void);
 
+	private:
+		void	_handleKeyChannels(void);	// handle passwords, TODO
+		void	_handleJoinZero(void);
+		void	_welcomeToChannel(Channel *chan);
+
 };
 #endif

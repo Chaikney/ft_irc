@@ -598,6 +598,10 @@ Message*	Message::_reply(Message &msg, int rep_code, Channel *chan)
 		case RPL_CREATIONTIME:
 			params.push_back(chan->getCreationTime());
 			break;
+		case ERR_BANNEDFROMCHAN:
+			params.push_back(chan->getName());
+			params.push_back("Cannot join channel (+b)");
+			break;
 		default:
 			std::cerr << "Reply not handled yet (channel overload):" << rep_code << std::endl;
 	}
@@ -638,6 +642,11 @@ Message*	Message::_reply(Message &msg, int rep_code, User *usr)
 		case RPL_WHOISUSER:
 			who = usr->getWhoIs();
 			params.splice(params.end(), who);
+			break;
+		case RPL_AWAY:
+			// FIXME Needs NICK of target
+			// FIXME Away message has to come from target as well :'(
+			params.push_back(usr->getAwayMsg());
 			break;
 		default:
 			std::cerr << "Reply not handled yet (user overload):" << rep_code << std::endl;

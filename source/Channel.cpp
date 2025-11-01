@@ -193,19 +193,34 @@ void Channel::setUserLimit(int limit)
 }
 
 // Member management
+// Add a member to a channel, return TRUE if success.
+// - User exists? Not already a member?
+// - are they invited? are they banned?
+// First member becomes operator
+// TODO Overload this with a version that takes a password
+// TODO Handle "Exception modes" (to invite rule? or to ban rule?)
 bool Channel::addMember(User *usr)
 {
 	if (!usr)
 		return (false);	// TODO Maybe this should raise an exception? It is a big problem...
 	if (_members.find(usr) != _members.end())
 		return false; // Already a member
+	if (this->isInviteOnly())
+	{
+		if (!this->isInvited(usr->getNick()))
+			return (false);
+		else
+			this->removeInvite(usr->getNick());
+	}
+	if (this->isBanned(usr->getNick()))
+		return (false);
 	_members.insert(usr);
-	// First member becomes operator
 	if (_members.size() == 1)
 		this->_operators.insert(usr);
-	return true;
+	return (true);
 }
 
+// FIXME Is this the place to check whether the channel is empty and should be deleted?
 bool Channel::removeMember(User *usr)
 {
 	if (!usr)
