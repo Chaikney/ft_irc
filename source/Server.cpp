@@ -530,8 +530,8 @@ void	Server::_processQueue(void)
 				}
 			}
 			delete thingtodo;	// Make sure the instance is destroyed after processing.
+			delete do_next;	// NOTE in the other branch message was deleted in _sendMessage (I think)
 		}
-		delete do_next;
 	}
 }
 
