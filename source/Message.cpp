@@ -438,13 +438,44 @@ Message*	Message::_reply(Message &msg, int rep_code)
 
 	std::string	src(SERVERNAME);
 
+	std::list<std::string> params = _getParamForNumReply(msg, rep_code, 0, 0);
+	std::cout << "Added " << params.size() << "parameters" <<std::endl;	// HACK debugging
+	transmit = new Message(src, cmd_as_str, params, targets);
+	return (transmit);
+}
+
+// Channel-including overload of the _reply method above.
+// Needed for replies which refer to Channel characteristics (e.g. TOPIC)
+// TODO The first part of this repeats from above and should be consolidated
+// No padding needed for these commands though
+Message*	Message::_reply(Message &msg, int rep_code, Channel *chan)
+{
+	std::list<std::string>	who;
+	Message*	transmit;
+	std::stringstream strm;
+	strm << rep_code;
+	std::string cmd_as_str = strm.str();
+
+	std::list<int>	targets;
+	targets.push_front(msg.getOrigin()->getFD());
+
+	std::string	src(SERVERNAME);
+
+	std::list<std::string> params = _getParamForNumReply(msg, rep_code, chan, 0);
+	std::cout << "Added " << params.size() << "parameters" <<std::endl;
+	transmit = new Message(src, cmd_as_str, params, targets);
+	return (transmit);
+}
+
+std::list<std::string>	Message::_getParamForNumReply(Message &msg, int rep_code, Channel *chan, User *usr)
+{
 	std::list<std::string>	params;
-	// Use "*" if nickname is empty (IRC standard for unregistered users)
+	// TODO If this returns empty, put something else there
 	std::string nick = msg.getOrigin()->getNick();
 	if (nick.empty())
 		nick = "*";
 	params.push_back(nick);
-
+	std::list<std::string> who;
 	switch (rep_code)
 	{
 		case RPL_WELCOME:
@@ -460,7 +491,7 @@ Message*	Message::_reply(Message &msg, int rep_code)
 			params.push_back("Off you go then, bye.");
 			break;
 		case ERR_NOSUCHNICK:
-			params.push_back(msg.getParams().front());	// HACK Careless assumption here
+			params.push_back(msg.getParams().front());	// FIXME Duplicates the missing 7 not foud NICK (in hc at least)
 			params.push_back("No such nick or channel found");
 			break;
 		case ERR_NOSUCHCHANNEL:
@@ -507,9 +538,6 @@ Message*	Message::_reply(Message &msg, int rep_code)
 		case ERR_NOTONCHANNEL:
 			params.push_back("You're not on this channel");
 			break;
-		case ERR_CHANOPRIVSNEEDED:
-			params.push_back("You're not channel operator");
-			break;
 		case RPL_ENDOFWHO:
 			params.push_back("End of /WHO list");
 			break;
@@ -519,39 +547,6 @@ Message*	Message::_reply(Message &msg, int rep_code)
 		case ERR_USERSDONTMATCH:
 			params.push_back("You can't change other users' modes");
 			break;
-		default:
-			std::cerr << "Reply not handled yet (simple version):" << rep_code << std::endl;
-	}
-	std::cout << "Added " << params.size() << "parameters" <<std::endl;	// HACK debugging
-	transmit = new Message(src, cmd_as_str, params, targets);
-	return (transmit);
-}
-
-// Channel-including overload of the _reply method above.
-// Needed for replies which refer to Channel characteristics (e.g. TOPIC)
-// TODO The first part of this repeats from above and should be consolidated
-// No padding needed for these commands though
-Message*	Message::_reply(Message &msg, int rep_code, Channel *chan)
-{
-	std::list<std::string>	who;
-	Message*	transmit;
-	std::stringstream strm;
-	strm << rep_code;
-	std::string cmd_as_str = strm.str();
-
-	std::list<int>	targets;
-	targets.push_front(msg.getOrigin()->getFD());
-
-	std::string	src(SERVERNAME);
-
-	std::list<std::string>	params;
-	// TODO If this returns empty, put something else there
-	std::string nick = msg.getOrigin()->getNick();
-	if (nick.empty())
-		nick = "*";
-	params.push_back(nick);
-	switch (rep_code)
-	{
 	// NOTE catching this message needs an overload with Channel
 		case RPL_TOPIC:
 			params.push_back(chan->getName());
@@ -605,35 +600,6 @@ Message*	Message::_reply(Message &msg, int rep_code, Channel *chan)
 			params.push_back(chan->getName());
 			params.push_back("Cannot join channel (+b)");
 			break;
-		default:
-			std::cerr << "Reply not handled yet (channel overload):" << rep_code << std::endl;
-	}
-	std::cout << "Added " << params.size() << "parameters" <<std::endl;
-	transmit = new Message(src, cmd_as_str, params, targets);
-	return (transmit);
-}
-
-// And a User-taking overload
-Message*	Message::_reply(Message &msg, int rep_code, User *usr)
-{
-	Message*	transmit;
-	std::stringstream strm;
-	strm << rep_code;
-	std::string cmd_as_str = strm.str();
-	std::list<std::string> who;
-
-	// NOTE This is a list because Message constructors. Needs worked out!
-	std::list<int>	target;
-	target.push_back(msg.getOrigin()->getFD());
-
-	std::string	src(SERVERNAME);
-
-	std::list<std::string>	params;
-	// TODO If this returns empty, put something else there
-	params.push_back(msg.getOrigin()->getNick());
-
-	switch (rep_code)
-	{
 		case RPL_UMODEIS:
 			params.push_back(usr->getModes());
 			break;
@@ -654,6 +620,25 @@ Message*	Message::_reply(Message &msg, int rep_code, User *usr)
 		default:
 			std::cerr << "Reply not handled yet (user overload):" << rep_code << std::endl;
 	}
+	return (params);
+}
+
+// And a User-taking overload
+Message*	Message::_reply(Message &msg, int rep_code, User *usr)
+{
+	Message*	transmit;
+	std::stringstream strm;
+	strm << rep_code;
+	std::string cmd_as_str = strm.str();
+
+	// NOTE This is a list because Message constructors. Needs worked out!
+	std::list<int>	target;
+	target.push_back(msg.getOrigin()->getFD());
+
+	std::string	src(SERVERNAME);
+
+	// Splice (or just claim) parameters here.
+	std::list<std::string> params = _getParamForNumReply(msg, rep_code, 0, usr);
 	std::cout << "Added " << params.size() << "parameters" <<std::endl;
 	transmit = new Message(src, cmd_as_str, params, target);
 	return (transmit);

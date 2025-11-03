@@ -74,6 +74,7 @@ class	Message
 		static Message*	_reply(Message &msg, int num_rep, Channel *chan);
 		// NOTE Not sure if this one is any use
 		static Message*	_reply(Message &msg, int rep_code, User *usr);
+		static std::list<std::string>	_getParamForNumReply(Message &msg, int rep_code, Channel *chan = 0, User *usr = 0);
 
 };
 

@@ -624,6 +624,7 @@ ACommand*	Server::matchCmd(Message* do_next)
 // TODO Safety checks needed on FD list send_to
 // TODO Properly handle the "would block" error
 // TODO Quality check on the Message serialization needed?
+// FIXME We are not allowed to use errno, remove it!
 void	Server::_sendMessage(Message *msg_to_send) const
 {
 	std::string	msg_as_str = msg_to_send->serialiseMsg();
