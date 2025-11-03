@@ -76,6 +76,7 @@ void	Mode::_sendBanList(Channel* chan)
 // When the server is done processing the modes,
 // a MODE command is sent to all members of the channel containing the mode changes.
 // Servers MAY choose to hide sensitive information when sending the mode changes.
+// FIXME Password mode is not set
 void	Mode::_channelMode(Message *msg, User *usr, std::string target)
 {
 	std::list<std::string>	params = _msg.getParams();

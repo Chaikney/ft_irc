@@ -17,9 +17,8 @@ class	Join : public ACommand
 		virtual void	executeCmd(void);
 
 	private:
-		void	_handleKeyChannels(void);	// handle passwords, TODO
+		bool	_handleKeyChannels(Channel* locked, std::string key);
 		void	_handleJoinZero(void);
 		void	_welcomeToChannel(Channel *chan);
-
 };
 #endif
