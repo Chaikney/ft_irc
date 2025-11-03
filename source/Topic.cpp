@@ -30,7 +30,7 @@ void Topic::executeCmd(void)
     }
     if (channel->isTopicProtected() && !channel->isOperator(usr))
     {
-		this->_responses.push(Message::_reply(_msg, ERR_CHANOPRIVSNEEDED));
+		this->_responses.push(Message::_reply(_msg, ERR_CHANOPRIVSNEEDED, channel));
         return ;
     }
     params.pop_front();
