@@ -657,6 +657,9 @@ std::list<std::string>	Message::_getParamForNumReply(Message &msg, int rep_code,
 		case ERR_NORECIPIENT:
 			params.push_back("No recipient given (" + msg.serialiseMsg() + ")");
 			break;
+		case ERR_BADCHANNELKEY:
+			params.push_back(chan->getName());
+			params.push_back("Cannot join channel (+k)");
 		default:
 			std::cerr << "Reply not handled yet (user overload):" << rep_code << std::endl;
 	}

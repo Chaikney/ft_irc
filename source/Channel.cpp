@@ -551,3 +551,11 @@ bool	Channel::normaliseChanName(std::string *chan)
 		return (false);
 	return (true);
 }
+
+// Return true if the supplied key matches the Channel's password
+bool	Channel::checkPassword(std::string const &key) const
+{
+	if (key.empty())
+		return (false);
+	return (key.compare(this->getPassword()) == 0);
+}

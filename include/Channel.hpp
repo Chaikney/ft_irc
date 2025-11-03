@@ -102,6 +102,8 @@ class Channel
 		bool						isEmpty(void) const;
 		void						clear(void);	// TODO Give this a less-ambiguous name
 		static bool	normaliseChanName(std::string *chan);
+
+		bool			checkPassword(std::string const &key) const;
 };
 
 #endif
