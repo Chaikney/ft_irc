@@ -53,7 +53,7 @@ void	Invite::executeCmd(void)
     }
     if (!channel->isOperator(usr))
     {
-		this->_responses.push(Message::_reply(_msg, ERR_CHANOPRIVSNEEDED));
+		this->_responses.push(Message::_reply(_msg, ERR_CHANOPRIVSNEEDED, channel));
         return ;
     }
     channel->addInvite(nick);
