@@ -31,8 +31,6 @@ Invite::~Invite(void) {}
 // the server MUST send a RPL_INVITING numeric to the command issuer,
 // and an INVITE message, with the issuer as <source>, to the target user.
 // Other channel members SHOULD NOT be notified.
-// TODO Invite notification through a standard method (that works)
-// TODO Add invited NICK to two of the responses (RPL_INVITING and ERR_USERONCHANNEL)
 void	Invite::executeCmd(void)
 {
     std::list<std::string> params = _msg.getParams();
@@ -60,16 +58,20 @@ void	Invite::executeCmd(void)
     User *target = this->_srv->_findUserByNick(nick);
 	if ((target) && channel->isMember(target))
     {
-		this->_responses.push(Message::_reply(_msg, ERR_USERONCHANNEL, channel));
+		this->_responses.push(Message::_reply(_msg, ERR_USERONCHANNEL, channel, target));
         return ;
     }
 	else
 	{
-		this->_responses.push(Message::_reply(_msg, RPL_INVITING, channel));
-		// TODO Use standard mechanism to send the message
+		this->_responses.push(Message::_reply(_msg, RPL_INVITING, channel, target));
+		// Use standard mechanism to send the message
 		if (target)
 		{
-			std::cerr << "INVITE sending not implemented yet" << std::endl;
+			// INVITE Nick Channel
+			Message *party_invite = Message::_replyThirdParty(_msg, target);
+			party_invite->addParams(nick);
+			party_invite->addParams(channel->getName());
+			this->_responses.push(party_invite);
 		}
 	}
 }

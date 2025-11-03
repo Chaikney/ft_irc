@@ -69,6 +69,7 @@ class	Message
 		static Message*	_channelMessage(Message &msg, Channel *chan);
 		static Message*	_replyNonNumeric(Message &msg, Channel *chan);
 		static Message*	_replyNonNumeric(Message &msg);
+		static Message*	_replyThirdParty(Message &msg, User* target);
 		// HACK Public to be friend with message origin (user)
 		static Message*	_reply(Message &msg, int num_rep);
 		static Message*	_reply(Message &msg, int num_rep, Channel *chan);

@@ -342,6 +342,21 @@ Message*	Message::_channelMessage(Message &msg, Channel *chan)
 	return (transmit);
 }
 
+// Send a message to one specific target (i.e. User)
+// Can be a notification, or can be a PRIVMSG (I guess, not using that atm)
+Message*	Message::_replyThirdParty(Message &msg, User* target)
+{
+	Message*	transmit;
+	std::string	src;
+	std::string cmd_as_str = msg.getCommand();
+	std::list<std::string>	params;
+	std::list<int>	targets;
+
+	targets.push_front(target->getFD());
+	transmit = new Message(src, cmd_as_str, params, targets);
+	return (transmit);
+}
+
 // Simplest possible reply construction: no client name, only to sender
 // This is for commands like PING where we don't need to refer to channel or user
 // No source
@@ -376,7 +391,7 @@ Message*	Message::_replyNonNumeric(Message &msg)
 // NOTE targets is a LIST so we can expand sending to multiple clients
 // ...that is maybe not needed now?
 // NOTE For this to work with PART you have to include the Reason, final parameter
-// FIXME The user-specific KICK message is incorrect, lacks KICKed nick
+// TODO Migrate this towards "user notification only" use case
 Message*	Message::_replyNonNumeric(Message &msg, Channel *chan)
 {
 	Message*	transmit;
@@ -591,13 +606,13 @@ std::list<std::string>	Message::_getParamForNumReply(Message &msg, int rep_code,
 			params.splice(params.end(), who);
 			break;
 		case RPL_INVITING:
-			// FIXME Invited user nick should be the first parameter (after client)
-			//params.push_back(INVITEDUSER);
+			// FIXED? Invited user nick should be the first parameter (after client)
+			params.push_back(usr->getNick());
 			params.push_back(chan->getName());
 			break;
 		case ERR_USERONCHANNEL:
-			// FIXME Invited user nick should be the first parameter(after client)
-			//params.push_back(INVITEDUSER);
+			// FIXED? Invited user nick should be the first parameter(after client)
+			params.push_back(usr->getNick());
 			params.push_back(chan->getName());
 			params.push_back("User is already a channel member");
 			break;
