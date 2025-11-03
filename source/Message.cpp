@@ -546,8 +546,10 @@ Message*	Message::_reply(Message &msg, int rep_code, Channel *chan)
 
 	std::list<std::string>	params;
 	// TODO If this returns empty, put something else there
-	params.push_back(msg.getOrigin()->getNick());
-
+	std::string nick = msg.getOrigin()->getNick();
+	if (nick.empty())
+		nick = "*";
+	params.push_back(nick);
 	switch (rep_code)
 	{
 	// NOTE catching this message needs an overload with Channel

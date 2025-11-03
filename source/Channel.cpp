@@ -246,7 +246,6 @@ bool Channel::isOperator(User *usr) const
 	return _operators.find(usr) != _operators.end();
 }
 
-// TODO Needs updated when Operators stores User*
 bool Channel::addOperator(User *usr)
 {
 	if (!usr)
