@@ -649,9 +649,11 @@ std::list<std::string>	Message::_getParamForNumReply(Message &msg, int rep_code,
 			params.splice(params.end(), who);
 			break;
 		case RPL_AWAY:
-			// FIXME Needs NICK of target
-			// FIXME Away message has to come from target as well :'(
+			params.push_back(usr->getNick());
 			params.push_back(usr->getAwayMsg());
+			break;
+		case ERR_NORECIPIENT:
+			params.push_back("No recipient given (" + msg.serialiseMsg() + ")");
 			break;
 		default:
 			std::cerr << "Reply not handled yet (user overload):" << rep_code << std::endl;

@@ -56,7 +56,9 @@ void	Privmsg::executeCmd(void)
 	}
 	if (target.find_first_of(",") != std::string::npos)
 	{
-		this->_responses.push(Message::_reply(_msg, ERR_TOOMANYTARGETS));
+		this->_responses.push(Message::_reply(_msg, ERR_NOSUCHCHANNEL));
+		// NOTE Can't find a defintion of ERR_TOOMANYTARGETS, so choosing the above instead
+		//this->_responses.push(Message::_reply(_msg, ERR_TOOMANYTARGETS));
 		return;
 	}
 	if (msg_text.empty())
@@ -68,7 +70,6 @@ void	Privmsg::executeCmd(void)
 	// NOTE This identification will have to change if we add prefix characters
 	if ((target[0] == '#') || (target[0] == '&'))
 	{
-		// Only allow if sender is member of the channel
 		Channel *channel = this->_srv->_findChannel(target);
 		if (!channel)
 		{
@@ -76,6 +77,7 @@ void	Privmsg::executeCmd(void)
 			return ;
 		}
 		// TODO Faster to find Channel membership directly with User? Or not?
+		// Only allow if sender is member of the channel
 		if (!channel->isMember(sender))
 		{
 			// 404 ERR_CANNOTSENDTOCHAN
@@ -93,12 +95,13 @@ void	Privmsg::executeCmd(void)
 		{
 			if (to->isAway())
 				this->_responses.push(Message::_reply(_msg, RPL_AWAY, to));
-			else {
-			// FIXME This won't work without yet another overload. (to what?)
-//			_responses.push(Message::_replyNonNumeric(*msg, to));
+			else
+			{
+				Message*	dm = Message::_replyThirdParty(_msg, to);
+				dm->addParams(msg_text);
+				_responses.push(dm);
 			}
 		}
-		//	_sendToFD(to->getFD(), text + "\r\n");
 		else
 			this->_responses.push(Message::_reply(_msg, ERR_NOSUCHNICK));
 	}
