@@ -302,15 +302,16 @@ bool	Message::addParams(const std::string &addme)
 // [x] QUIT
 // [ ] KICK (we haven't got KICK yet)
 // [x] TOPIC
+// [ ] NOTICE
 // NOTE Maybe this would be better taking a "params" list....
 Message*	Message::_channelMessage(Message &msg, Channel *chan)
 {
 	Message*	transmit;
 	std::string	src = msg.getOrigin()->getNick();
 	std::string cmd_as_str = msg.getCommand();
-	std::list<std::string>	params;
 	// NOTE This call gets the FDs of all *except* the sender
 	std::list<int>	targets = chan->getBroadcastFDs(msg.getOrigin());
+	std::list<std::string>	params;
 	if (cmd_as_str.compare("TOPIC") == 0)
 	{
 		// HACK Adding back the originating FD so they get the message too.
@@ -332,10 +333,7 @@ Message*	Message::_channelMessage(Message &msg, Channel *chan)
 	}
 	// FIXME Need: channel userkicked reason -- cant get userkicked this way
 	else if (cmd_as_str.compare("KICK") == 0)
-	{
 		params.push_back(chan->getName());	// channel name
-	 	params.push_back((msg.getParams().back()));	// reason
-	}
 	else if (cmd_as_str.compare("AWAY") == 0)
 	 	params.push_back((msg.getParams().back()));
 	transmit = new Message(src, cmd_as_str, params, targets);
@@ -489,7 +487,6 @@ Message*	Message::_reply(Message &msg, int rep_code, Channel *chan, User *usr)
 std::list<std::string>	Message::_getParamForNumReply(Message &msg, int rep_code, Channel *chan, User *usr)
 {
 	std::list<std::string>	params;
-	// TODO If this returns empty, put something else there
 	std::string nick = msg.getOrigin()->getNick();
 	if (nick.empty())
 		nick = "*";
@@ -555,6 +552,7 @@ std::list<std::string>	Message::_getParamForNumReply(Message &msg, int rep_code,
 			params.push_back("Bad channel mask (i.e. name is not valid)");
 			break;
 		case ERR_NOTONCHANNEL:
+			// TODO Check if we should have channel name in here.
 			params.push_back("You're not on this channel");
 			break;
 		case RPL_ENDOFWHO:

@@ -2,15 +2,18 @@
 # define KICKCMD_HPP
 
 #include "ACommand.hpp"
-#include <string>
-#include <list>
 
-class KickCmd : public ACommand {
-public:
-    KickCmd(Server *srv, Message &msg);
-    virtual ~KickCmd();
+class KickCmd : public ACommand
+{
+	public:
+		KickCmd(Server *srv, Message &msg);
+		virtual ~KickCmd();
 
-    virtual void executeCmd(void);
+		virtual void executeCmd(void);
+
+	private:
+		User*		_checkUser(std::string nick);
+		Channel*	_checkChannel(std::string str);
+		bool		_checkCombo(User *target, Channel *chan, User *usr);
 };
-
 #endif
