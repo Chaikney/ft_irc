@@ -300,7 +300,7 @@ bool	Message::addParams(const std::string &addme)
 // [X] PART
 // [ ] AWAY
 // [x] QUIT
-// [ ] KICK (we haven't got KICK yet)
+// [ ] KICK
 // [x] TOPIC
 // [ ] NOTICE
 // NOTE Maybe this would be better taking a "params" list....
@@ -331,7 +331,7 @@ Message*	Message::_channelMessage(Message &msg, Channel *chan)
 		params.push_back(chan->getName());	// channel name
 	 	params.push_back((msg.getParams().back()));	// PART message
 	}
-	// FIXME Need: channel userkicked reason -- cant get userkicked this way
+	// FIXED? Need: channel userkicked reason -- cant get userkicked this way
 	else if (cmd_as_str.compare("KICK") == 0)
 		params.push_back(chan->getName());	// channel name
 	else if (cmd_as_str.compare("AWAY") == 0)
@@ -499,6 +499,8 @@ Message*	Message::_reply(Message &msg, int rep_code, Channel *chan, User *usr)
 	return (transmit);
 }
 
+// Called from the Numeric reply methods to add the needed parameters.
+// *Should* cover all eventuialities, but probably does not.
 std::list<std::string>	Message::_getParamForNumReply(Message &msg, int rep_code, Channel *chan, User *usr)
 {
 	std::list<std::string>	params;
@@ -635,7 +637,7 @@ std::list<std::string>	Message::_getParamForNumReply(Message &msg, int rep_code,
 		case RPL_UMODEIS:
 			params.push_back(usr->getModes());
 			break;
-		// FIXME This needs channel as well :'(
+		// FIXED? This needs channel as well :'(
 		case RPL_WHOREPLY:
 			who = usr->getWhoReply();
 			if (chan)

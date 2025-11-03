@@ -58,7 +58,6 @@ bool	KickCmd::_checkCombo(User *target, Channel *chan, User *usr)
 // (Although: "Servers MAY limit the number of target users per KICK command via the TARGMAX parameter
 // of RPL_ISUPPORT, and silently drop targets if the number of targets exceeds
 // the limit.)" - still implies only reading to the first comma
-// FIXME Nothing happens!
 void KickCmd::executeCmd(void)
 {
 //    User *usr = _msg.getOrigin();
