@@ -44,16 +44,9 @@ void	Who::executeCmd(void)
 			while (it != users.end())
 			{
 				User*	user = *it;
-			 	this->_responses.push(Message::_reply(_msg, RPL_WHOREPLY, user));
+			 	this->_responses.push(Message::_reply(_msg, RPL_WHOREPLY, target, user));
 				it++;
 			}
-//			std::cerr << "WHO for channels not implemented yet" << std::endl;
-			// // FIXME Needs channel in the params, this solution doesnt cut it
-			// // FIXME This is a C++11 form
-			// for (User* user : users)
-			// {
-			// 	this->_responses.push(Message::_reply(_msg, RPL_WHOREPLY, user));
-			// }
 		}
 	}
 	else // treating it as a NICK

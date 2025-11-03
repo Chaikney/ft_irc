@@ -182,7 +182,7 @@ std::string	User::getFlags(void) const
 std::list<std::string>	User::getWhoReply(void) const
 {
 	std::list<std::string>	params;
-	params.push_back("*");	// NOTE With Channel, this is channel name
+//	params.push_back("*");	// NOTE Now this is handled in _getParamForNumReply(9)
 	params.push_back(this->getUser());
 	params.push_back(this->getHost());
 //	params.push_back(SERVER);	// FIXME this is not available

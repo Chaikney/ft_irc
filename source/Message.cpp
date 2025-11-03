@@ -467,6 +467,25 @@ Message*	Message::_reply(Message &msg, int rep_code, Channel *chan)
 	return (transmit);
 }
 
+Message*	Message::_reply(Message &msg, int rep_code, Channel *chan, User *usr)
+{
+	std::list<std::string>	who;
+	Message*	transmit;
+	std::stringstream strm;
+	strm << rep_code;
+	std::string cmd_as_str = strm.str();
+
+	std::list<int>	targets;
+	targets.push_front(msg.getOrigin()->getFD());
+
+	std::string	src(SERVERNAME);
+
+	std::list<std::string> params = _getParamForNumReply(msg, rep_code, chan, usr);
+	std::cout << "Added " << params.size() << "parameters" <<std::endl;
+	transmit = new Message(src, cmd_as_str, params, targets);
+	return (transmit);
+}
+
 std::list<std::string>	Message::_getParamForNumReply(Message &msg, int rep_code, Channel *chan, User *usr)
 {
 	std::list<std::string>	params;
@@ -606,6 +625,10 @@ std::list<std::string>	Message::_getParamForNumReply(Message &msg, int rep_code,
 		// FIXME This needs channel as well :'(
 		case RPL_WHOREPLY:
 			who = usr->getWhoReply();
+			if (chan)
+				params.push_back(chan->getName());
+			else
+				params.push_back("*");
 			params.splice(params.end(), who);
 			break;
 		case RPL_WHOISUSER:
