@@ -50,7 +50,6 @@ class	Server
 		// FIXME Probably only need one of these two, or one should call the other
 		void		_removeClient(struct epoll_event &bye);
 		void		_removeUser(User &usr);
-		bool 		_setNonBlocking(int fd);
 		bool		_isFullMsg(std::string msg) const;
 		void		_storePartial(int fd_source, std::string msg);
 		std::string	_getClientInput(int fd);

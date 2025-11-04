@@ -30,7 +30,6 @@
 #include <cerrno>	// for error checking in send calls
 #include <cstdlib>	// for the EXIT code
 #include <cstring>	// for memset. Too many includes!
-#include <fcntl.h>	// NOTE IS there a C++ equivalent we should prefer?
 // TODO DO we need *both* of these signal includes?
 #include <csignal>	// for signal handling
 #include <signal.h>	// for signal handling
@@ -59,19 +58,6 @@ void signalHandler(int signal)
 	g_server_running = 0;
 }
 
-// Helper para poner un socket en modo no bloqueante
-// Set socket to non-blocking by:
-// Get the existing flags for the newly-accepted clientSocket
-// Add non-blocking to those existing client flags
-// Returns FALSE if this fails, caller to handle that
-bool Server::_setNonBlocking(int fd)
-{
-	int flags = fcntl(fd, F_GETFL, 0);
-	if (flags == -1)
-		return (false);
-	return (fcntl(fd, F_SETFL, flags | O_NONBLOCK) != -1);
-}
-
 // Set up the Server:
 // - create fd for socket
 // - set as non-blocking
@@ -80,24 +66,21 @@ bool Server::_setNonBlocking(int fd)
 // - listen on fd
 // - Create epoll fd
 // - Add socket fd to epoll's listening set
+//  SOCK_NONBLOCK   Set the O_NONBLOCK file status flag on the open  file  description
+//                (see  open(2)) referred to by the new file descriptor.  Using this
+//                flag saves extra calls to fcntl(2) to achieve the same result.
 Server::Server(int port, std::string password) : _socketFD(0), _epollFD(0),
 												 _serverAddress(), _password(password),
 												 _toProcess(), _partial_msgs(),
 												 _clients(), _channels(), _creationTime()
 {
 	std::cout << "Server constructor with parameters called" << std::endl;
-	_socketFD = socket(AF_INET, SOCK_STREAM, 0);
+	_socketFD = socket(AF_INET, SOCK_STREAM || SOCK_NONBLOCK, 0);
 	if (_socketFD == -1)
 	{
 		throw std::runtime_error("Socket creation failed");
 	}
 	std::cout << "Created a socket listening at fd " << _socketFD << std::endl;
-
-	if (!_setNonBlocking((_socketFD)))
-	{
-		close (_socketFD);
-		throw std::runtime_error("Cannot make socket nonblocking");
-	}
 
 	_serverAddress.sin_family = AF_INET;
 	_serverAddress.sin_port = htons(port);
@@ -158,16 +141,13 @@ void	Server::_addNewClient()
 {
 	try
 	{
-		int clientSocket = accept(this->_socketFD, NULL, NULL);
+		//int clientSocket = accept(this->_socketFD, NULL, NULL);
+		// NOTE Must explicitly set socket flags - on Linux they do *not* inherit
+		int clientSocket = accept4(this->_socketFD, NULL, NULL, SOCK_NONBLOCK);
 
 		if (clientSocket == -1)
 			throw std::runtime_error("Could not get client socket");
 		std::cout << "Nuevo cliente conectado, fd: " << clientSocket << std::endl;
-		if (!_setNonBlocking(clientSocket))
-		{
-			close (clientSocket);
-			throw std::runtime_error("Failed to set client socket non-blocking!");
-		}
 		User	*newUser = User::makeUser(clientSocket);
 		std::cout << "Created a new user from fd" << clientSocket << std::endl;
 		this->_clients[clientSocket] = newUser;
