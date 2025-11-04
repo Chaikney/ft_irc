@@ -63,6 +63,7 @@ class	Message
 		// Limited number of setters to finish off the basic message types
 		bool					addParams(std::list<std::string> &addme);
 		bool					addParams(const std::string &addme);
+		bool					insertParam(const std::string &addme);
 
 		// TODO Consolidate these into more ACommand and user-friendly interfaces
 		// TODO Rename to reflect their Public visibility

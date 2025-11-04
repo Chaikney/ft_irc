@@ -294,6 +294,20 @@ bool	Message::addParams(const std::string &addme)
 	return (true);
 }
 
+// Messages typically have the user as the first Paramter.
+// So this lets us put a parameter *after* that but before the end.
+bool	Message::insertParam(const std::string &addme)
+{
+	if (!addme.empty() && (this->getParamCount() > 1))
+	{
+		std::list<std::string>::iterator  it = _params.begin();
+		it++;
+		this->_params.insert(it, addme);
+		return (true);
+	}
+	return (false);
+}
+
 // This is to get messages out to a whole channel
 // i.e. inform of AWAY / QUIT; NOTICE or PRIVMSG
 // Test on:
@@ -597,7 +611,8 @@ std::list<std::string>	Message::_getParamForNumReply(Message &msg, int rep_code,
 			params.splice(params.end(), who);
 			break;
 		case RPL_ENDOFNAMES:
-			params.push_back(chan->getName());
+			if (chan)
+				params.push_back(chan->getName());
 			params.push_back("End of /NAMES list");
 			break;
 		case ERR_INVITEONLYCHAN:

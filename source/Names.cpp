@@ -3,6 +3,7 @@
 #include "Message.hpp"
 #include "ReplyEnums.hpp"
 
+// TODO Check or confirm the parameter ranges for NAMES commands
 Names::Names(Server *srv, Message &msg) : ACommand(srv, msg) {}
 
 Names::~Names() {}
@@ -14,7 +15,7 @@ Names::~Names() {}
 // -- send RPL_NAMEREPLY per user
 // -- send RPL_ENDOFNAMES with the channel name
 // TODO Test that this works with multiple channels
-// TODO There should be ome filtering of visible names based on user modes
+// TODO There should be some filtering of visible names based on user modes
 void Names::executeCmd(void)
 {
     std::list<std::string> params =_msg.getParams();
@@ -27,7 +28,6 @@ void Names::executeCmd(void)
 	while (!params.empty())
 	{
 		std::string	cname = params.front();
-		// TODO Check for this returning false and handle the error.
 		Channel::normaliseChanName(&cname);
 		Channel*	target = this->_srv->_findChannel(cname);
 		if (target)
@@ -36,10 +36,9 @@ void Names::executeCmd(void)
 			this->_responses.push(Message::_reply(_msg, RPL_ENDOFNAMES, target));
 		}
 		else	// send end of names without touching channel
-			// NOTE This triggers a false "not implemented 366" error message
 		{
 			Message*	no_channel = Message::_reply(_msg, RPL_ENDOFNAMES);
-			no_channel->addParams(cname);
+			no_channel->insertParam(cname);
 			this->_responses.push(no_channel);
 		}
 		params.pop_front();
