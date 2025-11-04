@@ -76,7 +76,7 @@ void	Mode::_sendBanList(Channel* chan)
 // When the server is done processing the modes,
 // a MODE command is sent to all members of the channel containing the mode changes.
 // Servers MAY choose to hide sensitive information when sending the mode changes.
-// FIXME Password mode is not set
+// FIXED Password mode is not set, does not send parameter
 void	Mode::_channelMode(Message *msg, User *usr, std::string target)
 {
 	std::list<std::string>	params = _msg.getParams();
@@ -99,6 +99,7 @@ void	Mode::_channelMode(Message *msg, User *usr, std::string target)
 	// NOTE Below here only if more than 1 param was given
 	// NOTE No privileges needed to get a listing, but from here we change things
 	// FIXME So how then do we treat +b for banlist? Could still be privileged information.
+	// NOTE Ban is not required in the subject, think of as bonus
 	if (!channel->isOperator(usr))
 	{
 		this->_responses.push(Message::_reply(*msg, ERR_CHANOPRIVSNEEDED, channel));

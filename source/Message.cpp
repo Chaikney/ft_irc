@@ -256,6 +256,7 @@ std::string	Message::_paramToString(std::list<std::string> lst) const
 //  SPACE  ::=  %x20 *( %x20 )   ; space character(s)
 //  crlf   ::=  %x0D %x0A        ; "carriage return" "linefeed"
 //  TODO Test the output of this
+//  FIXME If the final parameter has a : it doesn't need, Hexchat gets confused.
 std::string	Message::serialiseMsg(void) const
 {
 	std::string	msg;
@@ -660,6 +661,7 @@ std::list<std::string>	Message::_getParamForNumReply(Message &msg, int rep_code,
 		case ERR_BADCHANNELKEY:
 			params.push_back(chan->getName());
 			params.push_back("Cannot join channel (+k)");
+			break;
 		default:
 			std::cerr << "Reply not handled yet (user overload):" << rep_code << std::endl;
 	}

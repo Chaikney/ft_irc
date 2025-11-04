@@ -333,15 +333,18 @@ std::string Channel::getModeString(void) const
 // get a value for adding, flag and param
 // Identify the final modestring char and only then
 // pass param to the other setMode function
-// TODO THis maybe has to be passed back out to Mode.cpp
+// TODO ThIs maybe has to be passed back out to Mode.cpp
 // FIXME Can only notify of changes based on the last change made
+// FIXED? Does not pass modearg to next step
+// HACK Solution to the modestring thing -- alwayts pass it.
+// This means we would have no chance of handling multiple mode changes
 bool	Channel::setMode(std::string modestring, std::string modearg)
 {
 	bool adding = true;
 	bool	changes = false;
 	std::stringstream	strm(modestring);
 	char	c = 0;
-	int	strm_size = modestring.length();
+//	int	strm_size = modestring.length();
 
 	while (strm)	// or whatever
 	{
@@ -350,16 +353,19 @@ bool	Channel::setMode(std::string modestring, std::string modearg)
 			adding = true;
 		else if (c ==  '-')
 			adding = false;
-		else if (strm.tellg() == strm_size - 1)
+		// FIXME This does not correctly identify the end of the stream
+		//else if (strm.tellg() == strm_size - 1)
+		//else if (strm.peek() == '\0')
+		else
 		{
 			std::cout << "Last modestr:" << c << "\tpassing param" << std::endl;
 			changes = setMode(c, adding, modearg);
 		}
-		else
-		{
-			std::cout << "modestr:" << c << "\twithout param" << std::endl;
-			changes = setMode(c, adding, "");
-		}
+		// else
+		// {
+		// 	std::cout << "modestr:" << c << "\twithout param" << std::endl;
+		// 	changes = setMode(c, adding, "");
+		// }
 	}
 	return (changes);
 }

@@ -32,6 +32,7 @@ Privmsg::~Privmsg(void) {}
 // If sent to a channel, check membership
 // TODO Split into Channel / User methods?
 // TODO Allow for multiple targets?
+// FIXME Set up of chat in clients not really working
 void	Privmsg::executeCmd(void)
 {
 	// TODO Would this work?

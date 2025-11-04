@@ -25,6 +25,7 @@ void Topic::executeCmd(void)
 	}
     if (params.size() == 1)
     {
+		// FIXME This call causes segfault
 		this->_responses.push(Message::_reply(_msg, RPL_TOPIC));
         return ;
     }
