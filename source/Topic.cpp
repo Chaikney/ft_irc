@@ -4,6 +4,7 @@
 #include "ReplyEnums.hpp"
 #include "User.hpp"
 
+// TODO Add or at least check the parameter limits on TOPIC
 Topic::Topic(Server *srv, Message &msg) : ACommand(srv, msg) {}
 
 Topic::~Topic() {}
@@ -12,6 +13,8 @@ Topic::~Topic() {}
 // FIXME Blank topic (RPL_TOPIC?) does not supply channel name (KVIRC)
 // The broadcast message must include the channel name (and goes to all in channel)
 // FIXME Parsing not putting the : in the correct place (sometimes?)
+// TODO Confirm that the TOPIC change notification is sent properly / at all
+// (Konv doesn't register it unless prodded)
 void Topic::executeCmd(void)
 {
     std::list<std::string> params =_msg.getParams();
@@ -25,8 +28,8 @@ void Topic::executeCmd(void)
 	}
     if (params.size() == 1)
     {
-		// FIXME This call causes segfault
-		this->_responses.push(Message::_reply(_msg, RPL_TOPIC));
+		// FIXME This call causes segfault as it needs Channel
+		this->_responses.push(Message::_reply(_msg, RPL_TOPIC, channel));
         return ;
     }
     if (channel->isTopicProtected() && !channel->isOperator(usr))
