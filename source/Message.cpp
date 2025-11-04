@@ -239,7 +239,7 @@ std::string	Message::_paramToString(std::list<std::string> lst) const
 	// Multiple parameters: don't add space before first one
 	while (it != lst.end())
 	{
-		if (n == 1)
+		if ((n == 1) && ((*it).find_first_of(" ") != std::string::npos))
 			msg.append(":");
 		msg.append(*it);
 		it++;
