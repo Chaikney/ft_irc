@@ -447,32 +447,6 @@ void	Server::_sendToFD(int fd, const std::string &text) const
     write(fd, text.c_str(), text.size());
 }
 
-void	Server::_broadcastToChannel(const std::string &chan, int from_fd, const std::string &text, bool include_sender) const
-{
-    Channel *channel = _findChannel(chan);
-    if (channel)
-        _broadcastToChannel(channel, from_fd, text, include_sender);
-}
-
-// FIXME Is anything still using this?
-void	Server::_broadcastToChannel(Channel *channel, int from_fd, const std::string &text, bool include_sender) const
-{
-	if (!channel)
-        return;
-	// HACK for compilation
-	(void) from_fd;
-	(void) text;
-	(void) include_sender;
-	// FIXME here this won't work with Users returned...
-    // const std::set<int> &members = channel->getMembers();
-    // for (std::set<int>::const_iterator fit = members.begin(); fit != members.end(); ++fit)
-    // {
-    //     if (!include_sender && *fit == from_fd)
-    //         continue;
-    //     _sendToFD(*fit, text + "\r\n");
-    // }
-}
-
 // Run through the Messages in the _toProcess queue
 // Act on them, delete them.
 // TODO Make this spin off thread(s) to process the command efficiently
