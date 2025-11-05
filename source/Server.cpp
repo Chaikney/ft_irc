@@ -208,9 +208,10 @@ void Server::run()
 	// TODO Must be able to explain how that global variable works and is set
 	while (g_server_running)
 	{
-		// n is the number of fds ready for action
-		int n = epoll_wait(_epollFD, events, MAX_EVENTS, -1);
-		// TODO Should the epoll wait error be an exception?
+		// returns the number of fds ready for action. -1 signifies an error.
+		// "Specifying a timeout of -1 causes  epoll_wait() to block indefinitely,
+		// while specifying a timeout equal to zero causes return immediately, even if no events are available"
+		int n = epoll_wait(_epollFD, events, MAX_EVENTS, 0);
 		if (n == -1)
 		{
 			std::cerr << "epoll_wait error" << std::endl;
