@@ -28,7 +28,6 @@
 #include <unistd.h>	// for close()
 #include <sys/epoll.h>
 #include <cerrno>	// for error checking in send calls
-#include <cstdlib>	// for the EXIT code
 #include <cstring>	// for memset. Too many includes!
 // TODO DO we need *both* of these signal includes?
 #include <csignal>	// for signal handling
@@ -199,6 +198,13 @@ void	Server::_removeClient(struct epoll_event &goodbye)
 // TODO Handle client disconnnections better: currently cause "failed to read new input"
 // TODO MAX_EVENTS is better as a class variable
 // TODO refactor out the "message to queue" part of the loop, it's too long
+// TODO Generally tidy this Server::run() method before submission.
+// NOTE What happens if MAX_EVENTS is exceeded:
+// "At any single call of epoll_wait you'll at most receive as many events as you have room for,
+// but of course events don't get lost if there are more than that queued up
+// -- you'll simply get them at a later call.
+// Since you'll be calling epoll_wait in a loop anyway, that shouldn't be an issue at all."
+// https://stackoverflow.com/questions/16640430/maxevents-parameter-in-epoll-wait-and-the-events-array-size/16640455#16640455
 void Server::run()
 {
 	std::cout << "server on, waiting for conections (epoll)..." << std::endl;
@@ -214,8 +220,8 @@ void Server::run()
 		int n = epoll_wait(_epollFD, events, MAX_EVENTS, 0);
 		if (n == -1)
 		{
-			std::cerr << "epoll_wait error" << std::endl;
-			break;
+			if (errno != EINTR)	// The only error that we could recover from is a signal interrupt
+				throw (std::runtime_error("epoll_wait error."));
 		}
 		for (int i = 0; i < n; ++i)
 		{
