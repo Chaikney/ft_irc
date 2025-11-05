@@ -44,21 +44,18 @@ void	QuitCmd::executeCmd(void)
 		reason  = "Quit: " + params.back();
 
     // Get all channels the user is on and broadcast QUIT message
-	// TODO This channel-getting could be more efficient
-	std::map<std::string, Channel*>	_channels = this->_srv->getChannels();
-    for (std::map<std::string, Channel*>::iterator it = _channels.begin(); it != _channels.end(); ++it)
-    {
-        Channel *channel = it->second;
-        if (channel->isMember(usr))
-        {
-			Message *broadcast = Message::_channelMessage(_msg, channel);
-			broadcast->addParams(reason);
-			this->_responses.push(broadcast);
-//            _broadcastToChannel(channel, usr->getFD(), quitMsg, false);
-			// FIXME This has caused a segfault; must be protected.
-            channel->removeMember(usr);
-        }
-    }
+	std::set<Channel*>	_channels = usr->getMemberships();
+	std::set<Channel *>::iterator	it = _channels.begin();
+	while (it != _channels.end())
+	{
+		Channel* to_leave = *it;
+		Message *broadcast = Message::_channelMessage(_msg, to_leave);
+		broadcast->addParams(reason);
+		this->_responses.push(broadcast);
+		to_leave->removeMember(usr);
+		usr->removeChannel(to_leave);
+		it++;
+	}
 	// Then we call handleError to remove the User themselves from the Server
 	// FIXME How to handle ERROR?
 //	this->_srv->handleError(&_msg, usr);
