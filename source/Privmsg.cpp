@@ -33,6 +33,8 @@ Privmsg::~Privmsg(void) {}
 // TODO Split into Channel / User methods?
 // TODO Allow for multiple targets?
 // FIXME Set up of chat in clients not really working
+// FIXME To workaround Hexchat private conversation losing the first word, prefix with a space?
+// ...this is so dumb.
 void	Privmsg::executeCmd(void)
 {
 	// TODO Would this work?
@@ -50,7 +52,7 @@ void	Privmsg::executeCmd(void)
 	if (target.empty())
 	{
 		// ERR_NORECIPIENT (411)
-		// 	TODO Add text to message
+		// 	DONE? Add text to message
 		// 	"<client> :No recipient given (<command>)"
 		this->_responses.push(Message::_reply(_msg, ERR_NORECIPIENT));
 		return;

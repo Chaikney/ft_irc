@@ -362,7 +362,7 @@ Message*	Message::_channelMessage(Message &msg, Channel *chan)
 Message*	Message::_replyThirdParty(Message &msg, User* target)
 {
 	Message*	transmit;
-	std::string	src;
+	std::string	src = msg.getOrigin()->getNick();
 	std::string cmd_as_str = msg.getCommand();
 	std::list<std::string>	params;
 	std::list<int>	targets;
