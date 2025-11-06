@@ -27,6 +27,9 @@ bool	Join::_handleKeyChannels(Channel* locked, std::string key)
 }
 
 // Issue PART for all User's channels. What is the best way to do this?
+// - Do all here, or
+// - Generate a PART Message to be queued
+// - Generate PART commands?
 void	Join::_handleJoinZero(void)
 {
 	std::cerr << "JOIN 0 not yet implemented." << std::endl;

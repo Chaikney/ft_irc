@@ -29,9 +29,7 @@
 #include <sys/epoll.h>
 #include <cerrno>	// for error checking in send calls
 #include <cstring>	// for memset. Too many includes!
-// TODO DO we need *both* of these signal includes?
 #include <csignal>	// for signal handling
-#include <signal.h>	// for signal handling
 
 // Variable estática para controlar el bucle principal del servidor
 static volatile sig_atomic_t g_server_running = 1;
@@ -601,6 +599,7 @@ void	Server::_sendMessage(Message *msg_to_send) const
 		if (send(send_nxt, msg_buf, str_len, MSG_DONTWAIT) == -1)
 		{
 			// check error number and handle it
+			// NOTE I *think* EWOULDBLOCK only would turn up if the socket was set up wrongly?
 			switch (errno)
 			{
 				case EWOULDBLOCK:

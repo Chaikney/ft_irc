@@ -28,7 +28,6 @@ void Topic::executeCmd(void)
 	}
     if (params.size() == 1)
     {
-		// FIXME This call causes segfault as it needs Channel
 		this->_responses.push(Message::_reply(_msg, RPL_TOPIC, channel));
         return ;
     }

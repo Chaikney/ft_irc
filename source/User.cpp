@@ -139,10 +139,10 @@ void	User::addChannel(Channel* channel)
 }
 
 // Remove a channel from the user's set of memberships
+// NOTE That this should be done alongside Channel::removeMember()
+// ...potential for them to desyncronise...
 void	User::removeChannel(Channel* channel)
 {
-	// Simple implementation - just remove channel name
-	// In a full implementation, this would remove from a set of channels
 	if (channel)
 		this->_memberships.erase(channel);
 }

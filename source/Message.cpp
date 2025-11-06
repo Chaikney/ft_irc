@@ -557,6 +557,10 @@ std::list<std::string>	Message::_getParamForNumReply(Message &msg, int rep_code,
 			params.push_back("Channel");
 			params.push_back("Usernames");
 			break;
+		case RPL_LIST:
+			who = chan->getListInfo();
+			params.splice(params.end(), who);
+			break;
 		case RPL_LISTEND:
 			params.push_back("End of /LIST");
 			break;
@@ -596,7 +600,6 @@ std::list<std::string>	Message::_getParamForNumReply(Message &msg, int rep_code,
 		case ERR_USERSDONTMATCH:
 			params.push_back("You can't change other users' modes");
 			break;
-	// NOTE catching this message needs an overload with Channel
 		case RPL_TOPIC:
 			params.push_back(chan->getName());
 			params.push_back(chan->getTopic());
@@ -619,10 +622,6 @@ std::list<std::string>	Message::_getParamForNumReply(Message &msg, int rep_code,
 			params.push_back(chan->getName());
 			params.push_back("Cannot join channel (+i)");
 			break;
-		case RPL_LIST:
-			who = chan->getListInfo();
-			params.splice(params.end(), who);
-			break;
 		case RPL_INVITING:
 			// FIXED? Invited user nick should be the first parameter (after client)
 			params.push_back(usr->getNick());
@@ -638,7 +637,6 @@ std::list<std::string>	Message::_getParamForNumReply(Message &msg, int rep_code,
 			params.push_back(chan->getName());
 			params.push_back("You're not a channel operator");
 			break;
-			// TODO No way this is correct RPL_CHANNELMODEIS
 		case RPL_CHANNELMODEIS:
 			params.push_back(chan->getName());
 			params.push_back(chan->getModeString());
@@ -678,7 +676,7 @@ std::list<std::string>	Message::_getParamForNumReply(Message &msg, int rep_code,
 			params.push_back("Cannot join channel (+k)");
 			break;
 		default:
-			std::cerr << "Reply not handled yet (user overload):" << rep_code << std::endl;
+			std::cerr << "Reply not handled yet:" << rep_code << std::endl;
 	}
 	return (params);
 }

@@ -33,6 +33,8 @@ QuitCmd::~QuitCmd(void)
 // - Server listings (perhaps roll into ERROR)
 // FIXME This does not cause the User to be removed from channels (at least in Konv.)
 // ...i.e. still appearted in a WHOIS listing after Quit
+// FIXME Clients get duplicate messages regarding users if they are in >1 channel with them
+// ...Konv puts them in the same channel / duplicates them
 void	QuitCmd::executeCmd(void)
 {
     std::list<std::string> params = _msg.getParams();

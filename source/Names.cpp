@@ -16,6 +16,7 @@ Names::~Names() {}
 // -- send RPL_ENDOFNAMES with the channel name
 // TODO Test that this works with multiple channels
 // TODO There should be some filtering of visible names based on user modes
+// TODO Check the @ added to some names - Konv doesn't like it.
 void Names::executeCmd(void)
 {
     std::list<std::string> params =_msg.getParams();

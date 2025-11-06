@@ -18,6 +18,7 @@ Mode::~Mode(void) {}
 // NOTE User modes don't need the modearg, are all type D
 // TODO Notify on changed modes, will need to call User::+setModeLetter and act on the return
 // (This is partly done but will be unreliable)
+// TODO Investigate memory leak after giving a second user Op status in a channel
 void	Mode::_userMode(Message *msg, User *usr, std::string target)
 {
 	User* target_user = this->_srv->_findUserByNick(target);
