@@ -7,13 +7,13 @@
 
 Channel::Channel(void) : _name(""), _creationTime(time(0)), _topic(""), _topicTime(time(0)), _topicSetBy("Server"), _members(), _operators(), _invitedNicks(),
 						_topicProtected(false), _noExtMsg(true), _inviteOnly(false), _password(""),
-						_userLimit(0), _banList(), _exceptionList(), _inviteList()
+						_userLimit(0), _exceptionList(), _inviteList()
 {
 }
 
 Channel::Channel(const std::string &name) : _name(name),_creationTime(time(0)),  _topic(""),_topicTime(time(0)), _topicSetBy("Server"),  _members(), _operators(),
 											_invitedNicks(), _topicProtected(false), _noExtMsg(true), _inviteOnly(false),
-											_password(""), _userLimit(0), _banList(), _exceptionList(), _inviteList()
+											_password(""), _userLimit(0), _exceptionList(), _inviteList()
 {
 }
 
@@ -21,7 +21,7 @@ Channel::Channel(const Channel &other) : _name(other._name),_creationTime(other.
 										_operators(other._operators), _invitedNicks(other._invitedNicks),
 										_topicProtected(other._topicProtected), _noExtMsg(other._noExtMsg), _inviteOnly(other._inviteOnly),
 										_password(other._password), _userLimit(other._userLimit),
-										_banList(other._banList), _exceptionList(other._exceptionList),
+										_exceptionList(other._exceptionList),
 										_inviteList(other._inviteList)
 {
 }
@@ -47,7 +47,6 @@ Channel& Channel::operator=(const Channel &other)
 		_inviteOnly = other._inviteOnly;
 		_password = other._password;
 		_userLimit = other._userLimit;
-		_banList = other._banList;
 		_exceptionList = other._exceptionList;
 		_inviteList = other._inviteList;
 	}
@@ -101,12 +100,6 @@ const std::set<User *>& Channel::getOperators(void) const
 const std::set<std::string>& Channel::getInvitedNicks(void) const
 {
 	return _invitedNicks;
-}
-
-// Return the set of banned Nicks for this channel
-const std::set<std::string>& Channel::getBannedNicks(void) const
-{
-	return (this->_banList);
 }
 
 bool Channel::isTopicProtected(void) const
@@ -198,7 +191,6 @@ void Channel::setUserLimit(int limit)
 // - are they invited? are they banned?
 // First member becomes operator
 // TODO Overload this with a version that takes a password
-// TODO Handle "Exception modes" (to invite rule? or to ban rule?)
 bool Channel::addMember(User *usr)
 {
 	if (!usr)
@@ -212,8 +204,6 @@ bool Channel::addMember(User *usr)
 		else
 			this->removeInvite(usr->getNick());
 	}
-	if (this->isBanned(usr->getNick()))
-		return (false);
 	_members.insert(usr);
 	if (_members.size() == 1)
 		this->_operators.insert(usr);
@@ -283,27 +273,6 @@ bool Channel::removeInvite(const std::string &nick)
 bool Channel::isInvited(const std::string &nick) const
 {
 	return _invitedNicks.find(nick) != _invitedNicks.end();
-}
-
-// Ban management
-bool Channel::addBan(const std::string &mask)
-{
-	_banList.insert(mask);
-	return true;
-}
-
-bool Channel::removeBan(const std::string &mask)
-{
-	if (_banList.find(mask) == _banList.end())
-		return false;
-
-	_banList.erase(mask);
-	return true;
-}
-
-bool Channel::isBanned(const std::string &mask) const
-{
-	return _banList.find(mask) != _banList.end();
 }
 
 // Return the channel's mode string
@@ -450,7 +419,6 @@ void Channel::clear(void)
 	_members.clear();
 	_operators.clear();
 	_invitedNicks.clear();
-	_banList.clear();
 	_exceptionList.clear();
 	_inviteList.clear();
 }

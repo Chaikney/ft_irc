@@ -50,26 +50,6 @@ void	Mode::_userMode(Message *msg, User *usr, std::string target)
 	}
 }
 
-// RPL_BANLIST (367)
-//   "<client> <channel> <mask> [<who> <set-ts>]"
-// RPL_ENDOFBANLIST (368)
-//  "<client> <channel> :End of channel ban list"
-//  FIXME These might not be the correct _reply calls to use
-void	Mode::_sendBanList(Channel* chan)
-{
-	std::set<std::string>	banned = chan->getBannedNicks();
-	std::set<std::string>::const_iterator it = banned.begin();
-	while (it != banned.end())
-	{
-		Message* reply;
-		reply = Message::_reply(_msg, RPL_BANLIST, chan);
-		reply->addParams(*it);
-		this->_responses.push(reply);
-		it++;
-	}
-	this->_responses.push(Message::_reply(_msg, RPL_ENDOFBANLIST, chan));
-}
-
 // MODE command to deal with a Channel
 // TODO If channel mode changes, broadcast the change to channel
 // NOTE Here, params has popped off the first (target), it is not like msg->getParams()

@@ -21,7 +21,5 @@ class	Mode : public ACommand
 	private:
 		void	_userMode(Message *msg, User *usr, std::string target);
 		void	_channelMode(Message *msg, User *usr, std::string target);
-		void	_sendBanList(Channel* chan);
-
 };
 #endif

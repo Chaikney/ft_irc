@@ -27,7 +27,6 @@ class Channel
 		std::string			_password;		// +k mode
 		int				_userLimit;		// +l mode
 		// NOTE All these work with NICKs so string is the correct format
-		std::set<std::string>		_banList;	// +b mode
 		std::set<std::string>		_exceptionList;	// +e mode
 		std::set<std::string>		_inviteList;	// +I mode
 
@@ -65,7 +64,6 @@ class Channel
 		User*		findMemberByNick(std::string target) const;
 
 		// Setters
-		// TODO Need an "add banned" method
 //		void						setTopic(const std::string &topic);
 		void						setTopic(const std::string &topic, const std::string &set_by);
 		void						setTopicProtected(bool topicProtected);
@@ -86,11 +84,6 @@ class Channel
 		bool						addInvite(const std::string &nick);
 		bool						removeInvite(const std::string &nick);
 		bool						isInvited(const std::string &nick) const;
-
-		// Ban management
-		bool						addBan(const std::string &mask);
-		bool						removeBan(const std::string &mask);
-		bool						isBanned(const std::string &mask) const;
 
 		// Mode management
 		// TODO Make setMode an internal thing and have an exeternal piece that takes the whole modestring

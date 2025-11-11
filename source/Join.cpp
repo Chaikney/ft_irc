@@ -111,8 +111,6 @@ void Join::executeCmd(void)
 			{
 				if (!channel->isInvited(usr->getNick()))
 					this->_responses.push(Message::_reply(_msg, ERR_INVITEONLYCHAN, channel));
-				if (channel->isBanned(usr->getNick()))
-					this->_responses.push(Message::_reply(_msg, ERR_BANNEDFROMCHAN, channel));
 			}
 		}
 	}
