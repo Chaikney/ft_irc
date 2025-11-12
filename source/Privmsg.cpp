@@ -73,7 +73,7 @@ void	Privmsg::executeCmd(void)
 	// NOTE This identification will have to change if we add prefix characters
 	if ((target[0] == '#') || (target[0] == '&'))
 	{
-		Channel *channel = this->_srv->_findChannel(target);
+		Channel *channel = this->_srv->findChannel(target);
 		if (!channel)
 		{
 			this->_responses.push(Message::_reply(_msg, ERR_NOSUCHCHANNEL));
@@ -93,7 +93,7 @@ void	Privmsg::executeCmd(void)
 	else // Message to individual user
 	{
 		// TODO Need to change the text format in PRIVMSG e.g. source, or not?
-		User *to = this->_srv->_findUserByNick(target);
+		User *to = this->_srv->findUserByNick(target);
 		if (to)
 		{
 			if (to->isAway())

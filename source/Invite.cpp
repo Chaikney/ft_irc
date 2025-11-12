@@ -38,7 +38,7 @@ void	Invite::executeCmd(void)
 	User*	usr = _msg.getOrigin();
     std::string nick = params.front(); params.pop_front();
     std::string chan = params.front();
-    Channel *channel = this->_srv->_findChannel(chan);
+    Channel *channel = this->_srv->findChannel(chan);
     if (!channel)
     {
 		this->_responses.push(Message::_reply(_msg, ERR_NOSUCHCHANNEL));
@@ -55,7 +55,7 @@ void	Invite::executeCmd(void)
         return ;
     }
     channel->addInvite(nick);
-    User *target = this->_srv->_findUserByNick(nick);
+    User *target = this->_srv->findUserByNick(nick);
 	if ((target) && channel->isMember(target))
     {
 		this->_responses.push(Message::_reply(_msg, ERR_USERONCHANNEL, channel, target));

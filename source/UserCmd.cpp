@@ -46,5 +46,5 @@ void	UserCmd::executeCmd(void)
 	std::cout << "User: " << newUser << ", Really: " << newRName << std::endl;
 	// Only send welcome bundle if user is fully registered (has valid nickname)
 	if (usr->isRegistered())
-		this->_srv->_sendWelcome(&_msg);
+		this->_srv->sendWelcome(&_msg);
 }

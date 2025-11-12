@@ -20,7 +20,7 @@ Channel*	KickCmd::_checkChannel(std::string str)
         _responses.push(Message::_reply(_msg, ERR_BADCHANMASK));
 	else
 	{
-		chan = _srv->_findChannel(str);
+		chan = _srv->findChannel(str);
 		if (!chan)
 			_responses.push(Message::_reply(_msg, ERR_NOSUCHCHANNEL));
 	}
@@ -30,7 +30,7 @@ Channel*	KickCmd::_checkChannel(std::string str)
 // Check that the given target NICK is an existing user
 User*	KickCmd::_checkUser(std::string nick)
 {
-	User *target = _srv->_findUserByNick(nick);
+	User *target = _srv->findUserByNick(nick);
     if (!target)
 		_responses.push(Message::_reply(_msg, ERR_NOSUCHNICK));
 	return (target);

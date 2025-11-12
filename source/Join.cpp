@@ -87,9 +87,10 @@ void Join::executeCmd(void)
 			pass = params.back();
 		User* usr = _msg.getOrigin();
 		// If the channel cannot be found, create it
-		Channel *channel = this->_srv->_findChannel(chan);
+		Channel *channel = this->_srv->findChannel(chan);
 		if (!channel)
-			channel = this->_srv->_createChannel(chan);
+			channel = this->_srv->createChannel(chan);
+		// NOTE We are assuming that the channel creation always succeeds!
 		// Add member to channel
 		if (!channel->hasPassword() || _handleKeyChannels(channel, pass))
 		{

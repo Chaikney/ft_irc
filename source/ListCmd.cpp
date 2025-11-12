@@ -44,7 +44,7 @@ void	ListCmd::executeCmd(void)
 		else
 		{
 			Channel::normaliseChanName(&chans);
-			Channel*	c = this->_srv->_findChannel(chans);
+			Channel*	c = this->_srv->findChannel(chans);
 			if (!c)
 			{
 				this->_responses.push(Message::_reply(_msg, ERR_NOSUCHCHANNEL));

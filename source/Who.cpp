@@ -34,7 +34,7 @@ void	Who::executeCmd(void)
 	if (mask.find_first_of("#&") == 0)
 	{
 		// treat as Channel. Return all members of that Channel
-		Channel*	target = this->_srv->_findChannel(mask);
+		Channel*	target = this->_srv->findChannel(mask);
 		if (!target)
 			std::cerr << "Oops channel not found what we do?" << std::endl;
 		else
@@ -53,7 +53,7 @@ void	Who::executeCmd(void)
 	{
 		if (User::normaliseNick(&mask))
 		{
-			User*	user = this->_srv->_findUserByNick(mask);
+			User*	user = this->_srv->findUserByNick(mask);
 			if (user)
 				this->_responses.push(Message::_reply(_msg, RPL_WHOREPLY, user));
 		}

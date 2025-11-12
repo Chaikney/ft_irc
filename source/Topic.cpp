@@ -19,7 +19,7 @@ void Topic::executeCmd(void)
 {
     std::list<std::string> params =_msg.getParams();
     std::string chan = params.front();
-    Channel *channel = this->_srv->_findChannel(chan);
+    Channel *channel = this->_srv->findChannel(chan);
 	User*	usr = _msg.getOrigin();
     if (!channel)
 	{

@@ -402,7 +402,7 @@ std::string	Server::_getClientInput(int fd)
 
 // TODO Consider calling User::normaliseNick here
 // (Currently callers use it before sending)
-User* Server::_findUserByNick(const std::string &nick) const
+User* Server::findUserByNick(const std::string &nick) const
 {
     for (std::map<int, User*>::const_iterator it = this->_clients.begin(); it != this->_clients.end(); ++it)
     {
@@ -413,7 +413,7 @@ User* Server::_findUserByNick(const std::string &nick) const
 }
 
 // TODO Consider making this a public Channel method instead
-Channel* Server::_findChannel(const std::string &name) const
+Channel* Server::findChannel(const std::string &name) const
 {
     std::map<std::string, Channel*>::const_iterator it = _channels.find(name);
     if (it != _channels.end())
@@ -621,7 +621,7 @@ void	Server::_sendMessage(Message *msg_to_send) const
 // Check if a nickname is already in use by any connected user
 // NOTE This might be faster/scale better if we store (and update) a SET of known nicks
 // TODO Test this, does it ever return false? Very hard to read.
-bool	Server::_isNickTaken(const std::string &nick, int except_fd) const
+bool	Server::isNickTaken(const std::string &nick, int except_fd) const
 {
     for (std::map<int, User*>::const_iterator it = this->_clients.begin(); it != this->_clients.end(); ++it)
     {
@@ -755,7 +755,7 @@ std::string	Server::getChanModes(void) const
 
 // Send the WELCOME set of messages to a newly-registered User
 // HACK RPL_CREATED and RPL_MYINFO have to use a different path
-void	Server::_sendWelcome(Message *msg)
+void	Server::sendWelcome(Message *msg)
 {
 	this->_toProcess.push(Message::_reply(*msg, RPL_WELCOME));
 	this->_toProcess.push(Message::_reply(*msg, RPL_YOURHOST));

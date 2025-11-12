@@ -29,7 +29,7 @@ void Part::executeCmd(void)
 	else
     	params.pop_front();
 
-    Channel *channel = this->_srv->_findChannel(chan);
+    Channel *channel = this->_srv->findChannel(chan);
     if (!channel)
 	{
 		this->_responses.push(Message::_reply(_msg, ERR_NOSUCHCHANNEL));

@@ -51,12 +51,12 @@ void	Whois::executeCmd(void)
 		this->_responses.push(Message::_reply(_msg, ERR_NOSUCHNICK));
 		return ;
 	}
-	if (!this->_srv->_isNickTaken(inick))
+	if (!this->_srv->isNickTaken(inick))
 	{
 		this->_responses.push(Message::_reply(_msg, ERR_NOSUCHNICK));
 		return ;
 	}
-	User*	target = this->_srv->_findUserByNick(inick);
+	User*	target = this->_srv->findUserByNick(inick);
 	if (target)
 	{
 		this->_responses.push(Message::_reply(_msg, RPL_WHOISUSER, target));

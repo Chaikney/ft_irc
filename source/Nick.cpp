@@ -44,7 +44,7 @@ void	Nick::executeCmd(void)
 	{
 		this->_responses.push(Message::_reply(_msg, ERR_ERRONEUSNICKNAME));
 	}
-	else if (this->_srv->_isNickTaken(newNick, usr->getFD()))
+	else if (this->_srv->isNickTaken(newNick, usr->getFD()))
 	{
 		this->_responses.push(Message::_reply(_msg, ERR_NICKNAMEINUSE));
 	}
@@ -55,6 +55,6 @@ void	Nick::executeCmd(void)
 		usr->setNick(newNick);
 		// If user just became registered (had USER but was missing NICK), send welcome
 		if (!wasRegistered && usr->isRegistered())
-			this->_srv->_sendWelcome(&_msg);
+			this->_srv->sendWelcome(&_msg);
 	}
 }

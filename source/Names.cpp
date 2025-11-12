@@ -30,7 +30,7 @@ void Names::executeCmd(void)
 	{
 		std::string	cname = params.front();
 		Channel::normaliseChanName(&cname);
-		Channel*	target = this->_srv->_findChannel(cname);
+		Channel*	target = this->_srv->findChannel(cname);
 		if (target)
 		{
 			this->_responses.push(Message::_reply(_msg, RPL_NAMREPLY, target));

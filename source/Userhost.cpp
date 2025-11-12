@@ -29,7 +29,7 @@ void	Userhost::executeCmd(void)
 	{
 		std::string	nick = in_params.front();
 		// Find User by Nick
-		User*	target = this->_srv->_findUserByNick(nick);
+		User*	target = this->_srv->findUserByNick(nick);
 		// TODO This should *do* something with the return!
 		if (target)
 			o_params.push_back(target->getUserHostMsg());

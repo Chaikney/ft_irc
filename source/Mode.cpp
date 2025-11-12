@@ -21,7 +21,7 @@ Mode::~Mode(void) {}
 // TODO Investigate memory leak after giving a second user Op status in a channel
 void	Mode::_userMode(Message *msg, User *usr, std::string target)
 {
-	User* target_user = this->_srv->_findUserByNick(target);
+	User* target_user = this->_srv->findUserByNick(target);
 	if (!target_user)
 	{
 		this->_responses.push(Message::_reply(*msg, ERR_NOSUCHNICK));
@@ -61,7 +61,7 @@ void	Mode::_userMode(Message *msg, User *usr, std::string target)
 void	Mode::_channelMode(Message *msg, User *usr, std::string target)
 {
 	std::list<std::string>	params = _msg.getParams();
-	Channel *channel = this->_srv->_findChannel(target);
+	Channel *channel = this->_srv->findChannel(target);
 	if (!channel)
 	{
 		// TODO How do we include the "wrong" name here? add target somehow
