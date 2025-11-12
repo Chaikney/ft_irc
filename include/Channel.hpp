@@ -27,7 +27,6 @@ class Channel
 		std::string			_password;		// +k mode
 		int				_userLimit;		// +l mode
 		// NOTE All these work with NICKs so string is the correct format
-		std::set<std::string>		_exceptionList;	// +e mode
 		std::set<std::string>		_inviteList;	// +I mode
 
 		Channel(void);

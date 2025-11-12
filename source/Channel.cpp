@@ -7,13 +7,13 @@
 
 Channel::Channel(void) : _name(""), _creationTime(time(0)), _topic(""), _topicTime(time(0)), _topicSetBy("Server"), _members(), _operators(), _invitedNicks(),
 						_topicProtected(false), _noExtMsg(true), _inviteOnly(false), _password(""),
-						_userLimit(0), _exceptionList(), _inviteList()
+						_userLimit(0), _inviteList()
 {
 }
 
 Channel::Channel(const std::string &name) : _name(name),_creationTime(time(0)),  _topic(""),_topicTime(time(0)), _topicSetBy("Server"),  _members(), _operators(),
 											_invitedNicks(), _topicProtected(false), _noExtMsg(true), _inviteOnly(false),
-											_password(""), _userLimit(0), _exceptionList(), _inviteList()
+											_password(""), _userLimit(0), _inviteList()
 {
 }
 
@@ -21,7 +21,6 @@ Channel::Channel(const Channel &other) : _name(other._name),_creationTime(other.
 										_operators(other._operators), _invitedNicks(other._invitedNicks),
 										_topicProtected(other._topicProtected), _noExtMsg(other._noExtMsg), _inviteOnly(other._inviteOnly),
 										_password(other._password), _userLimit(other._userLimit),
-										_exceptionList(other._exceptionList),
 										_inviteList(other._inviteList)
 {
 }
@@ -47,7 +46,6 @@ Channel& Channel::operator=(const Channel &other)
 		_inviteOnly = other._inviteOnly;
 		_password = other._password;
 		_userLimit = other._userLimit;
-		_exceptionList = other._exceptionList;
 		_inviteList = other._inviteList;
 	}
 	return *this;
@@ -419,7 +417,6 @@ void Channel::clear(void)
 	_members.clear();
 	_operators.clear();
 	_invitedNicks.clear();
-	_exceptionList.clear();
 	_inviteList.clear();
 }
 
