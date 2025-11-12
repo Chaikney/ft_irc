@@ -37,7 +37,7 @@ class	Server
 		std::map<int, std::string>	_partial_msgs;
 		std::map<int, User*>	_clients;	// Maps socket FDs to Users
 		std::map<std::string, Channel*>	_channels;
-		time_t		_creationTime;	// TODO SHould this be const, static? It gets set once and never changes.
+		const time_t		_creationTime;	// NOTE this is const because it is set once only
 
 		// Some constructors that we want to disable / forbid
 					Server(void);	// private so not called

@@ -69,7 +69,7 @@ void signalHandler(int signal)
 Server::Server(int port, std::string password) : _socketFD(0), _epollFD(0),
 												 _serverAddress(), _password(password),
 												 _toProcess(), _partial_msgs(),
-												 _clients(), _channels(), _creationTime()
+												 _clients(), _channels(), _creationTime(time(0))
 {
 	std::cout << "Server constructor with parameters called" << std::endl;
 	_socketFD = socket(AF_INET, SOCK_STREAM || SOCK_NONBLOCK, 0);
@@ -118,7 +118,6 @@ Server::Server(int port, std::string password) : _socketFD(0), _epollFD(0),
 		close(_epollFD);
 		throw std::runtime_error("Could not add server input to epoll set.");
 	}
-	this->_creationTime = time(0);
 
 	// Configurar manejadores de señales
 	signal(SIGINT, signalHandler);
