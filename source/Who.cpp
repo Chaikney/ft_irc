@@ -34,7 +34,7 @@ void	Who::executeCmd(void)
 	if (mask.find_first_of("#&") == 0)
 	{
 		// treat as Channel. Return all members of that Channel
-		Channel*	target = this->_srv->getChannel(mask);
+		Channel*	target = this->_srv->_findChannel(mask);
 		if (!target)
 			std::cerr << "Oops channel not found what we do?" << std::endl;
 		else
