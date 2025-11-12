@@ -105,7 +105,7 @@ bool Channel::isTopicProtected(void) const
 	return _topicProtected;
 }
 
-bool Channel::isInviteOnly(void) const
+bool Channel::_isInviteOnly(void) const
 {
 	return (this->_inviteOnly);
 }
@@ -115,7 +115,7 @@ bool Channel::hasPassword(void) const
 	return !_password.empty();
 }
 
-const std::string& Channel::getPassword(void) const
+const std::string& Channel::_getPassword(void) const
 {
 	return _password;
 }
@@ -195,12 +195,12 @@ bool Channel::addMember(User *usr)
 		return (false);	// TODO Maybe this should raise an exception? It is a big problem...
 	if (_members.find(usr) != _members.end())
 		return false; // Already a member
-	if (this->isInviteOnly())
+	if (this->_isInviteOnly())
 	{
 		if (!this->isInvited(usr->getNick()))
 			return (false);
 		else
-			this->removeInvite(usr->getNick());
+			this->_removeInvite(usr->getNick());
 	}
 	_members.insert(usr);
 	if (_members.size() == 1)
@@ -234,7 +234,7 @@ bool Channel::isOperator(User *usr) const
 	return _operators.find(usr) != _operators.end();
 }
 
-bool Channel::addOperator(User *usr)
+bool Channel::_addOperator(User *usr)
 {
 	if (!usr)
 		return (false);
@@ -244,7 +244,8 @@ bool Channel::addOperator(User *usr)
 	return true;
 }
 
-bool Channel::removeOperator(User *usr)
+// NOTE Does no-one call this?
+bool Channel::_removeOperator(User *usr)
 {
 	if (this->_operators.find(usr) == _operators.end())
 		return false; // Not an operator
@@ -259,7 +260,7 @@ bool Channel::addInvite(const std::string &nick)
 	return true;
 }
 
-bool Channel::removeInvite(const std::string &nick)
+bool Channel::_removeInvite(const std::string &nick)
 {
 	if (_invitedNicks.find(nick) == _invitedNicks.end())
 		return false;
@@ -398,7 +399,7 @@ bool Channel::setMode(char mode, bool add, const std::string &param)
 				return (false);
 			else
 			{
-				this->addOperator(this->findMemberByNick(param));
+				this->_addOperator(this->_findMemberByNick(param));
 				return (true);
 			}
 		default:
@@ -407,7 +408,8 @@ bool Channel::setMode(char mode, bool add, const std::string &param)
 }
 
 // Utility
-bool Channel::isEmpty(void) const
+// NOTE May not be used
+bool Channel::_isEmpty(void) const
 {
 	return _members.empty();
 }
@@ -483,7 +485,7 @@ std::list<std::string>	Channel::getNameReply(void) const
 	return (params);
 }
 
-User*		Channel::findMemberByNick(std::string target) const
+User*		Channel::_findMemberByNick(std::string target) const
 {
 	for (std::set<User*>::const_iterator it = this->_members.begin(); it != this->_members.end(); ++it)
     {
@@ -517,7 +519,7 @@ bool	Channel::normaliseChanName(std::string *chan)
 	// Reject ## or && at the start (invalid channel names)
 	if (chan->length() >= 2 && (*chan)[0] == (*chan)[1])
 		return (false);
-	// These characters are forbidden in Channel names
+	// Space, BELL and comma are forbidden in Channel names
 	if (chan->find_first_of(" ,\a") != std::string::npos)
 		return (false);
 	return (true);
@@ -528,5 +530,5 @@ bool	Channel::checkPassword(std::string const &key) const
 {
 	if (key.empty())
 		return (false);
-	return (key.compare(this->getPassword()) == 0);
+	return (key.compare(this->_getPassword()) == 0);
 }
