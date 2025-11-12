@@ -9,6 +9,7 @@
 #include <set>	// Stores pointers to all Channels the User is in
 
 class	Channel;
+#include "Server.hpp"	// access to the SERVERNAME string
 
 // TODO Decide if any other information is useful to us here
 // DONE Add a last seen timestamp (what format?) to allow for timeouts
@@ -33,6 +34,7 @@ class	User
 		bool					_gavepass;
 		sockaddr_in				_address;	// has sin_port and sin_addr
 		std::string				_host;		// readable socket address for use in messages
+		std::string				_serverName;	// Server that the user is connected to; always our server (needed for WHOREPLY)
 		time_t					last_seen;	// to refer to in case of partial registration
 		bool					_isAway;
 		std::string				_awayMsg;
@@ -59,6 +61,7 @@ class	User
 		bool				isAway() const;
 		sockaddr_in			getAddress() const;		// NOTE This is too low-level to be public IMO
 		std::string			getHost() const;
+		std::string			getServerName(void) const;
 		std::list<std::string>	getWhoReply(void) const;
 		std::list<std::string>	getWhoIs(void) const;
 		std::string			getFlags(void) const;

@@ -9,7 +9,7 @@
 // ...but the connection information?
 // The first thing we see is a file descriptor I think. What else in the socket
 User::User(void) : _fd(-1), _nick(""), _uname(""), _rname(""),
-				   _gavepass(false), _address(), _host(), last_seen(), _isAway(false), _awayMsg(""),
+				   _gavepass(false), _address(), _host(), _serverName(SERVERNAME),  last_seen(), _isAway(false), _awayMsg(""),
 				   _isServerOp(false),
 				   _isInvisible(false), _memberships()
 {
@@ -20,7 +20,7 @@ User::User(void) : _fd(-1), _nick(""), _uname(""), _rname(""),
 // TODO Catch more possible problems with the creation
 // NOTE Cannot get hostname so taking the IP addr
 User::User(int fd) : _fd(fd), _nick(""), _uname(""), _rname(""),
-					 _gavepass(false), _address(), _host(), last_seen(), _isAway(false),_awayMsg(""),
+					 _gavepass(false), _address(), _host(),  _serverName(SERVERNAME), last_seen(), _isAway(false),_awayMsg(""),
 					 _isServerOp(false),
 					 _isInvisible(false), _memberships()
 {
@@ -56,7 +56,7 @@ User	*User::makeUser(int fd)
 
 User::User(const User &original): _fd(original._fd), _nick(original._nick), _uname(original._uname),
 								  _rname(original._rname), _gavepass(original._gavepass),
-								  _address(original._address), _host(original._host),
+								  _address(original._address), _host(original._host), _serverName(original._serverName),
 								  last_seen(original.last_seen), _isAway(original._isAway),
 								  _awayMsg(original._awayMsg), _isServerOp(original._isServerOp),
 								  _isInvisible(original._isInvisible), _memberships(original._memberships)
@@ -178,15 +178,13 @@ std::string	User::getFlags(void) const
 // Returns a list of parameters for use in the WHOREPLY command
 // https://modern.ircdocs.horse/#rplwhoreply-352
 // NOTE That the caller should use them with other pieces to make a full reply
-// TODO Check whether this should return a pointer or reference instead
 std::list<std::string>	User::getWhoReply(void) const
 {
 	std::list<std::string>	params;
 //	params.push_back("*");	// NOTE Now this is handled in _getParamForNumReply(9)
 	params.push_back(this->getUser());
 	params.push_back(this->getHost());
-//	params.push_back(SERVER);	// FIXME this is not available
-	params.push_back("ft_irc");	// HACK hardcoded to test client behaviour
+	params.push_back(this->getServerName());
 	params.push_back(this->getNick());
 	params.push_back(this->getFlags());
 	params.push_back("1");
@@ -345,4 +343,9 @@ void	User::setAwayMsg(std::string str)
 		this->_awayMsg = "";
 	else
 		this->_awayMsg = str;
+}
+
+std::string	User::getServerName(void) const
+{
+	return (this->_serverName);
 }
