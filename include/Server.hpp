@@ -97,6 +97,6 @@ class	Server
 		Channel*	_createChannel(const std::string &name);
 		void		_removeChannel(const std::string &name);
 		// NOTE With restructuring this has to be public, may not be best
-		void		_sendWelcome(Message *msg, User *usr);
+		void		_sendWelcome(Message *msg);
 };
 #endif

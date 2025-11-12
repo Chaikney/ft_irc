@@ -756,11 +756,8 @@ std::string	Server::getChanModes(void) const
 
 // Send the WELCOME set of messages to a newly-registered User
 // HACK RPL_CREATED and RPL_MYINFO have to use a different path
-// ...how to avoid that?
-// FIXME Conslidate these WELCOME messages
-void	Server::_sendWelcome(Message *msg, User *usr)
+void	Server::_sendWelcome(Message *msg)
 {
-	(void) usr;	// HACK maybe not ask for this
 	this->_toProcess.push(Message::_reply(*msg, RPL_WELCOME));
 	this->_toProcess.push(Message::_reply(*msg, RPL_YOURHOST));
 	Message* created = Message::_reply(*msg, RPL_CREATED);

@@ -55,6 +55,6 @@ void	Nick::executeCmd(void)
 		usr->setNick(newNick);
 		// If user just became registered (had USER but was missing NICK), send welcome
 		if (!wasRegistered && usr->isRegistered())
-			this->_srv->_sendWelcome(&_msg, usr);
+			this->_srv->_sendWelcome(&_msg);
 	}
 }
