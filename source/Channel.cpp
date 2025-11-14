@@ -120,14 +120,14 @@ const std::string& Channel::_getPassword(void) const
 	return _password;
 }
 
-int Channel::getUserLimit(void) const
+size_t Channel::getUserLimit(void) const
 {
 	return _userLimit;
 }
 
 std::string Channel::getUserLimitText(void) const
 {
-	int	n = _userLimit;
+	size_t	n = _userLimit;
 	std::stringstream	strm;
 	strm << n;
 	std::string	str;

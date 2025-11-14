@@ -24,7 +24,7 @@ class Channel
 		bool				_noExtMsg;		// +n no external messages can be sent to the channel (this is kind of implicit in how we have coded it though)
 		bool				_inviteOnly;		// +i mode
 		std::string			_password;		// +k mode
-		int				_userLimit;		// +l mode
+		size_t				_userLimit;		// +l mode
 		std::set<std::string>		_inviteList;		// +i mode
 
 		Channel(void);
@@ -55,7 +55,7 @@ class Channel
 		bool				isInviteOnly(void) const;
 		bool				isTopicProtected(void) const;
 		bool				hasPassword(void) const;
-		int				getUserLimit(void) const;
+		size_t				getUserLimit(void) const;
 		std::string			getUserLimitText(void) const;
 		size_t				getMemberCount(void) const;
 		std::string			getMemberCountText(void) const;
