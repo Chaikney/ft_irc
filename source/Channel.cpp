@@ -215,6 +215,8 @@ bool Channel::addMember(User *usr)
 }
 
 // FIXME Is this the place to check whether the channel is empty and should be deleted?
+// Confirm that we have a user and that they are in _members
+// If so, remove from the 2 places they might be stored.
 bool Channel::removeMember(User *usr)
 {
 	if (!usr)
@@ -387,7 +389,11 @@ bool Channel::setMode(char mode, bool add, const std::string &param)
 				if (param.empty())
 					return false;
 				std::cout << "Setting limit to:" << param << "(" << atoi(param.c_str()) << ")" << std::endl;
-				_userLimit = atoi(param.c_str());
+				// NOTE if this is negative then it overflows to a wild value.
+				int	new_limit= atoi(param.c_str());
+				if (new_limit < 0)
+					return (false);
+				_userLimit  = (size_t) new_limit;
 			}
 			else
 				_userLimit = 0;
