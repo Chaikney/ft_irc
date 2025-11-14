@@ -103,7 +103,7 @@ void Join::executeCmd(void)
 				// that someone has joined a channel. In this case, the message <source>
 				// will be the client who is joining,
 				// and <channel> will be the channel which that client has joined
-				// TODO Why not make this a single Message, contents are identical.
+				// IDEA Why not make this a single Message, contents are identical.
 				this->_responses.push(Message::_replyNonNumeric(_msg, channel));
 				this->_responses.push(Message::_channelMessage(_msg, channel));
 				_welcomeToChannel(channel);
@@ -112,6 +112,8 @@ void Join::executeCmd(void)
 			{
 				if (channel->isInviteOnly() && (!channel->isInvited(usr->getNick())))
 					this->_responses.push(Message::_reply(_msg, ERR_INVITEONLYCHAN, channel));
+				else if (channel->getMemberCount() > (channel->getUserLimit() - 1))
+					this->_responses.push(Message::_reply(_msg, ERR_CHANNELISFULL, channel));
 			}
 		}
 	}

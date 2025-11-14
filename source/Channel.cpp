@@ -186,9 +186,10 @@ void Channel::setUserLimit(int limit)
 // Member management
 // Add a member to a channel, return TRUE if success.
 // - User exists? Not already a member?
-// - are they invited? are they banned?
+// - are they invited?
+// - Check and block if user limit would be exceeded
 // First member becomes operator
-// TODO Overload this with a version that takes a password
+// IDEA Overload this with a version that takes a password
 bool Channel::addMember(User *usr)
 {
 	if (!usr)
@@ -201,6 +202,11 @@ bool Channel::addMember(User *usr)
 			return (false);
 		else
 			this->_removeInvite(usr->getNick());
+	}
+	if (this->getUserLimit() != 0)
+	{
+		if (this->getMemberCount() > (this->getUserLimit() - 1))
+			return (false);
 	}
 	_members.insert(usr);
 	if (_members.size() == 1)
