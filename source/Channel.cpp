@@ -105,7 +105,7 @@ bool Channel::isTopicProtected(void) const
 	return _topicProtected;
 }
 
-bool Channel::_isInviteOnly(void) const
+bool Channel::isInviteOnly(void) const
 {
 	return (this->_inviteOnly);
 }
@@ -195,7 +195,7 @@ bool Channel::addMember(User *usr)
 		return (false);	// TODO Maybe this should raise an exception? It is a big problem...
 	if (_members.find(usr) != _members.end())
 		return false; // Already a member
-	if (this->_isInviteOnly())
+	if (this->isInviteOnly())
 	{
 		if (!this->isInvited(usr->getNick()))
 			return (false);

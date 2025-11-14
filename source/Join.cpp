@@ -110,7 +110,7 @@ void Join::executeCmd(void)
 			}
 			else	// failed to join channel, find out and notify why
 			{
-				if (!channel->isInvited(usr->getNick()))
+				if (channel->isInviteOnly() && (!channel->isInvited(usr->getNick())))
 					this->_responses.push(Message::_reply(_msg, ERR_INVITEONLYCHAN, channel));
 			}
 		}

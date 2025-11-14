@@ -31,7 +31,6 @@ class Channel
 		Channel(const Channel &other);
 		Channel& operator=(const Channel &other);
 
-		bool				_isInviteOnly(void) const;
 		const std::string&		_getPassword(void) const;
 		User*				_findMemberByNick(std::string target) const;
 		bool				_addOperator(User *usr);
@@ -53,6 +52,7 @@ class Channel
 		const std::set<User *>&		getMembers(void) const;
 		const std::set<User *>&		getOperators(void) const;
 		const std::set<std::string>&	getInvitedNicks(void) const;
+		bool				isInviteOnly(void) const;
 		bool				isTopicProtected(void) const;
 		bool				hasPassword(void) const;
 		int				getUserLimit(void) const;
