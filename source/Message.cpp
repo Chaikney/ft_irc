@@ -108,7 +108,6 @@ void	Message::_parseMessage(std::string text_recvd)
             std::getline(strm, tmp, ' ');
 			_stepOver(strm);
         }
-//		std::cout << "Adding param:" << tmp << std::endl;	// HACK to debug
 		stripFinalNewline(&tmp);
         this->_params.push_back(tmp);
 	}
@@ -167,8 +166,6 @@ Message	*Message::makeMessage(std::string &str)
 // the caller to solve.
 Message	*Message::makeMessage(std::string &str, User *origin)
 {
-	// HACK debug
-//	std::cout << "Attemtping to make Message from:" << str << std::endl;
 	Message	*msg = new Message(str, origin);
 	return (msg);
 }
@@ -467,7 +464,6 @@ Message*	Message::_reply(Message &msg, int rep_code)
 	std::string	src(SERVERNAME);
 
 	std::list<std::string> params = _getParamForNumReply(msg, rep_code, 0, 0);
-	std::cout << "Added " << params.size() << "parameters" <<std::endl;	// HACK debugging
 	transmit = new Message(src, cmd_as_str, params, targets);
 	return (transmit);
 }

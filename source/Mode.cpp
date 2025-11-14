@@ -45,7 +45,6 @@ void	Mode::_userMode(Message *msg, User *usr, std::string target)
 		{
 			// Send a MODE change notification to the user
 			this->_responses.push(Message::_reply(*msg, RPL_UMODEIS, msg->getOrigin()));
-			std::cout << "User mode has changed" << std::endl;	// HACK debugging
 		}
 	}
 }
@@ -131,16 +130,13 @@ void	Mode::executeCmd(void)
 		target = params.front();
 	else
 		throw (std::logic_error ("MODE command with empty parameters"));
-	std::cout << "Directing mode for:" << target << std::endl;	// HACK debug statement
 	if (target.find_first_of("#&") == 0)// Do MODE as Channel
 	{
-		std::cout << "Choosing channel" << std::endl;	// HACK debug statement
 		this->_channelMode(&_msg, _msg.getOrigin(), target);
 		return;
 	}
 	else // treat target as NICK
 	{
-		std::cout << "Choosing user" << std::endl;	// HACK debug statement
 		User::normaliseNick(&target);
 		this->_userMode(&_msg, _msg.getOrigin(), target);
 		return ;

@@ -242,9 +242,7 @@ void Server::run()
 					std::cout << "Mensaje recibido de fd " << events[i].data.fd << ": " << str_buf << std::endl;
 					if (!this->_isFullMsg(str_buf))	// buffer does not form a complete message
 					{
-						std::cout << "Can NOT be parsed, store partial" << std::endl;
 						this->_storePartial(events[i].data.fd, str_buf);
-//						std::cout << "Done. Stored:" << _partial_msgs[events[i].data.fd] << std::endl;
 					}
 					// NOTE str_buf might contain multiple \n and we *must* handle that
 					else	// Parse into Message and queue for further action
@@ -252,10 +250,8 @@ void Server::run()
 						// With a complete message, must delete partials
 						// If there are multiple messages here, parse them *all*
 						this->_partial_msgs[events[i].data.fd].erase();
-						std::cout << "Can be parsed" << std::endl;
 						// NOTE ....What happens if User not found in _clients?
 						User*	msgFrom =  this->_clients[events[i].data.fd];
-//						while (this->_isFullMsg(str_buf))
 						while (!str_buf.empty())
 						{
 							Message	*nxtMessage = Message::makeMessage(str_buf, msgFrom);
@@ -263,19 +259,11 @@ void Server::run()
 								this->_toProcess.push(nxtMessage);
 							else
 								delete nxtMessage;
-							// Strip some text from str_buf
-			//				std::cout << "strbuf before:" << str_buf << std::endl;
 							str_buf.erase(0, str_buf.find_first_of("\n\r"));
 							while (str_buf.find_first_of("\n\r") == 0)
 								str_buf.erase(0,1);	// HACK To get rid of the \n at the start now?
-							// if (!str_buf.empty())
-							// 	std::cout << "strbuf after:" << str_buf << std::endl;
-							// else
-							// 	std::cout << "strbuf emptied" << std::endl;
 						}
 					}
-					// HACK debugging print statement below
-					//this->_printMessageQueue(this->_toProcess);
 				}
 				// TODO Work out how to handle / merge the 2 different exceptions.
 				// - cant parse message- silently ignore or send ERR_NOTENOUGH PARAMS type reply

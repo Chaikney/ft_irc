@@ -35,9 +35,6 @@ User::User(int fd) : _fd(fd), _nick(""), _uname(""), _rname(""),
 	inet_ntop(AF_INET, &_address.sin_addr, ip_addr, INET_ADDRSTRLEN);
 	this->_host = ip_addr;
 	time(&last_seen);
-	// HACK debug statements that can be removed
-	std::cout << "User created for fd:" << fd << std::endl;
-	std::cout << "IP Address: " << this->_host << std::endl;
 }
 
 
@@ -321,7 +318,6 @@ bool	User::normaliseNick(std::string *nick)
 		return (false);
 	while (nick->find_first_of("@:") == 0)
 		nick->erase(0, 1);
-	std::cout << "Nick targeted will be:" << *nick << std::endl;	// HACK for debugging
 	return (true);
 }
 

@@ -311,7 +311,6 @@ std::string Channel::getModeString(void) const
 // pass param to the other setMode function
 // TODO ThIs maybe has to be passed back out to Mode.cpp
 // FIXME Can only notify of changes based on the last change made
-// FIXED? Does not pass modearg to next step
 // HACK Solution to the modestring thing -- alwayts pass it.
 // This means we would have no chance of handling multiple mode changes
 bool	Channel::setMode(std::string modestring, std::string modearg)
@@ -320,7 +319,6 @@ bool	Channel::setMode(std::string modestring, std::string modearg)
 	bool	changes = false;
 	std::stringstream	strm(modestring);
 	char	c = 0;
-//	int	strm_size = modestring.length();
 
 	while (strm)	// or whatever
 	{
@@ -329,19 +327,10 @@ bool	Channel::setMode(std::string modestring, std::string modearg)
 			adding = true;
 		else if (c ==  '-')
 			adding = false;
-		// FIXME This does not correctly identify the end of the stream
-		//else if (strm.tellg() == strm_size - 1)
-		//else if (strm.peek() == '\0')
 		else
 		{
-			std::cout << "Last modestr:" << c << "\tpassing param" << std::endl;
 			changes = setMode(c, adding, modearg);
 		}
-		// else
-		// {
-		// 	std::cout << "modestr:" << c << "\twithout param" << std::endl;
-		// 	changes = setMode(c, adding, "");
-		// }
 	}
 	return (changes);
 }
@@ -354,7 +343,6 @@ bool	Channel::setMode(std::string modestring, std::string modearg)
 // DONE Mode +n for no external messages could be added
 bool Channel::setMode(char mode, bool add, const std::string &param)
 {
-	std::cout << "Channel mode letter setting" << std::endl;
 	switch (mode)
 	{
 		case 't':
@@ -362,17 +350,14 @@ bool Channel::setMode(char mode, bool add, const std::string &param)
 				return (false);		// no action needed
 			else
 				this->_topicProtected = add;
-			std::cout << "Touched topic mode" << std::endl;
 			return true;
 		case 'i':
 			if (this->_inviteOnly == add)
 				return (false);		// no action needed
 			else
 				this->_inviteOnly = add;
-			std::cout << "Touched invite mode" << std::endl;
 			return true;
 		case 'k':
-			std::cout << "Touched key mode" << std::endl;
 			if (add)
 			{
 				if (param.empty())
@@ -383,12 +368,10 @@ bool Channel::setMode(char mode, bool add, const std::string &param)
 				_password.clear();
 			return true;
 		case 'l':
-			std::cout << "Touched limit mode" << std::endl;
 			if (add)
 			{
 				if (param.empty())
 					return false;
-				std::cout << "Setting limit to:" << param << "(" << atoi(param.c_str()) << ")" << std::endl;
 				// NOTE if this is negative then it overflows to a wild value.
 				int	new_limit= atoi(param.c_str());
 				if (new_limit < 0)
@@ -403,10 +386,8 @@ bool Channel::setMode(char mode, bool add, const std::string &param)
 				return (false); 	// no change
 			else
 				this->_noExtMsg = add;
-			std::cout << "Touched no external mode" << std::endl;
 			return (true);
 		case 'o':
-			std::cout << "Touched op mode" << std::endl;
 			if (param.empty())
 				return (false);
 			else
