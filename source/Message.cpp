@@ -618,6 +618,10 @@ std::list<std::string>	Message::_getParamForNumReply(Message &msg, int rep_code,
 				params.push_back(chan->getName());
 			params.push_back("End of /NAMES list");
 			break;
+		case ERR_CHANNELISFULL:
+			params.push_back(chan->getName());
+			params.push_back("Cannot join channel (+l)");
+			break;
 		case ERR_INVITEONLYCHAN:
 			params.push_back(chan->getName());
 			params.push_back("Cannot join channel (+i)");
