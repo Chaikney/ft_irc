@@ -421,10 +421,13 @@ Channel* Server::findChannel(const std::string &name) const
     return NULL;
 }
 
-Channel* Server::_createChannel(const std::string &name)
+// Create a new channel of the given name and register it with the server.
+// NOTE Currently this is only called from JOIN and the Channel name MUST be checked there.
+Channel* Server::createChannel(const std::string &name)
 {
     Channel *channel = new Channel(name);
-    _channels[name] = channel;
+	if (channel)
+		_channels[name] = channel;
     return channel;
 }
 
@@ -740,17 +743,15 @@ std::string	Server::getUserModes(void) const
 
 // Returns a string saying which channel modes are supported by us / the Server
 // NOTE this is not the same as a channel's channel Modes!
-// TODO Check which modes we are likely to implement.
+// NOTE the modes we must implement are:
 // https://modern.ircdocs.horse/
-// [ ] invite only +i
+// [x] invite only +i
 // [ ] limited number of users +l
-// [ ] key / password +k
-// [ ] ban list +b
-// [ ] exceptions to bans +e
-// [ ] topic protection +t
+// [x] key / password +k
+// [x] topic protection +t
 std::string	Server::getChanModes(void) const
 {
-	return ("beIiklt");
+	return ("iklt");
 }
 
 // Send the WELCOME set of messages to a newly-registered User
