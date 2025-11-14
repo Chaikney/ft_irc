@@ -11,7 +11,7 @@
 User::User(void) : _fd(-1), _nick(""), _uname(""), _rname(""),
 				   _gavepass(false), _address(), _host(), _serverName(SERVERNAME),  last_seen(), _isAway(false), _awayMsg(""),
 				   _isServerOp(false),
-				   _isInvisible(false), _memberships()
+				   _memberships()
 {
 	std::cerr << "Cannot create User instance without a socket fd" << std::endl;
 }
@@ -22,7 +22,7 @@ User::User(void) : _fd(-1), _nick(""), _uname(""), _rname(""),
 User::User(int fd) : _fd(fd), _nick(""), _uname(""), _rname(""),
 					 _gavepass(false), _address(), _host(),  _serverName(SERVERNAME), last_seen(), _isAway(false),_awayMsg(""),
 					 _isServerOp(false),
-					 _isInvisible(false), _memberships()
+					 _memberships()
 {
 	socklen_t	addr_size = INET_ADDRSTRLEN;	// I only made this for getsockname and I guess error checking
 	char	ip_addr[INET_ADDRSTRLEN];
@@ -59,7 +59,7 @@ User::User(const User &original): _fd(original._fd), _nick(original._nick), _una
 								  _address(original._address), _host(original._host), _serverName(original._serverName),
 								  last_seen(original.last_seen), _isAway(original._isAway),
 								  _awayMsg(original._awayMsg), _isServerOp(original._isServerOp),
-								  _isInvisible(original._isInvisible), _memberships(original._memberships)
+								  _memberships(original._memberships)
 {}
 
 int	User::getFD() const
@@ -274,13 +274,6 @@ bool User::_setModeLetter(char mode, bool add)
 				return (true);
 			}
 			break;
-		case 'i':
-			if (this->_isInvisible != add)
-			{
-				this->_isInvisible = add;
-				return (true);
-			}
-			break;
 		default:
 			return false;
 	}
@@ -294,8 +287,6 @@ bool User::_setModeLetter(char mode, bool add)
 std::string	User::getModes(void) const
 {
 	std::string	modes;
-	if (this->_isInvisible)
-		modes.append("i");
 	if (this->_isServerOp)
 		modes.append("O");
 	if (this->isRegistered())

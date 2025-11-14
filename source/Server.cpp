@@ -726,16 +726,16 @@ void	Server::_removeUser(User &usr)
 // Returns a string saying which User modes are supported by us / the Server
 // NOTE this is not the same as a User's User Modes!
 // All possible modes: https://defs.ircdocs.horse/defs/usermodes.html
-// TODO Check which modes we are likely to implement.
+// NOTE There are various possible modes, not all needed in subject.
 // https://modern.ircdocs.horse/#user-modes
-// [X] Invisible +i
+// [ ] Invisible +i -- had a partial implementation that could be brought back for bonus
 // [ ] oper +o -- NOTE Not going to use this; there is no "network" beyond
 // [X] Local operator +O -- NOTE that these 2 are the same for us
 // [X] registered user +r -- not sure about this, we don't have long-lasting accounts
 // [ ] WALLOPS +w -- gets WALLOPS messages from server
 std::string	Server::getUserModes(void) const
 {
-	return ("irO");
+	return ("rO");
 }
 
 // Returns a string saying which channel modes are supported by us / the Server
