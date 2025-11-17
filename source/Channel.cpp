@@ -338,9 +338,8 @@ bool	Channel::setMode(std::string modestring, std::string modearg)
 // Take a char, boolean and optional string
 // Use them to set channel modes per character
 // Return true if value changed; false if not
-// TODO Should this handle 'o' for operator? (Server or ChanOp??) - is a confusing halfway house
-// ...it would add the posting user to the Operators attribute and we cannot access it here...
-// DONE Mode +n for no external messages could be added
+// NOTE The +o here is for CHANOPS, not ServerOps
+// /MODE [channel] +o [target nick]
 bool Channel::setMode(char mode, bool add, const std::string &param)
 {
 	switch (mode)
@@ -392,7 +391,15 @@ bool Channel::setMode(char mode, bool add, const std::string &param)
 				return (false);
 			else
 			{
-				this->_addOperator(this->_findMemberByNick(param));
+				User* target = this->_findMemberByNick(param);
+				if (!target)
+					return (false);
+				if (add == this->isOperator(target))
+					return (false);	// no change needed
+				if (add)
+					this->_addOperator(this->_findMemberByNick(param));
+				else
+					this->_removeOperator(this->_findMemberByNick(param));
 				return (true);
 			}
 		default:
