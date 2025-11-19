@@ -153,14 +153,14 @@ void	Server::_addNewClient()
 		ev.data.fd = clientSocket;
 		if (epoll_ctl(_epollFD, EPOLL_CTL_ADD, newUser->getFD(), &ev) == -1)
 		{
-			// TODO If this fails we should probably remove the User altogether...
-			close(clientSocket);
+			// If this fails we remove the User altogether...
+			this->_removeUser(*newUser);
 			throw std::runtime_error("Could not add client socket to epoll");
 		}
 	}
 	catch (std::exception &e)
 	{
-		std::cerr << e.what() << "User creation failure" << std::endl;
+		std::cerr << e.what() << ": User creation failure" << std::endl;
 	}
 }
 
