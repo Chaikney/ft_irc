@@ -421,7 +421,7 @@ void	Server::_processQueue(void)
 			this->_sendMessage(do_next);
 		else
 		{
-			ACommand*	thingtodo = matchCmd(do_next);
+			ACommand*	thingtodo = _matchCmd(do_next);
 			if (thingtodo)
 			{
 				if (thingtodo->numParamsOK())
@@ -451,7 +451,7 @@ void	Server::_processQueue(void)
 // - match against the commands we have defined (unavoidably ugly)
 // - return the derived class
 // TODO Decide what to do if we don't get a match. Return NULL?
-ACommand*	Server::matchCmd(Message* do_next)
+ACommand*	Server::_matchCmd(Message* do_next)
 {
 	std::cout << "Processing:" << *do_next << std::endl;
 	std::string command = do_next->getCommand();

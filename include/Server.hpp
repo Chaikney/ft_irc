@@ -57,10 +57,8 @@ class	Server
 		// ...it may not be 100% necessary but is kept (for now) for safety
 		void		_sendToFD(int fd, const std::string &text) const;
 
-		// --- Manejo de comandos IRC ---
-		ACommand*	matchCmd(Message* do_next);
+		ACommand*	_matchCmd(Message* do_next);
 		// NOTE Trial and error show that this can be private not public
-		// ....but it could cause problems later...?
 		void		_removeChannel(const std::string &name);
 
 	public:
