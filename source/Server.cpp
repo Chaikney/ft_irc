@@ -188,7 +188,7 @@ void Server::run()
 			{
 				try
 				{
-					_addNewClient();
+					this->_addNewClient();
 				}
 				catch (std::exception &e)
 				{
@@ -233,11 +233,11 @@ void Server::run()
 				{
 					std::cerr << e.what() <<std::endl;
 				}
-				// catch (std::exception &e)
-				// {
-				// 	std::cerr << "Something wrong with message: ignore and continue." << std::endl;
-				// 	std::cerr << e.what() <<std::endl;
-				// }
+				catch (std::exception &e)
+				{
+					std::cerr << "This is not an unhandled exception, it is just an odd one" << std::endl;
+				 	std::cerr << e.what() <<std::endl;
+				}
 			}
 		}
 		this->_processQueue();
@@ -286,17 +286,13 @@ Server::~Server(void)
 	{
 		delete it->second;
 	}
-	_channels.clear();
-
-	// Clean up users
+	this->_channels.clear();
 	for (std::map<int, User*>::iterator it = _clients.begin(); it != _clients.end(); ++it)
 	{
 		delete it->second;
 	}
-	_clients.clear();
-
-	// Limpiar recursos del servidor
-	_cleanupServer();
+	this->_clients.clear();
+	this->_cleanupServer();
 }
 
 // IDEA Consider being more lenient and allowing \r only to terminate commands
@@ -450,7 +446,9 @@ void	Server::_processQueue(void)
 // - uppercase it (to work around Hexchat)
 // - match against the commands we have defined (unavoidably ugly)
 // - return the derived class
-// TODO Decide what to do if we don't get a match. Return NULL?
+// - if we don't get a match send ERR_UNKNOWNCOMMAND
+// IDEA It would be nice if this was not all if/else
+// IDEA case-neutral comparison could be better...
 ACommand*	Server::_matchCmd(Message* do_next)
 {
 	std::cout << "Processing:" << *do_next << std::endl;
@@ -741,14 +739,14 @@ void Server::_cleanupServer()
 		User* user = it->second;
 		if (user)
 		{
-			_sendToFD(user->getFD(), "ERROR :Server shutting down\r\n");
+			this->_sendToFD(user->getFD(), "ERROR :Server shutting down\r\n");
 		}
 	}
 	while (!_toProcess.empty())
 	{
 		Message *tmp = _toProcess.front();
 		delete tmp;
-		_toProcess.pop();
+		this->_toProcess.pop();
 	}
 
 	// Cerrar todos los sockets de clientes
