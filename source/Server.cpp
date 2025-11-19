@@ -72,7 +72,7 @@ Server::Server(int port, std::string password) : _socketFD(0), _epollFD(0),
 												 _clients(), _channels(), _creationTime(time(0))
 {
 	std::cout << "Server constructor with parameters called" << std::endl;
-	_socketFD = socket(AF_INET, SOCK_STREAM || SOCK_NONBLOCK, 0);
+	_socketFD = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0);
 	if (_socketFD == -1)
 	{
 		throw std::runtime_error("Socket creation failed");
