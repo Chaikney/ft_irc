@@ -184,10 +184,8 @@ void	Server::_addNewClient()
 void Server::run()
 {
 	std::cout << "server on, waiting for conections (epoll)..." << std::endl;
-	const int MAX_EVENTS = 10;
 	struct epoll_event events[MAX_EVENTS];
-	// NOTE This is set as static / volatile above.
-	// TODO Must be able to explain how that global variable works and is set
+	// NOTE This global  is set as static / volatile above, relates to the signal handling
 	while (g_server_running)
 	{
 		// returns the number of fds ready for action. -1 signifies an error.
