@@ -675,16 +675,20 @@ void	Server::handleError(Message *msg, User *usr)
     std::cerr << "ERROR from " << usr->getNick() << ": " << errorMsg << std::endl;
 
     // Remove user from all channels
-    // TODO Bypass this if we have come from QUIT command, already done.
-    for (std::map<std::string, Channel*>::iterator it = _channels.begin(); it != _channels.end(); ++it)
-    {
-        Channel *channel = it->second;
-        if (channel->isMember(usr))
-        {
-            channel->removeMember(usr);
-        }
-    }
-    // Make error Message *and *send* *immediately
+    // NOTE if we have come from QUIT command, this was already done and the loop is skipped
+	std::set<Channel*>	leavethese = usr->getMemberships();
+	if (!leavethese.empty())
+	{
+		std::set<Channel *>::iterator	it = leavethese.begin();
+		while (it != leavethese.end())
+		{
+			Channel* to_leave = *it;
+			to_leave->removeMember(usr);
+			usr->removeChannel(to_leave);
+			it++;
+		}
+	}
+    // Make error Message *and* *send* *immediately*
     // (If we wait, things might get out of order)
     Message* bye = Message::_replyNonNumeric(*msg);
 	bye->addParams(errorMsg);
@@ -697,21 +701,19 @@ void	Server::handleError(Message *msg, User *usr)
 // Removes the User from the Server
 // TO be called from QUIT and / or ERROR
 // NOTE Must have already removed from all their Channels, else will cause bother
+// - stop listening to avoid accidental reconnection
+// - remove from known users set
+// - close their socket
+// - delete User object last of all
 void	Server::_removeUser(User &usr)
 {
 	int	usr_FD = usr.getFD();
 
-	// First we stop listening to avoid accidental reconnection
     epoll_ctl(_epollFD, EPOLL_CTL_DEL, usr_FD, NULL);
     _partial_msgs.erase(usr_FD);
     _clients.erase(usr_FD);
-
-    // Close the connection
     close(usr_FD);
-
-    // Delete user object
-    // FIXME HACK does not work called like this
-//    delete usr;
+    delete &usr;
 }
 
 // Returns a string saying which User modes are supported by us / the Server

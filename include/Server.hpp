@@ -65,7 +65,6 @@ class	Server
 
 		// --- Manejo de comandos IRC ---
 		ACommand*	matchCmd(Message* do_next);
-		void		handleError(Message *msg, User *usr);
 		// NOTE Trial and error show that this can be private not public
 		// ....but it could cause problems later...?
 		void		_removeChannel(const std::string &name);
@@ -90,5 +89,7 @@ class	Server
 		bool		isNickTaken(const std::string &nick, int except_fd = -1) const;
 		// NOTE With restructuring this has to be public, may not be best
 		void		sendWelcome(Message *msg);
+		// NOTE So it can be called from QuitCmd
+		void		handleError(Message *msg, User *usr);
 };
 #endif

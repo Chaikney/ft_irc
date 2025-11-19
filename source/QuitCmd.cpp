@@ -59,6 +59,5 @@ void	QuitCmd::executeCmd(void)
 		it++;
 	}
 	// Then we call handleError to remove the User themselves from the Server
-	// FIXME How to handle ERROR?
-//	this->_srv->handleError(&_msg, usr);
+	this->_srv->handleError(&_msg, usr);
 }
