@@ -7,39 +7,6 @@
 #include <sstream>
 
 
-// HACK temp test "suite" for Message creation
-void	runMessageParsingTests(void)
-{
-	Message	*test_msg;
-	std::string	test_str;
-
-	test_str = "NICK pants and socks";
-	test_msg = Message::makeMessage(test_str);
-	std::cout << *test_msg << std::endl;
-	delete test_msg;
-	test_str = "    ";
-	test_msg = Message::makeMessage(test_str);
-	std::cout << test_msg << std::endl;
-	delete test_msg;
-	test_str = (":not valid is it");
-	test_msg = Message::makeMessage(test_str);
-	std::cout << *test_msg << std::endl;
-	delete test_msg;
-	test_str = ("@tag :source command and then a long list of parameters");
-	test_msg = Message::makeMessage(test_str);
-	std::cout << *test_msg << std::endl;
-	delete test_msg;
-	test_str = ("@tag :source command :and then a long list of parameters treated as one");
-	test_msg = Message::makeMessage(test_str);
-	std::cout << *test_msg << std::endl;
-	delete test_msg;
-	// NOTE right now, this only handles the first part due to a Message::_parseMessage limitation
-	test_str = ("CAP LS 302\n PASS noh \r\nNICK hexie\rUSER chaikney 0 * :realname");
-	test_msg = Message::makeMessage(test_str);
-	std::cout << *test_msg << std::endl;
-	delete test_msg;
-}
-
 // Check and return the port number. Will throw exception on bad input
 //haciendo isstringstream comprobamos automaticamente posibles errores de conversion y !portav >> port_num lo convierte a int
 int	getPortNumber(char *argv1)
@@ -87,7 +54,6 @@ int	main(int argc, char **argv)
 {
 	std::string password;
 	int port_num;
-//	runMessageParsingTests();	// HACK for debugging remove later
 	try
 	{
 		if (argc < 3)
@@ -101,19 +67,13 @@ int	main(int argc, char **argv)
 	catch (std::invalid_argument &e)
 	{
 		std::cerr << "Problem with starting parameters: " << e.what() << std::endl;
-		// Si tuvieras un log, podrías reutilizar el mensaje:
-		// logFile << ss.str() << std::endl;
 		if (argc >= 3)
 			std::cerr << "I received:\tPort:" << argv[1] << "\tPassword:" << argv[2] << std::endl;
 		std::cerr << "Usage:\t" << argv[0] << " <port> <password>" << std::endl;
 	}
 	catch (std::runtime_error &e)
 	{
-		// TODO Try direct output and see if that reduces memory leakage here.
-//		std::stringstream ss;
 		std::cerr << "Unable to start up Server: " << e.what() << std::endl;
-//		std::cerr << ss.str() << std::endl;
-		// logFile << ss.str() << std::endl;
 	}
     return (0);
 }
