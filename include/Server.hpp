@@ -47,8 +47,6 @@ class	Server
 		// Unsorted mess of internal methods
 		void		_printMessageQueue(std::queue<Message *> toPrint) const;
 		void		_addNewClient();
-		// FIXME Probably only need one of these two, or one should call the other
-		void		_removeClient(struct epoll_event &bye);
 		void		_removeUser(User &usr);
 		bool		_isFullMsg(std::string msg) const;
 		void		_storePartial(int fd_source, std::string msg);

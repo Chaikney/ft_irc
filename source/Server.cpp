@@ -164,27 +164,6 @@ void	Server::_addNewClient()
 	}
 }
 
-// Small wrapper for dealing with a client that has disconnected.
-// - close its fd
-// - remove that fd from the epoll listening set
-// NOTE Should the events array we pass in be stored as part of the class instead?
-// NOTE This could work on an int fd only, but this allows other actions if needed.
-// TODO All of the Channels that contain this User should be notified of the disconnection
-void	Server::_removeClient(struct epoll_event &goodbye)
-{
-	std::cout << "Cliente desconectado, fd: " << goodbye.data.fd << std::endl;
-	close(goodbye.data.fd);
-	epoll_ctl(_epollFD, EPOLL_CTL_DEL, goodbye.data.fd, NULL);
-	this->_partial_msgs.erase(goodbye.data.fd);
-	// Free and forget the User instance if present
-	std::map<int, User*>::iterator it = this->_clients.find(goodbye.data.fd);
-	if (it != this->_clients.end())
-	{
-		delete it->second;
-		this->_clients.erase(it);
-	}
-}
-
 // Activates the Server's epoll loop
 // - Waits for an event
 // -- if the event is on the Server fd, we treat it as a new connection
@@ -272,7 +251,6 @@ void Server::run()
 				catch (std::invalid_argument &e)
 				{
 					std::cerr << e.what() <<std::endl;
-//					_removeClient(events[i]);
 				}
 				// catch (std::exception &e)
 				// {
