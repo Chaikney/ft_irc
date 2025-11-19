@@ -16,15 +16,16 @@ User::User(void) : _fd(-1), _nick(""), _uname(""), _rname(""),
 	std::cerr << "Cannot create User instance without a socket fd" << std::endl;
 }
 
-// TODO Add debug info about the address
-// TODO Catch more possible problems with the creation
+// Creates a bare User from a file descriptor that has sent a message.
+// This has to later get a Nickname, fully registred, etc.
+// IDEA Catch more possible problems with the creation - what could they be?
 // NOTE Cannot get hostname so taking the IP addr
 User::User(int fd) : _fd(fd), _nick(""), _uname(""), _rname(""),
 					 _gavepass(false), _address(), _host(),  _serverName(SERVERNAME), last_seen(), _isAway(false),_awayMsg(""),
 					 _isServerOp(false),
 					 _memberships()
 {
-	socklen_t	addr_size = INET_ADDRSTRLEN;	// I only made this for getsockname and I guess error checking
+	socklen_t	addr_size = INET_ADDRSTRLEN;	// used for getsockname and I guess error checking
 	char	ip_addr[INET_ADDRSTRLEN];
 	// Get more info about the socket
 	if (getsockname (fd, (struct sockaddr *) &_address, &addr_size) == -1)
@@ -42,9 +43,8 @@ User::User(int fd) : _fd(fd), _nick(""), _uname(""), _rname(""),
 User::~User(void)
 {}
 
-// Given a file descriptor, get back a User object to use wherever
-// TODO Some checks required - is the fd real, valid, etc.
-// TODO This has to take the info required for a User to be created
+// Given a file descriptor, get back a basic User object to validate later.
+// IDEA Could add some checks - is the fd real, valid, etc.
 User	*User::makeUser(int fd)
 {
 	User	*usr = new User(fd);
@@ -84,7 +84,6 @@ bool	User::isVerified() const
 	return(this->_gavepass);
 }
 
-// FIXME Location of a segfault from Server Messages in the processQueue
 bool	User::isRegistered() const
 {
     return (this->_gavepass && !this->_nick.empty() && !this->_uname.empty());
@@ -136,10 +135,8 @@ void	User::addChannel(Channel* channel)
 }
 
 // Remove a channel from the user's set of memberships
-// NOTE That this should be done alongside Channel::removeMember()
+// NOTE This should be done alongside Channel::removeMember()
 // ...potential for them to desyncronise...
-// FIXME This may be the location of a leak after a user PARTs from a channel...
-// ...related to limited times? Hard to reproduce...
 void	User::removeChannel(Channel* channel)
 {
 	if (channel)
@@ -161,7 +158,7 @@ void	User::updateTime(void)
 // the user is a server operator.
 // Optionally, the highest channel membership prefix that the client has in <channel>, if the client has one.
 // Optionally, one or more user mode characters and other arbitrary server-specific flags.
-// TODO Should this handle isInvisible?
+// IDEA Could expand to include isInvisible
 std::string	User::getFlags(void) const
 {
 	std::string	flags;
@@ -205,7 +202,7 @@ std::list<std::string>	User::getWhoIs(void) const
 }
 
 // Return the User representation for use in the RPL_USERHOST list
-// TODO getHost representation, should it be like user@hostname ?
+// IDEA getHost representation, should it be like user@hostname? Unclear from RFC
 std::string	User::getUserHostMsg(void) const
 {
 	std::string	userHost;
@@ -249,9 +246,9 @@ bool	User::setMode(std::string modestring)
 	return (changes);
 }
 
-// TODO Support supported user modes:
+// Supported user modes:
 // +oO
-// +i (later) invisible has to be referred to in other functions
+// IDEA +i invisible, but has to be referred to in other functions
 // NOTE OPER command is needed to support isOp properly
 // NOTE User modes are all Type D, i.e. must not have  a parameter.
 // Returns true if a change was made, false otherwise
@@ -282,7 +279,7 @@ bool User::_setModeLetter(char mode, bool add)
 // Return the User's active modes, as used in RPL_UMODEIS
 // NOTE In future could add +w WALLOPS
 // Status of +o Network Operator is ambiguous - we have no network
-// TODO Consider making User::getModes private - who else uses it?
+// Considered making User::getModes private but it's used in Message.cpp
 std::string	User::getModes(void) const
 {
 	std::string	modes;
@@ -308,8 +305,8 @@ std::set<Channel *>	User::getMemberships(void) const
 
 // Remove any valid but confusing prefix characters from the Nick
 // return true if we can work with the string after modifications
-// TODO Confirm all the possible prefix characters
-// TODO Make sure no spaces in the parameter - this should not happen but seems to...
+// Erase the possible prefix characters (op and halfop, though we don't have the 2nd)
+// Make sure no spaces in the parameter - this should not happen but seems to...
 bool	User::normaliseNick(std::string *nick)
 {
 	if (nick->empty())

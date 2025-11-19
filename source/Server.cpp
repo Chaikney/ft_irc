@@ -529,7 +529,6 @@ ACommand*	Server::_matchCmd(Message* do_next)
 // - List of fds to where it must be sent
 // Ensure that the message is sent correctly.
 // NOTE Safety checks on send_to would not catch e.g. a reassigned fd, gone to "nice to have"
-// ...we process things in the order they are received
 // NOTE I *think* EWOULDBLOCK only would turn up if the socket was set up wrongly
 // IDEA Quality check on the Message serialization would be nice
 // NOTE We are allowed to use errno, a global variable set by permitted C functions.

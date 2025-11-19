@@ -253,7 +253,7 @@ std::string	Message::_paramToString(std::list<std::string> lst) const
 //  SPACE  ::=  %x20 *( %x20 )   ; space character(s)
 //  crlf   ::=  %x0D %x0A        ; "carriage return" "linefeed"
 //  TODO Test the output of this
-//  FIXME If the final parameter has a : it doesn't need, Hexchat gets confused.
+//  FIXED If the final parameter has a : it doesn't need, Hexchat gets confused.
 std::string	Message::serialiseMsg(void) const
 {
 	std::string	msg;

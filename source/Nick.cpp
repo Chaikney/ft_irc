@@ -7,14 +7,9 @@
 # include <string>
 # include <list>
 
-// Nick::Nick(void)
-// {
-// 	std::cerr << "Bare Nick constructor should not be called" << std::endl;
-// }
-
 Nick::Nick(Server* srv, Message &seed) : ACommand(srv, seed, 1, 1)
 {
-	std::cerr << "Bare Nick constructor called, hope that is not a problem..." << std::endl;
+	std::cout << "Nick constructor called" << std::endl;
 }
 
 Nick::~Nick(void) {}
@@ -23,8 +18,7 @@ Nick::~Nick(void) {}
 // Get parameters
 // Check the requested nick is valid and does not already exist
 // Set new nickname on User (will need a setter on User?)
-// FIXME IF the nick name is already in use that doesn't seem to stop registration?
-// TODO Acknowledge successful NICK:
+// IDEA Could acknowledge successful NICK:
 // The NICK message may be sent from the server to clients to acknowledge their
 // NICK command was successful, and to inform other clients about the change of nickname.
 // In these cases, the <source> of the message will be the old nickname
