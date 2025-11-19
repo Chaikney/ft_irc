@@ -526,16 +526,18 @@ ACommand*	Server::_matchCmd(Message* do_next)
 // Extract from message:
 // - text to be sent
 // - length of text
-// - fd to where it must be sent
+// - List of fds to where it must be sent
 // Ensure that the message is sent correctly.
-// TODO Safety checks needed on FD list send_to
-// TODO Properly handle the "would block" error
-// TODO Quality check on the Message serialization needed?
-// FIXME We are not allowed to use errno, remove it!
+// NOTE Safety checks on send_to would not catch e.g. a reassigned fd, gone to "nice to have"
+// ...we process things in the order they are received
+// NOTE I *think* EWOULDBLOCK only would turn up if the socket was set up wrongly
+// IDEA Quality check on the Message serialization would be nice
+// NOTE We are allowed to use errno, a global variable set by permitted C functions.
+// What is forbidden are C functions like perror()
 void	Server::_sendMessage(Message *msg_to_send) const
 {
 	std::string		msg_as_str = msg_to_send->serialiseMsg();
-	// const here is to avoid -fpermissive compiler warning
+	// NOTE const here is to avoid -fpermissive compiler warning
 	const char*		msg_buf = msg_as_str.c_str();
 	size_t			str_len = msg_as_str.length();
 	std::list<int>	send_to = msg_to_send->getTargets();
@@ -546,15 +548,14 @@ void	Server::_sendMessage(Message *msg_to_send) const
 		std::cout << "Sending:" << msg_buf << std::endl;
 		if (send(send_nxt, msg_buf, str_len, MSG_DONTWAIT) == -1)
 		{
-			// check error number and handle it
-			// NOTE I *think* EWOULDBLOCK only would turn up if the socket was set up wrongly?
+			// check error number and print error
 			switch (errno)
 			{
 				case EWOULDBLOCK:
 					std::cerr << "Would block, split message or drop it" << std::endl;
 					break ;
 				default:
-					std::cerr << "Dunno, something else went wrong" << errno << std::endl;
+					std::cerr << "A message was not successfully sent." << errno << std::endl;
 			}
 		}
 		else
