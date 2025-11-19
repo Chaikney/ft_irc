@@ -584,16 +584,7 @@ bool	Server::isNickTaken(const std::string &nick, int except_fd) const
     return (false);
 }
 
-// FIXME This should be of the type "4 days, 3 hours 10 minutes 15 seconds"
-std::string	Server::getUptime(void) const
-{
-	time_t	uptime = difftime(time(0), this->_creationTime);
-	struct tm *timeinfo = localtime(&uptime);
-	char buffer[80];
-	strftime(buffer, sizeof(buffer), "%a %b %d %Y at %H:%M:%S %Z", timeinfo);
-	return (std::string(buffer));
-}
-
+// Return text with the Server's launch / creation time
 std::string	Server::getCreation(void) const
 {
 	time_t	cretime = this->_creationTime;

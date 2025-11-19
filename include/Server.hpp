@@ -72,7 +72,6 @@ class	Server
 
 		// Simple public getters
 		int			get_fd(void) const;
-		std::string	getUptime(void) const;
 		std::string	getCreation(void) const;
 		std::string	getUserModes(void) const;
 		std::string	getChanModes(void) const;
