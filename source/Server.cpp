@@ -56,13 +56,13 @@ void signalHandler(int signal)
 }
 
 // Set up the Server:
-// - create fd for socket
-// - set as non-blocking
-// - set to listen on IP4, user-supplied port and any incoming IP
-// - bind socket to the fd
-// - listen on fd
+// - create (non-blocking) fd for server socket
+// -- set to listen on IP4, user-supplied port and any incoming IP
+// -- bind socket to the fd
+// -- listen on fd
 // - Create epoll fd
 // - Add socket fd to epoll's listening set
+// - set up signal handlers
 //  SOCK_NONBLOCK   Set the O_NONBLOCK file status flag on the open  file  description
 //                (see  open(2)) referred to by the new file descriptor.  Using this
 //                flag saves extra calls to fcntl(2) to achieve the same result.
@@ -84,11 +84,9 @@ Server::Server(int port, std::string password) : _socketFD(0), _epollFD(0),
 	_serverAddress.sin_addr.s_addr = INADDR_ANY;
 
 	std::cout << "Binding...";
-	// FIXME If we throw here, the program ends with uncleared memory
 	if (bind(_socketFD, (struct sockaddr *)&_serverAddress, sizeof(_serverAddress)) == -1)
 	{
 		close(_socketFD);
-//		delete this;		// NOTE This does not work!
 		throw std::runtime_error("Binding failed");
 	}
 	std::cout << " Socket successfully bound" << std::endl;
@@ -101,14 +99,12 @@ Server::Server(int port, std::string password) : _socketFD(0), _epollFD(0),
 	}
 	std::cout << "Server ready to accept connections." << std::endl;
 
-	// Crear epoll
 	_epollFD = epoll_create1(0);
 	if (_epollFD == -1)
 	{
 		close(_socketFD);
 		throw std::runtime_error("Could not create epoll");
 	}
-
 	struct epoll_event ev;
 	ev.events = EPOLLIN;
 	ev.data.fd = _socketFD;
@@ -118,12 +114,9 @@ Server::Server(int port, std::string password) : _socketFD(0), _epollFD(0),
 		close(_epollFD);
 		throw std::runtime_error("Could not add server input to epoll set.");
 	}
-
-	// Configurar manejadores de señales
 	signal(SIGINT, signalHandler);
 	signal(SIGTERM, signalHandler);
 	signal(SIGPIPE, signalHandler);
-
 }
 
 // What needs to be done when we get the first contact from a new client
@@ -131,13 +124,11 @@ Server::Server(int port, std::string password) : _socketFD(0), _epollFD(0),
 // - set the socket as non-blocking
 // - make an event struct for its input
 // - add that to the epollFD that we monitor.
-// NOTE If something goes wrong, throws a runtime_error exception to be caught outside
-// TODO Make proper use of the newUser! (WHAT DOES THAT MEAN?)
+// -- If this fails we remove the User and throw
 void	Server::_addNewClient()
 {
 	try
 	{
-		//int clientSocket = accept(this->_socketFD, NULL, NULL);
 		// NOTE Must explicitly set socket flags - on Linux they do *not* inherit
 		int clientSocket = accept4(this->_socketFD, NULL, NULL, SOCK_NONBLOCK);
 
@@ -147,13 +138,11 @@ void	Server::_addNewClient()
 		User	*newUser = User::makeUser(clientSocket);
 		std::cout << "Created a new user from fd" << clientSocket << std::endl;
 		this->_clients[clientSocket] = newUser;
-		// Añadir el cliente a epoll
 		struct epoll_event ev;
 		ev.events = EPOLLIN | EPOLLET;
 		ev.data.fd = clientSocket;
 		if (epoll_ctl(_epollFD, EPOLL_CTL_ADD, newUser->getFD(), &ev) == -1)
 		{
-			// If this fails we remove the User altogether...
 			this->_removeUser(*newUser);
 			throw std::runtime_error("Could not add client socket to epoll");
 		}
@@ -170,11 +159,6 @@ void	Server::_addNewClient()
 // --- i.e. we add it to the set of Things Listened For
 // --- first setting it as nonblocking
 // -- if it is *not* on the server fd then it is from a client
-// TODO The errors (anything on std::cerr) should throw exception of some kind
-// TODO Handle client disconnnections better: currently cause "failed to read new input"
-// TODO MAX_EVENTS is better as a class variable
-// TODO refactor out the "message to queue" part of the loop, it's too long
-// TODO Generally tidy this Server::run() method before submission.
 // NOTE What happens if MAX_EVENTS is exceeded:
 // "At any single call of epoll_wait you'll at most receive as many events as you have room for,
 // but of course events don't get lost if there are more than that queued up
@@ -199,7 +183,7 @@ void Server::run()
 		}
 		for (int i = 0; i < n; ++i)
 		{
-			// Input on Server, i.e. a new connection
+			// Input on Server socket, i.e. a new connection
 			if (events[i].data.fd == _socketFD)
 			{
 				try
@@ -211,21 +195,22 @@ void Server::run()
 					std::cerr << "Failed to add new client: " << e.what() << std::endl;
 				}
 			}
-			else	// Input from a client, written to a Message or stored
+			// Input from known client, written to a Message and added to queue or stored as partial
+			else
 			{
 				try
 				{
 					std::string	str_buf = _getClientInput(events[i].data.fd);
 					std::cout << "Mensaje recibido de fd " << events[i].data.fd << ": " << str_buf << std::endl;
-					if (!this->_isFullMsg(str_buf))	// buffer does not form a complete message
+					if (!this->_isFullMsg(str_buf))
 					{
 						this->_storePartial(events[i].data.fd, str_buf);
 					}
 					// NOTE str_buf might contain multiple \n and we *must* handle that
-					else	// Parse into Message and queue for further action
+					// With a complete message, must delete partials
+					// If there are multiple messages here, parse them *all*
+					else
 					{
-						// With a complete message, must delete partials
-						// If there are multiple messages here, parse them *all*
 						this->_partial_msgs[events[i].data.fd].erase();
 						// NOTE ....What happens if User not found in _clients?
 						User*	msgFrom =  this->_clients[events[i].data.fd];
@@ -238,13 +223,11 @@ void Server::run()
 								delete nxtMessage;
 							str_buf.erase(0, str_buf.find_first_of("\n\r"));
 							while (str_buf.find_first_of("\n\r") == 0)
-								str_buf.erase(0,1);	// HACK To get rid of the \n at the start now?
+								str_buf.erase(0,1);	// HACK To get rid of the \n at the start now
 						}
 					}
 				}
-				// TODO Work out how to handle / merge the 2 different exceptions.
-				// - cant parse message- silently ignore or send ERR_NOTENOUGH PARAMS type reply
-				// - connection dodgy - is that what they are?
+				// Invalid arguments come from Message parsing, we silently ignore them
 				// NOTE Cannot disconnect a client just because they sent a message that looks too small!
 				catch (std::invalid_argument &e)
 				{
@@ -257,11 +240,10 @@ void Server::run()
 				// }
 			}
 		}
-		_processQueue();
+		this->_processQueue();
 	}
-
-	// Cierre limpio del servidor
-	_cleanupServer();
+	// NOTE This is also called from within the Server destructor - duplication?
+	this->_cleanupServer();
 }
 
 // Simple gettter for the Server socket's file descriptor.
@@ -291,13 +273,15 @@ void	Server::_printMessageQueue(std::queue<Message *> toPrint) const
 }
 
 // NOTE When the Server destructor is called, all memory freed. This is good!
-// FIXME This can be triggered from within ~ACommand. This is very bad!
+// Remove channels based on the ones in the _channels map
+// Remove users based on the ones in the _clients map
+// Call _cleanupServer to do....
+// - notify all users (that we just deleted)...
+// - empty process queue
+// - close all client sockets, server socket and epoll
 Server::~Server(void)
 {
-	// Libera recursos si es necesario
 	std::cout << "Server destructor called." << std::endl;
-
-	// Clean up channels
 	for (std::map<std::string, Channel*>::iterator it = _channels.begin(); it != _channels.end(); ++it)
 	{
 		delete it->second;
@@ -315,7 +299,7 @@ Server::~Server(void)
 	_cleanupServer();
 }
 
-// TODO Consider being more lenient and allowing \r only to terminate commands
+// IDEA Consider being more lenient and allowing \r only to terminate commands
 bool	Server::_isFullMsg(std::string msg) const
 {
 	if (msg.empty() || msg.length() < 3)
@@ -364,7 +348,7 @@ std::string	Server::_getClientInput(int fd)
 	return (ret_val);
 }
 
-// TODO Consider calling User::normaliseNick here
+// IDEA Consider calling User::normaliseNick here
 // (Currently callers use it before sending)
 User* Server::findUserByNick(const std::string &nick) const
 {
@@ -376,7 +360,7 @@ User* Server::findUserByNick(const std::string &nick) const
     return NULL;
 }
 
-// TODO Consider making this a public Channel method instead
+// IDEA Consider making this a public Channel method instead
 Channel* Server::findChannel(const std::string &name) const
 {
     std::map<std::string, Channel*>::const_iterator it = _channels.find(name);
@@ -395,7 +379,7 @@ Channel* Server::createChannel(const std::string &name)
     return channel;
 }
 
-// TODO Consider if this needs safety checks before removing the Channel...
+// IDEA Consider if this needs safety checks before removing the Channel...
 void Server::_removeChannel(const std::string &name)
 {
     std::map<std::string, Channel*>::iterator it = _channels.find(name);
@@ -552,9 +536,9 @@ ACommand*	Server::matchCmd(Message* do_next)
 // FIXME We are not allowed to use errno, remove it!
 void	Server::_sendMessage(Message *msg_to_send) const
 {
-	std::string	msg_as_str = msg_to_send->serialiseMsg();
+	std::string		msg_as_str = msg_to_send->serialiseMsg();
 	// const here is to avoid -fpermissive compiler warning
-	const char*	msg_buf = msg_as_str.c_str();
+	const char*		msg_buf = msg_as_str.c_str();
 	size_t			str_len = msg_as_str.length();
 	std::list<int>	send_to = msg_to_send->getTargets();
 
@@ -579,7 +563,6 @@ void	Server::_sendMessage(Message *msg_to_send) const
 		{
 			std::cout << "Server reply message sent OK" << std::endl;
 		}
-		// move through the list - does this handle memory OK?
 		send_to.pop_front();
 	}
 	delete msg_to_send;
@@ -587,7 +570,7 @@ void	Server::_sendMessage(Message *msg_to_send) const
 
 // Check if a nickname is already in use by any connected user
 // NOTE This might be faster/scale better if we store (and update) a SET of known nicks
-// TODO Test this, does it ever return false? Very hard to read.
+// The except_fd is used to ensure that we don't reject based on the user's own Nick
 bool	Server::isNickTaken(const std::string &nick, int except_fd) const
 {
     for (std::map<int, User*>::const_iterator it = this->_clients.begin(); it != this->_clients.end(); ++it)
@@ -631,7 +614,6 @@ std::string	Server::getCreation(void) const
 // - Server-determined errorMsg
 // - Triggered by conditions like Away too long
 // ...implies new/different parameters needed.
-// FIXED Duplicate parameters in message
 void	Server::handleError(Message *msg, User *usr)
 {
     std::list<std::string> params = msg->getParams();
@@ -640,7 +622,7 @@ void	Server::handleError(Message *msg, User *usr)
     if (!params.empty())
     {
         errorMsg = params.front();
-		// TODO What is this checking trying to achieve?
+		// NOTE What is this checking trying to achieve?
         if (!errorMsg.empty() && errorMsg[0] == ':')
             errorMsg.erase(0, 1);
     }
@@ -751,11 +733,13 @@ bool	Server::checkPasswd(std::string &to_check) const
 }
 
 // Función para limpieza de recursos del servidor
-// TODO Check ERROR sending, possibly use ERROR method and direct send method
+// IDEA Check ERROR sending, possibly use ERROR method and direct send method
 // - Notify all users
 // - close all sockets
-// - what about the things remaining in the process queue?
-// - what about channels?
+// - remove all the things remaining in the process queue
+// - what about channels? Or Users - relying on them going out of scope?
+// NOTE There is some slight duplication / repetition with this and ~Server
+// ...but it all gets cleaned up and clients get notified.
 void Server::_cleanupServer()
 {
 	std::cout << "Limpiando recursos del servidor..." << std::endl;
