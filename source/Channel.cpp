@@ -309,9 +309,8 @@ std::string Channel::getModeString(void) const
 // get a value for adding, flag and param
 // Identify the final modestring char and only then
 // pass param to the other setMode function
-// TODO ThIs maybe has to be passed back out to Mode.cpp
-// FIXME Can only notify of changes based on the last change made
-// HACK Solution to the modestring thing -- alwayts pass it.
+// HACK Can only notify of changes based on the last change made
+// HACK Solution to the modestring thing -- always pass it.
 // This means we would have no chance of handling multiple mode changes
 bool	Channel::setMode(std::string modestring, std::string modearg)
 {
