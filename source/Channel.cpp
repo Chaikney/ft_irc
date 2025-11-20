@@ -214,7 +214,7 @@ bool Channel::addMember(User *usr)
 	return (true);
 }
 
-// FIXME Is this the place to check whether the channel is empty and should be deleted?
+// IDEA Is this the place to check whether the channel is empty and should be deleted?
 // Confirm that we have a user and that they are in _members
 // If so, remove from the 2 places they might be stored.
 bool Channel::removeMember(User *usr)

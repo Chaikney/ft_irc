@@ -376,7 +376,10 @@ Channel* Server::createChannel(const std::string &name)
 }
 
 // IDEA Consider if this needs safety checks before removing the Channel...
-void Server::_removeChannel(const std::string &name)
+// Use the name to find the channel pointer
+// Use the pointer to delete the Channel instance
+// Remove the entry from the _channels set
+void Server::removeChannel(const std::string &name)
 {
     std::map<std::string, Channel*>::iterator it = _channels.find(name);
     if (it != _channels.end())

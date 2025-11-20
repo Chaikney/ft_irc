@@ -58,8 +58,6 @@ class	Server
 		void		_sendToFD(int fd, const std::string &text) const;
 
 		ACommand*	_matchCmd(Message* do_next);
-		// NOTE Trial and error show that this can be private not public
-		void		_removeChannel(const std::string &name);
 
 	public:
 		Server(int port, std::string password);
@@ -78,6 +76,8 @@ class	Server
 		std::map<std::string, Channel*>		getChannels(void) const;
 
 		Channel*	createChannel(const std::string &name);
+		// NOTE Must be public so that Part can remove empty channels
+		void		removeChannel(const std::string &name);
 		bool		isNickTaken(const std::string &nick, int except_fd = -1) const;
 
 		// NOTE With restructuring this has to be public, may not be best

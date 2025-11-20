@@ -12,13 +12,17 @@ Part::~Part() {}
 // - Check name and channel exists.
 // - Remove User, send confirmation and to channel
 // - Remove channel if now empty
-// TODO Will need to be able to handle *multiple* Channel PARTs (comma separated)
-// FIXME I think PART notifications are incorrect (at least they look wrong in Konversation)
-// FIXME remove empty channel
+// IDEA Nice to be able to handle *multiple* Channel PARTs (comma separated)
 void Part::executeCmd(void)
 {
     std::list<std::string> params =_msg.getParams();
 	User*	usr = _msg.getOrigin();
+	// If we can't find the User something has gone wrong and we silently ignore the command
+	if (!usr)
+	{
+		std::cerr << "PART command from a non-existent (already gone?) user" << std::endl;
+		return ;
+	}
     std::string chan = params.front();
 	if (!Channel::normaliseChanName(&chan))
 	{
@@ -43,12 +47,12 @@ void Part::executeCmd(void)
         usr->removeChannel(channel);
 		// ...and to the Channel
 		this->_responses.push(Message::_channelMessage(_msg, channel));
-        // FIXME is this the way to remove an empty Channel? or should it be an internal Channel method?
         // If channel is empty, remove it
-        // if (channel->isEmpty())
-        //     this->_srv->_removeChannel(channel);
+        // NOTE This has to be the last reference to the channel in the command!
+        if (channel->getMemberCount() == 0)
+			this->_srv->removeChannel(channel->getName());	// IDEA could pass the pointer directly with an overload
     }
-	else
+	else	// removeMember = false implies the user was not a member
 	{
 		this->_responses.push(Message::_reply(_msg, ERR_NOTONCHANNEL, channel));
 		return ;
