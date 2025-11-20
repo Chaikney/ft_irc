@@ -81,30 +81,30 @@ void KickCmd::executeCmd(void)
 		std::cerr << "failed to find channel" << std::endl;
 		return;
 	}
-	//  Loop here over every given NICK
+	// If we handled multiple NICKS, we would loop here
 	User*	target =_checkUser(nick);
 	if (target)
 	{
 		if (this->_checkCombo(target, channel, _msg.getOrigin()))
 		{
-			if (channel->removeMember(target))
-				std::cout << target->getNick() << " removed from " << channel->getName() << std::endl;
-			else
-				std::cerr << target->getNick() << " NOT removed from " << channel->getName() << std::endl;
-			(target->removeChannel(channel));
-//				std::cout << target->getNick() << " record removed from " << channel->getName() << std::endl;
-			// FIXME direct notification doesn't seem to get sent
+			// NOTE Send channel notice *before* removing user so they know they are KICKed
 			Message*	chanNotice = Message::_channelMessage(_msg, channel);
 			chanNotice->addParams(target->getNick());
 			chanNotice->addParams(reason);
 			_responses.push(chanNotice);
+			if (channel->removeMember(target))
+				std::cout << target->getNick() << " removed from " << channel->getName() << std::endl;
+			else	// NOTE this should not happen, should be caught in _checkCombo
+			{
+				std::cerr << target->getNick() << " NOT removed from " << channel->getName() << std::endl;
+				return;	// Would not work in loop
+			}
+			(target->removeChannel(channel));
 			Message *direct = Message::_replyNonNumeric(_msg, channel);
 			direct->addParams(target->getNick());
 			direct->addParams(reason);
 			_responses.push(direct);
 		}
-		else
-			std::cerr << "not sending anythin" << std::endl;
 	}
 	else
 	{
