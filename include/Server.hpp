@@ -14,7 +14,7 @@ class	Channel;
 class	ACommand;
 
 const std::string	SERVERNAME	= "ft_irc";
-const std::string	VERSION	= "0.9";	// NOTE Increment this when we get bored
+const std::string	VERSION	= "1.0";	// NOTE Increment this when we get bored
 const int			MAX_EVENTS = 10;
 
 // What should this hold?
