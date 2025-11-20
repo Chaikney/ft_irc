@@ -4,16 +4,12 @@
 #include "ReplyEnums.hpp"
 #include "User.hpp"
 
-// TODO Add or at least check the parameter limits on TOPIC
-Topic::Topic(Server *srv, Message &msg) : ACommand(srv, msg) {}
+Topic::Topic(Server *srv, Message &msg) : ACommand(srv, msg, 1, 2) {}
 
 Topic::~Topic() {}
 
-// TODO There should be ome filtering of visible names based on user modes
-// FIXME Blank topic (RPL_TOPIC?) does not supply channel name (KVIRC)
 // The broadcast message must include the channel name (and goes to all in channel)
-// FIXME Parsing not putting the : in the correct place (sometimes?)
-// TODO Confirm that the TOPIC change notification is sent properly / at all
+// the TOPIC change notification is sent properly for Hexchat at least
 // (Konv doesn't register it unless prodded)
 void Topic::executeCmd(void)
 {

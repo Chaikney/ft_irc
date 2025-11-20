@@ -5,7 +5,7 @@
 #include "User.hpp"
 #include <stdexcept>
 
-KickCmd::KickCmd(Server *srv, Message &msg) : ACommand(srv, msg) {}
+KickCmd::KickCmd(Server *srv, Message &msg) : ACommand(srv, msg, 2, 3) {}
 
 KickCmd::~KickCmd() {}
 

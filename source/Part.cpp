@@ -4,7 +4,7 @@
 #include "ReplyEnums.hpp"
 #include "User.hpp"
 
-Part::Part(Server *srv, Message &msg) : ACommand(srv, msg) {}
+Part::Part(Server *srv, Message &msg) : ACommand(srv, msg, 1, 2) {}
 
 Part::~Part() {}
 

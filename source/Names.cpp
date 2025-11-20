@@ -3,8 +3,9 @@
 #include "Message.hpp"
 #include "ReplyEnums.hpp"
 
-// TODO Check or confirm the parameter ranges for NAMES commands
-Names::Names(Server *srv, Message &msg) : ACommand(srv, msg) {}
+//   Command: NAMES
+//   Parameters: <channel>{,<channel>}
+Names::Names(Server *srv, Message &msg) : ACommand(srv, msg, 1, 1) {}
 
 Names::~Names() {}
 
@@ -14,9 +15,8 @@ Names::~Names() {}
 // -- enumerate users
 // -- send RPL_NAMEREPLY per user
 // -- send RPL_ENDOFNAMES with the channel name
-// TODO Test that this works with multiple channels
-// TODO There should be some filtering of visible names based on user modes
-// TODO Check the @ added to some names - Konv doesn't like it.
+// IDEA Extend to work with multiple channels
+// IDEA There should be some filtering of visible names based on user modes
 void Names::executeCmd(void)
 {
     std::list<std::string> params =_msg.getParams();
