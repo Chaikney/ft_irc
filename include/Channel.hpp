@@ -8,7 +8,7 @@
 
 class User;
 
-// TODO Support no External messages ban on sending (e.g. in getBraodcastFDs? or elsewhere?)
+// IDEA Extend to support no External messages ban on sending (e.g. in getBraodcastFDs? or elsewhere?)
 class Channel
 {
 	private:
@@ -39,7 +39,6 @@ class Channel
 		bool				_isEmpty(void) const;
 
 	public:
-		// TODO Explain why we have used the explicit keyword here
 		explicit Channel(const std::string &name);
 		~Channel(void);
 
@@ -83,13 +82,13 @@ class Channel
 		bool				isInvited(const std::string &nick) const;
 
 		// Mode management
-		// TODO Make setMode an internal thing and have an exeternal piece that takes the whole modestring
+		// IDEA Make setMode an internal thing and have an exeternal piece that takes the whole modestring
 		std::string			getModeString(void) const;
 		bool				setMode(char mode, bool add, const std::string &param = "");
 		bool				setMode(std::string modestring, std::string modearg) ;
 
 		// Utility
-		void				clear(void);	// TODO Give this a less-ambiguous name
+		void				clear(void);	// IDEA Give this a less-ambiguous name
 		static bool			normaliseChanName(std::string *chan);
 		bool				checkPassword(std::string const &key) const;
 };

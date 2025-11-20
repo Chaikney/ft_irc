@@ -144,7 +144,7 @@ Message::~Message(void)
 }
 
 // Give any string, get back a Message object to use wherever
-// TODO This has to handle failure to make a message somehow. Throw to next level?
+// IDEA This has to handle failure to make a message somehow. Throw to next level?
 Message	*Message::makeMessage(std::string &str)
 {
 	Message	*msg = new Message(str);
@@ -240,7 +240,6 @@ std::string	Message::_paramToString(std::list<std::string> lst) const
 // message ::= ['@' <tags> SPACE] [':' <source> SPACE] <command> <parameters> <crlf>
 //  SPACE  ::=  %x20 *( %x20 )   ; space character(s)
 //  crlf   ::=  %x0D %x0A        ; "carriage return" "linefeed"
-//  TODO Test the output of this
 //  FIXED If the final parameter has a : it doesn't need, Hexchat gets confused.
 std::string	Message::serialiseMsg(void) const
 {
@@ -265,7 +264,7 @@ std::string	Message::serialiseMsg(void) const
 
 // Add a list of parameters onto the end of the parameter list
 // Return true on success
-// TODO Add exceptions, error-checking
+// IDEA Add exceptions, error-checking
 bool	Message::addParams(std::list<std::string> &addme)
 {
 	this->_params.splice(_params.end(), addme);
@@ -391,7 +390,7 @@ Message*	Message::_replyNonNumeric(Message &msg)
 // NOTE targets is a LIST so we can expand sending to multiple clients
 // ...that is maybe not needed now?
 // NOTE For this to work with PART you have to include the Reason, final parameter
-// TODO Migrate this towards "user notification only" use case
+// IDEA Migrate this towards "user notification only" use case
 Message*	Message::_replyNonNumeric(Message &msg, Channel *chan)
 {
 	Message*	transmit;
@@ -402,14 +401,8 @@ Message*	Message::_replyNonNumeric(Message &msg, Channel *chan)
 	params.push_back(chan->getName());
 	if (cmd_as_str.compare("PART") == 0)
 		params.push_back((msg.getParams().back()));
-	// NOTE Join only needs the channel name when replying to a client
-	// else if (cmd_as_str.compare("JOIN") == 0)
-	// 	params.push_back((msg.getParams().back()));
-	// If the command should not be sent to the sender, add as parameter
-	// NOTE Be careful of confusing this with _channelMessage()!
-	// TODO Check that this is used consistently
 	std::list<int>	targets;
-	// For JOIN, send only to the user joining. For others, send to all.
+	// For these, send only to the user. For others, send to all.
 	// NOTE WIthout catching here, multiple PART messages get sent...
 	if (cmd_as_str.compare("JOIN") == 0)
 		targets.push_back(msg.getOrigin()->getFD());
@@ -433,8 +426,8 @@ Message*	Message::_replyNonNumeric(Message &msg, Channel *chan)
 // - command = reply code
 // - parameters: first parameter is client by default (msg->usr-getNick())
 // - uses a switch to add any further parameters
-// TODO More protection needed, i.e. on rep_code
-// TODO Consider renaming this to be more specific
+// IDEA More protection needed, i.e. on rep_code
+// IDEA Consider renaming this to be more specific
 // NOTE When rep_code is < 100, it should be padded to 3 digits
 // NOTE RPL_MYINFO and RPL_CREATED generate false positive "not found" passthrough messages
 Message*	Message::_reply(Message &msg, int rep_code)
@@ -458,7 +451,7 @@ Message*	Message::_reply(Message &msg, int rep_code)
 
 // Channel-including overload of the _reply method above.
 // Needed for replies which refer to Channel characteristics (e.g. TOPIC)
-// TODO The first part of this repeats from above and should be consolidated
+// IDEA The first part of this repeats from above and should be consolidated
 // No padding needed for these commands though
 Message*	Message::_reply(Message &msg, int rep_code, Channel *chan)
 {
@@ -553,7 +546,7 @@ std::list<std::string>	Message::_getParamForNumReply(Message &msg, int rep_code,
 			params.push_back("No nickname given");
 			break;
 		case ERR_NICKNAMEINUSE:
-			params.push_back(msg.getParams().front());	// TODO Get the name wanted
+			params.push_back(msg.getParams().front());
 			params.push_back("Nickname already in use");
 			break;
 		case ERR_NOTREGISTERED:

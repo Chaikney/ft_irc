@@ -16,7 +16,7 @@ const int	MSG_LEN = 512;
 // Each instance of this holds a message received by, or to be sent by, the Server
 // They can be constructed from a single string, or with the various parts
 // serialiseMsg() converts it back to a IRC-friendly format
-// TODO We need something to check that the message is complete and logical
+// IDEA We need something to check that the message is complete and logical
 class	Message
 {
 	private:
@@ -65,13 +65,12 @@ class	Message
 		bool					addParams(const std::string &addme);
 		bool					insertParam(const std::string &addme);
 
-		// TODO Consolidate these into more ACommand and user-friendly interfaces
-		// TODO Rename to reflect their Public visibility
+		// IDEA Consolidate these into more ACommand and user-friendly interfaces
+		// IDEA Rename to reflect their Public visibility
 		static Message*	_channelMessage(Message &msg, Channel *chan);
 		static Message*	_replyNonNumeric(Message &msg, Channel *chan);
 		static Message*	_replyNonNumeric(Message &msg);
 		static Message*	_replyThirdParty(Message &msg, User* target);
-		// HACK Public to be friend with message origin (user)
 		static Message*	_reply(Message &msg, int num_rep);
 		static Message*	_reply(Message &msg, int num_rep, Channel *chan);
 		static Message*	_reply(Message &msg, int rep_code, User *usr);
@@ -80,7 +79,7 @@ class	Message
 
 };
 
-// TODO How can we make this return nothing when Message is absent/empty?
+// IDEA How can we make this return nothing when Message is absent/empty?
 inline std::ostream&	operator<<(std::ostream &out, const Message &msg)
 {
 	std::list<std::string>	params;

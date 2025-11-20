@@ -16,9 +16,6 @@ Mode::~Mode(void) {}
 
 // MODE command to deal with a User
 // NOTE User modes don't need the modearg, are all type D
-// TODO Notify on changed modes, will need to call User::+setModeLetter and act on the return
-// (This is partly done but will be unreliable)
-// TODO Investigate memory leak after giving a second user Op status in a channel
 void	Mode::_userMode(Message *msg, User *usr, std::string target)
 {
 	User* target_user = this->_srv->findUserByNick(target);
@@ -50,9 +47,7 @@ void	Mode::_userMode(Message *msg, User *usr, std::string target)
 }
 
 // MODE command to deal with a Channel
-// TODO If channel mode changes, broadcast the change to channel
 // NOTE Here, params has popped off the first (target), it is not like msg->getParams()
-// TODO How to handle +b ? (request for a ban list)? In channel i suppose
 // When the server is done processing the modes,
 // a MODE command is sent to all members of the channel containing the mode changes.
 // Servers MAY choose to hide sensitive information when sending the mode changes.
@@ -63,7 +58,6 @@ void	Mode::_channelMode(Message *msg, User *usr, std::string target)
 	Channel *channel = this->_srv->findChannel(target);
 	if (!channel)
 	{
-		// TODO How do we include the "wrong" name here? add target somehow
 		this->_responses.push(Message::_reply(*msg, ERR_NOSUCHCHANNEL));
 		return ;
 	}
@@ -95,14 +89,12 @@ void	Mode::_channelMode(Message *msg, User *usr, std::string target)
 		modearg = params.front();
 	if (channel->setMode(modestring, modearg))
 	{
-		// TODO Notify all in channel of changed mode (target->getModeString() and what else?)
 		std::cout << "Channel modes for " << target << "have been changed" << std::endl;
 	}
 }
 
 // Command: MODE
 // Parameters: <target> [<modestring> [<mode arguments>...]]
-// TODO Handle modestring-less commands with a reply
 // - param 1 = target, either Nick or Channel
 // - param 2 = optional modestring
 // - param 3 = optional mode arguments

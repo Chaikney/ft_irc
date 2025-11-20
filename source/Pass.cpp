@@ -34,11 +34,9 @@ void	Pass::executeCmd(void)
 		{
 			this->_responses.push(Message::_reply(_msg, ERR_ALREADYREGISTERED));
 		}
-		// TODO Server sends some kind of acknowledgment?
 	}
 	else
 	{
 		this->_responses.push(Message::_reply(_msg, ERR_PASSWORDMISMATCH));
-		// TODO disconnect them by implementing the ERROR command
 	}
 }

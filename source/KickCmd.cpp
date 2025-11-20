@@ -12,7 +12,6 @@ KickCmd::~KickCmd() {}
 // Take the suppposed channel name, perform normalisation and locate the Channel on the server
 // Returns the channel (could be null)
 // While checking, enqueues relevant error messages
-// TODO KICKing User must be in chanel and an operator, right?
 Channel*	KickCmd::_checkChannel(std::string str)
 {
 	Channel*	chan = 0;

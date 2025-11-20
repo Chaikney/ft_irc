@@ -8,7 +8,7 @@
 // 	std::cerr << "Bare ACommand constructor should not be called" << std::endl;
 // }
 
-// TODO Implement NOTICE command
+// IDEA Implement NOTICE command
 ACommand::ACommand(Server *srv, Message &seed) : _srv(srv),
 												 _msg(seed),
 												 _cmd_as_str(""),

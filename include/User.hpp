@@ -102,8 +102,7 @@ inline bool	operator!=(const User &lhs, const User &rhs)
 }
 
 // NOTE Remember to update this alongside the class members
-// TODO Add a last_seen entry
-// TODO Add flags output, isAway, Server Op
+// IDEA Extend with last_seen entry, flags for isAway, Server Op etc
 inline std::ostream&	operator<<(std::ostream &out, const User &usr)
 {
 	std::string				tmp;

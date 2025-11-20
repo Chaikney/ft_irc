@@ -55,10 +55,8 @@ void	Join::_welcomeToChannel(Channel *chan)
 // [X] A list of users currently joined to the channel (with one or more RPL_NAMREPLY (353) numerics followed by a single RPL_ENDOFNAMES (366) numeric).
 // ....These RPL_NAMREPLY messages sent by the server MUST include the requesting client that has just joined the channel.
 // DONE Break out the name normalisation to a helper function
-// TODO JOIN can accept an alternative parameter of '0' = PART all the user's channels
-// TODO Improve parameter handling so JOIN Can handle multiple Channels (comma separated)
-// TODO To support KEY mode channels, the 2nd parameter is a password
-// FIXED? the reply or broadcast message repeats the #channelname
+// IDEA JOIN can accept an alternative parameter of '0' = PART all the user's channels
+// IDEA Improve parameter handling so JOIN Can handle multiple Channels (comma separated)
 void Join::executeCmd(void)
 {
     std::list<std::string> params = _msg.getParams();
@@ -76,7 +74,6 @@ void Join::executeCmd(void)
 	else	// we have one or more apparent channel names, happy path
 	{
 		// If the channel name is valid, store and remove from our params
-		// TODO This should be a comma list
 		if (!Channel::normaliseChanName(&chan))
 		{
 			// Send error message and stop processing message

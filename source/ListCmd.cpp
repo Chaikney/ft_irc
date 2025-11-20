@@ -17,8 +17,8 @@ ListCmd::ListCmd(Server* srv, Message &seed) : ACommand(srv, seed, 0, 2)
 
 ListCmd::~ListCmd(void) {}
 
-// TODO This should handle receiving a list of channels (comma-separated)
-// TODO Filter the channel list that we call before looping over and listing
+// IDEA This should handle receiving a list of channels (comma-separated)
+// IDEA Filter the channel list that we call before looping over and listing
 // ...secret channels only visible to operators, etc
 void	ListCmd::executeCmd(void)
 {
@@ -39,7 +39,7 @@ void	ListCmd::executeCmd(void)
 		std::string	chans = _msg.getParams().front();
 		if (chans.empty())
 			std::cerr << "Better handling for LIST params needed" << std::endl;
-		else if (chans.find_first_of(",") != std::string::npos)	// TODO Comma split needed
+		else if (chans.find_first_of(",") != std::string::npos)	// IDEA Comma split needed
 			std::cerr << "LIST with selected channels not implemented yet" << std::endl;
 		else
 		{

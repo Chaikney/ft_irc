@@ -308,7 +308,7 @@ bool	Server::_isFullMsg(std::string msg) const
 		return (true);
 }
 
-// TODO This should first check for existing text there!
+// IDEA This should first check for existing text there!
 void	Server::_storePartial(int fd_source, std::string msg)
 {
 	this->_partial_msgs[fd_source] = msg;
@@ -396,12 +396,8 @@ void	Server::_sendToFD(int fd, const std::string &text) const
 
 // Run through the Messages in the _toProcess queue
 // Act on them, delete them.
-// TODO Make this spin off thread(s) to process the command efficiently
+// IDEA Make this spin off thread(s) to process the command efficiently
 // NOTE How do we make sure that this is non-blocking?
-// TODO This function has friend-based access to Message so it can extract the User involved - still needed?
-// NOTE This is what the processQueue *could* look like using ACommands
-// DONE Implement matchCmd
-// TODO Decide if we are to have an "in" and an "out" queue
 // - Get the next message
 // - If it is from the Server, send it straight out
 // - else, find the command it is
@@ -456,7 +452,7 @@ ACommand*	Server::_matchCmd(Message* do_next)
 {
 	std::cout << "Processing:" << *do_next << std::endl;
 	std::string command = do_next->getCommand();
-	ACommand*	thingtodo = 0;	// TODO Make sure this is the right place to declare this
+	ACommand*	thingtodo = 0;
 	// NOTE No origin => message is from us / the server, we send it straight out
 	if (command.compare("CAP") == 0)
 		std::cout << "Ignoring capability negotiation request" << std::endl;
@@ -602,7 +598,7 @@ std::string	Server::getCreation(void) const
 // BUT Do we want to process it ourselves from the queue?
 // Best to not remove the User until *after* we send this message
 // The only parameter needed is a disconnection reason - given by client or us (e.g. timed out)
-// TODO Adapt this to handle Server-initiated disconnections
+// IDEA Adapt this to handle Server-initiated disconnections
 // - Server-determined errorMsg
 // - Triggered by conditions like Away too long
 // ...implies new/different parameters needed.

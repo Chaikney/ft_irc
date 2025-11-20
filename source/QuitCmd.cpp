@@ -18,7 +18,7 @@ QuitCmd::~QuitCmd(void)
 // broadcast QUIT to their channels
 // remove them from all channels and clean up traces
 // NOTE The ERROR probably has to act directly as the FD will disappear...
-// TODO Test (refactor?) the user-removal logic
+// IDEA Test (refactor?) the user-removal logic
 // - all channels (should be encapsulated in removeMember method)
 // - Server listings (perhaps roll into ERROR)
 // FIXED This does not cause the User to be removed from channels (at least in Konv.)

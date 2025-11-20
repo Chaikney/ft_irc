@@ -193,7 +193,7 @@ void Channel::setUserLimit(int limit)
 bool Channel::addMember(User *usr)
 {
 	if (!usr)
-		return (false);	// TODO Maybe this should raise an exception? It is a big problem...
+		return (false);	// IDEA Maybe this should raise an exception? It is a big problem...
 	if (_members.find(usr) != _members.end())
 		return false; // Already a member
 	if (this->isInviteOnly())
@@ -461,7 +461,7 @@ std::list<std::string>	Channel::getListInfo(void) const
 // Return a list of channel users formatted for use in RPL_NAMREPLY
 // For every member of the channel, build their prefix-NICK pair
 // Put it in a list and return it
-// TODO Handle secret channels if we ever have them (not just the =)
+// IDEA Handle secret channels if we ever have them (not just the =)
 std::list<std::string>	Channel::getNameReply(void) const
 {
 	std::list<std::string>	params;
