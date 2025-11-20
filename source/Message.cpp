@@ -588,6 +588,10 @@ std::list<std::string>	Message::_getParamForNumReply(Message &msg, int rep_code,
 			params.push_back(chan->getName());
 			params.push_back("You're not on this channel");
 			break;
+		case ERR_USERNOTINCHANNEL:
+			params.push_back(usr->getNick());
+			params.push_back("They are not on that channel");
+			break;
 		case RPL_ENDOFWHO:
 			params.push_back("End of /WHO list");
 			break;

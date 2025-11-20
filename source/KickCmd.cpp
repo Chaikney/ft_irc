@@ -36,13 +36,15 @@ User*	KickCmd::_checkUser(std::string nick)
 	return (target);
 }
 
-// TODO target Nick has to be in the ERR_ message...
+// Returns true if target is in the channel and the sending user is ChanOp
+// Otherwise queues error message and returns false.
+// DONE target Nick has to be in the ERR_ message...
 // "<client> <nick> <channel> :They aren't on that channel"
 bool	KickCmd::_checkCombo(User *target, Channel *chan, User *usr)
 {
 	if (!chan->isMember(target))
 	{
-		_responses.push(Message::_reply(_msg, ERR_USERNOTINCHANNEL));
+		_responses.push(Message::_reply(_msg, ERR_USERNOTINCHANNEL, target));
 		return (false);
 	}
 	else if (!chan->isOperator(usr))
@@ -54,7 +56,7 @@ bool	KickCmd::_checkCombo(User *target, Channel *chan, User *usr)
 }
 
 // KICK <channel> <user> [<comment>]
-// TODO Adapt to handle multiple Users getting kicked from the one channel
+// IDEA Adapt to handle multiple Users getting kicked from the one channel
 // (Although: "Servers MAY limit the number of target users per KICK command via the TARGMAX parameter
 // of RPL_ISUPPORT, and silently drop targets if the number of targets exceeds
 // the limit.)" - still implies only reading to the first comma
