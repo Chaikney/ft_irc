@@ -4,16 +4,6 @@
 #include "User.hpp"
 #include "Channel.hpp"
 
-# include <iostream>
-# include <string>
-# include <list>
-# include <map>	// for the channel switching, which could be improved...
-
-// QuitCmd::QuitCmd(void)
-// {
-// 	std::cerr << "Bare QuitCmd constructor should not be called" << std::endl;
-// }
-
 QuitCmd::QuitCmd(Server* srv, Message &seed) : ACommand(srv, seed, 0, 1)
 {
 	std::cerr << "Bare QuitCmd constructor called, hope that is not a problem..." << std::endl;
@@ -31,9 +21,9 @@ QuitCmd::~QuitCmd(void)
 // TODO Test (refactor?) the user-removal logic
 // - all channels (should be encapsulated in removeMember method)
 // - Server listings (perhaps roll into ERROR)
-// FIXME This does not cause the User to be removed from channels (at least in Konv.)
+// FIXED This does not cause the User to be removed from channels (at least in Konv.)
 // ...i.e. still appearted in a WHOIS listing after Quit
-// FIXME Clients get duplicate messages regarding users if they are in >1 channel with them
+// HACK Clients might get duplicate messages regarding users if they are in >1 channel with them
 // ...Konv puts them in the same channel / duplicates them
 void	QuitCmd::executeCmd(void)
 {

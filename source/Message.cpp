@@ -9,43 +9,35 @@
 #include <cstdio>	// EOF marker in stringstream
 
 // Make sure that the string is not empty and it ends in crlf
-// TODO Check the final two chars are cr and lf
-// TODO Check that we have not received illegal characters
-// TODO Check validity of the command parsed out
-// TODO Is parsing command OK in case of no parameters? i.e. message ends?
+// IDEA Check the final two chars are cr and lf
+// IDEA Check that we have not received illegal characters
+// IDEA Check validity of the command parsed out
+// IDEA Is parsing command OK in case of no parameters? i.e. message ends?
 // NOTE The four spaces "    " call gives weird output, not sure what it should give
 // FIXED Ignore final spaces -- at the moment the parameter list ends as ~500 spaces
 // ...something to do with null termination?
 // FIXED Step over extra spaces between command and parameters (also check before command)
-// FIXME Now the only parsing issue seems to be the final \n in cases where there are no end spaces
-// ...we should strip that out
-// TODO UNify the parsing part of these 2 constructors
-// TODO Fill targets -- if blank it is for the Server?
+// IDEA UNify the parsing part of these 2 constructors
+// NOTE Doesn't fill targets -- if blank it is for the Server to do
 Message::Message(std::string text_recvd) : _tags(""), _source(""),
 										   _command(""), _params(),
 										   _origin(), _targets()
 {
     if (text_recvd.empty())
         throw std::invalid_argument("Tried to create message with empty string");
-    // if (text_recvd.length() < 3)
-    //     throw std::invalid_argument("Message too short");
     if (text_recvd.length() > MSG_LEN)
 		throw std::invalid_argument("Message too long");
 	_parseMessage(text_recvd);
 }
 
 // This should be easy but it has not been
-// TODO Move stripFinalNewline to a shared "helpers" file?
+// IDEA Move stripFinalNewline to a shared "helpers" file?
 void	stripFinalNewline(std::string *str)
 {
 	size_t	hunt_it = str->find('\n') ;
 	if (hunt_it != std::string::npos)
 	{
-		// std::cout << "Newline found in this parameter:" << *str;
-		// std::cout << ". At position: " << str->find('\n') << std::endl;
 		str->erase(hunt_it);
-//		str->erase(std::remove(str->begin(), str->end()), str->end());
-//		std::cout << "It is now:" << *str << std::endl;
 	}
 	hunt_it = str->find('\r') ;
 	if (hunt_it != std::string::npos)
@@ -128,8 +120,6 @@ Message::Message(std::string text_recvd, User *usr) : _tags(""), _source(""),
 
 // Constructor suited for *outward* Messages
 // i.e. has parameters, is probably a numeric reply
-// TODO Consider if this needs to take a User as well
-// FIXME I think this can lead to the last parameter NOT having a :
 Message::Message(std::string &src, std::string &cmd,
 				 std::list<std::string> params, std::list<int> target) :
 	_tags(""), _source(src), _command(cmd), _params(params), _origin(), _targets(target)
@@ -212,8 +202,6 @@ std::list<int>	Message::getTargets() const
 // a transmittable form
 // NOTE The final parameter is the only one allowed to contain spaces
 // ...it must be preceded by :
-//  FIXME A parameter of only a newline code leads to the : being added.
-//  ...careful, an empty parameter at the end is OK (I think)
 //  If there is only one, spaceless parameter, don't add the :
 //  ...KVIRC JOIN gets confused by it i think.
 std::string	Message::_paramToString(std::list<std::string> lst) const
@@ -372,7 +360,7 @@ Message*	Message::_replyThirdParty(Message &msg, User* target)
 // Simplest possible reply construction: no client name, only to sender
 // This is for commands like PING where we don't need to refer to channel or user
 // No source
-// TODO I am not sure if this is the right way to handle QUIT / ERROR
+// HACK I am not sure if this is the right way to handle QUIT / ERROR
 Message*	Message::_replyNonNumeric(Message &msg)
 {
 	Message*	transmit;
@@ -536,7 +524,7 @@ std::list<std::string>	Message::_getParamForNumReply(Message &msg, int rep_code,
 			params.push_back("Off you go then, bye.");
 			break;
 		case ERR_NOSUCHNICK:
-			params.push_back(msg.getParams().front());	// FIXME Duplicates the missing 7 not foud NICK (in hc at least)
+			params.push_back(msg.getParams().front());
 			params.push_back("No such nick or channel found");
 			break;
 		case ERR_NOSUCHCHANNEL:

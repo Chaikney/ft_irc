@@ -78,8 +78,7 @@ void	Mode::_channelMode(Message *msg, User *usr, std::string target)
 	}
 	// NOTE Below here only if more than 1 param was given
 	// NOTE No privileges needed to get a listing, but from here we change things
-	// FIXME So how then do we treat +b for banlist? Could still be privileged information.
-	// NOTE Ban is not required in the subject, think of as bonus
+	// NOTE Some clients send +b for banlist. Ban is not required in the subject, think of as bonus
 	if (!channel->isOperator(usr))
 	{
 		this->_responses.push(Message::_reply(*msg, ERR_CHANOPRIVSNEEDED, channel));
@@ -107,11 +106,10 @@ void	Mode::_channelMode(Message *msg, User *usr, std::string target)
 // - param 1 = target, either Nick or Channel
 // - param 2 = optional modestring
 // - param 3 = optional mode arguments
-// First we decide if we are targetting a channel or aa user, and direct appropriately
+// First we decide if we are targetting a channel or a user, and direct appropriately
 // After changes are made, we have to notify them - individually or together?
 // NOTE Workaround for Hexchat which sends a blank final parameter.
-// FIXME Sends not enough params for MODE #channel +b which is absolutely fine
-// TODO Return Ban list on MODE #channel +b
+// IDEA If we implement ban mode then this should Return Ban list on MODE #channel +b
 // There are four categories of channel modes, defined as follows:
 // Type A: Modes that add or remove an address to or from a list.
 // ...These modes MUST always have a parameter when sent from the server to a client.

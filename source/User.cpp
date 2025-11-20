@@ -241,7 +241,7 @@ bool	User::setMode(std::string modestring)
 		else if (c ==  '-')
 			adding = false;
 		else
-			changes = _setModeLetter(c, adding);	// FIXME Can only work for one change
+			changes = _setModeLetter(c, adding);	// HACK Can only work for one change
 	}
 	return (changes);
 }
