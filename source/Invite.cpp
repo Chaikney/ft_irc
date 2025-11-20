@@ -46,7 +46,7 @@ void	Invite::executeCmd(void)
     }
 	if (!channel->isMember(usr))
     {
-		this->_responses.push(Message::_reply(_msg, ERR_NOTONCHANNEL));
+		this->_responses.push(Message::_reply(_msg, ERR_NOTONCHANNEL, channel));
         return ;
     }
     if (!channel->isOperator(usr))

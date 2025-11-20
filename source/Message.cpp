@@ -511,7 +511,8 @@ Message*	Message::_reply(Message &msg, int rep_code, Channel *chan, User *usr)
 }
 
 // Called from the Numeric reply methods to add the needed parameters.
-// *Should* cover all eventuialities, but probably does not.
+// *Should* cover all eventualities, but probably does not.
+// NICK of the sending user is always added to the reply-
 std::list<std::string>	Message::_getParamForNumReply(Message &msg, int rep_code, Channel *chan, User *usr)
 {
 	std::list<std::string>	params;
@@ -584,7 +585,7 @@ std::list<std::string>	Message::_getParamForNumReply(Message &msg, int rep_code,
 			params.push_back("Bad channel mask (i.e. name is not valid)");
 			break;
 		case ERR_NOTONCHANNEL:
-			// TODO Check if we should have channel name in here.
+			params.push_back(chan->getName());
 			params.push_back("You're not on this channel");
 			break;
 		case RPL_ENDOFWHO:

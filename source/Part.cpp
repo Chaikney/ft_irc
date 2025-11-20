@@ -50,7 +50,7 @@ void Part::executeCmd(void)
     }
 	else
 	{
-		this->_responses.push(Message::_reply(_msg, ERR_NOTONCHANNEL));
+		this->_responses.push(Message::_reply(_msg, ERR_NOTONCHANNEL, channel));
 		return ;
 	}
 }
