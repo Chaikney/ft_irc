@@ -17,18 +17,17 @@ What I learned in this project
 Key learning outcomes for me in this project include the following.
 
 * Network connection handling in Linux.
-* Using the epoll mechanism to avoid blocking in I/O operations.
-* The IRC protocol[#]_ . A simple structure leading to a lot of complexity in interactions.
+* Using the ``epoll`` mechanism to avoid blocking in I/O operations.
+* The IRC protocol [#]_ . A simple structure leading to a lot of complexity in interactions.
 * Object-oriented design.
 
-.. [#] Many thanks to the people behind `this rewriting of the IRC protocol <https://modern.ircdocs.horse/>`_ which we were able to use as a guide.
 
 Notable features / achievements
 ...............................
 
 During evaluation it withstood several underhand attempts to make it crash (e.g. using binary input and ASCII control codes).
 
-The ACommand abstract class from which all the commands (KICK, JOIN, etc) inherit was a key breakthrough that allowed us to avoid mind-melting repetition in the main Server loop. It reduced to 3 essential functions:
+The ``ACommand`` abstract class from which all the commands (KICK, JOIN, etc) inherit was a key breakthrough that allowed us to avoid mind-melting repetition in the main Server loop. It reduced to 3 essential functions:
 
 - check the command parameters
 - run the command
@@ -48,9 +47,11 @@ Out of scope / remaining limitations
 * There was to be no Server-to-Server communication which simplified some things greatly. In designing the Server call I hoped to avoid any assumptions that would limit the ability to extend in this direction, e.g. assigning space to record locations, but I would expect it to be much harder to extend this aspect.
 * There was no persistence of rooms or users across reboots.
 * The code remains single threaded.
-  We didn't have time to experiment with spinning off threads to see if it improved the responsiveness or capacity of the server. If we did, I would have first tried creating a thread for each ACommand that we execute in Server::_processQueue(). The potential for operations getting out of order would make this a potentially "interesting" problem, though, especially around channel and user management.
+  We didn't have time to experiment with spinning off threads to see if it improved the responsiveness or capacity of the server. If we did, I would have first tried creating a thread for each ACommand that we execute in ``Server::_processQueue()``. The potential for operations getting out of order would make this a potentially "interesting" problem, though, especially around channel and user management.
 
 Conclusion
 ..........
 
 Despite it being an old protocol, IRC still has some appeal. We showed that it is possible to code a reasonable server for it in a couple of months, so it is clearly pretty approachable compared with more "modern" protocols. It seems well-suited for this kind of object oriented implementation, too.
+
+.. [#] Many thanks to the people behind `this rewriting of the IRC protocol <https://modern.ircdocs.horse/>`_ which we were able to use as a guide.
