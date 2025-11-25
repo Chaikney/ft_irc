@@ -55,3 +55,9 @@ Conclusion
 Despite it being an old protocol, IRC still has some appeal. We showed that it is possible to code a reasonable server for it in a couple of months, so it is clearly pretty approachable compared with more "modern" protocols. It seems well-suited for this kind of object oriented implementation, too.
 
 .. [#] Many thanks to the people behind `this rewriting of the IRC protocol <https://modern.ircdocs.horse/>`_ which we were able to use as a guide.
+
+.. [#] This change was the first one where I tried to leverage AI/LLM coding tools to do the grunt work of moving the code around. Having come up with the design and seeing that it was easy to describe but potentially tedious to execute, it seemed ideal.
+
+   Reader, I ditched him (my robot suitor). After 45 minutes of careful back and forth with Github Copilot, including lots of "check with me", "yes I already said to do that" and similar handholding the results were: 1 (one) refactored method in a commit and many "Sorry there was an error". Those were because I had run out of "credits", but I only discovered that when I went back to start a new "conversation" later. (Not sure what level of "intelligence"there is in a piece of software that can't report a simple error like that...)
+
+   I'm open to the idea that I was handholding it wrong but the hour I spent typing instructions would have been better spent reading about how to script my editor, because "move this function to a new file of a similar name, replacing it with a call to X, and adding a header that inherits from Y" seems like the sort of thing that emacs might already have a command for.
