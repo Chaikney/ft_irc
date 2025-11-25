@@ -33,7 +33,7 @@ The ``ACommand`` abstract class from which all the commands (KICK, JOIN, etc) in
 - run the command
 - add the command output to the Server's queue.
 
-This meant that all the complex logic (e.g. in MODE) was encapsulated and abstracted away, allowing us to divide the tasks and providing the basis for easy extension of the Server by adding new supported commands (e.g. OPER was under consideration but deemed out-of-scope).
+This meant that all the complex logic (e.g. in MODE) was encapsulated and abstracted away, allowing us to divide the tasks and providing the basis for easy extension of the Server by adding new supported commands (e.g. OPER was under consideration but deemed out-of-scope) [#]_.
 
 Another approach to increasing readability of the code and enabling quicker expansion of features was the way we handled numeric replies. There are 100s of these in the protocol. We implemented them as enums so that when coding a command we could call ``_reply(msg, ERR_NEEDMOREPARAMS)`` and understand at a glance what the code was intended to do.
 
