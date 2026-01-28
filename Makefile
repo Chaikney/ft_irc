@@ -10,9 +10,10 @@
 #                                                                              #
 # **************************************************************************** #
 
-NAME	=	ircserv
-
+BUILD_DIR = ../build
 SRC_DIR	=	source
+
+NAME	=	$(BUILD_DIR)/ircserv
 
 # NOTE addprefix allows us to add the path before each file, without needing a wildcard
 # i.e. we still explicitly list our source files
@@ -42,7 +43,7 @@ SRC		=	$(addprefix $(SRC_DIR)/, main.cpp \
 			QuitCmd.cpp )
 
 # Define a folder for the intermediate files to keep it clean
-OBJ_DIR = obj
+OBJ_DIR = ../obj
 OBJ		= $(SRC:$(SRC_DIR)/%.cpp=$(OBJ_DIR)/%.o)
 
 # NOTE make built-in rules no longer work, so must explicitly
@@ -55,13 +56,17 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp | $(OBJ_DIR)
 CFLAGS = -Iinclude -Werror -Wall -Wextra -ggdb -std=c++98 -O0 -Weffc++
 CC		= c++
 
-all: $(NAME)
+all: $(BUILD_DIR) $(NAME)
 
 $(NAME): $(OBJ)
 	$(CC) $(CFLAGS) $(OBJ) -o $(NAME)
 
 # if the obj dir does not exist, create it
 $(OBJ_DIR):
+	mkdir -p $@
+
+# if the build dir does not exist, create it
+$(BUILD_DIR):
 	mkdir -p $@
 
 # NOTE See above, this does not work with the OBJ_DIR so can be removed
