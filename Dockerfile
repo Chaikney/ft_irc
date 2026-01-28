@@ -27,17 +27,21 @@ LABEL description="A simple IRC server developed in C++"
 # Copy the static binary from the build stage
 COPY --from=buildimg /build/ircserv /ircserv
 
-# AI-generated health check, changed to have no external dependencies
-#TODO add a HEALTHCHECK --interval=30s --timeout=10s --retries=3 CMD nginx -t || exit 1
+ARG	FT_PORT:3368
+ENV FT_PORT=FT_PORT
+ARG FT_PASS:"insecuredefault"
+
+#TODO Could I add a HEALTHCHECK --interval=30s --timeout=10s --retries=3 CMD nginx -t || exit 1
 
 # this can be overridden by docker run,
 # but serves as useful documentation.
 # TODO Change to use a variable that links to the CMD below
-EXPOSE 3668/tcp
+# FIXME Doesn't work
+# EXPOSE ${FT_PORTARG}/tcp
 
 # TODO Add a healthcheck
 # HEALTHCHECK --interval=30s --timeout=10s --retries=3 CMD nginx -t || exit 1
 
 # start ft_irc
 # TODO password and port parameters should be handled properly
-CMD ["./ircserv", "3668", "testonly"]
+CMD ["./ircserv", $FT_PORT, $FT_PASS]
