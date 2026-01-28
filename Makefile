@@ -68,10 +68,10 @@ $(OBJ_DIR):
 # if the build dir does not exist, create it
 $(BUILD_DIR):
 	mkdir -p $@
-
-# NOTE See above, this does not work with the OBJ_DIR so can be removed
-%.o: %.cpp
-	$(CC) $(CFLAGS) -c $< -o $@
+#
+# Create the executable statically
+static: $(BUILD_DIR) $(OBJ)
+	$(CC) $(CFLAGS) -o $(NAME) $(OBJ) -static
 
 .PHONY: clean, all, fclean, re
 
