@@ -44,4 +44,6 @@ ARG FT_PASS:"insecuredefault"
 
 # start ft_irc
 # TODO password and port parameters should be handled properly
-CMD ["./ircserv", $FT_PORT, $FT_PASS]
+# FIXME ...that implies changes to the binary. Compile the values in? Or make sure there is a shell to pass the args
+# CMD ["./ircserv", $FT_PORT, $FT_PASS]
+CMD ["./ircserv"]

@@ -50,6 +50,8 @@ std::string	getPassword(char *argv2)
 // Check that password is non-empty, has no troublesome characters
 // Create a Server instance with those arguments
 // DONE Forbid system ports 0-1023
+// TODO Need a good solution for varying the port/password in docker
+// getenv fails in scratch; with no shell it doesn't read launch parameters
 int	main(int argc, char **argv)
 {
 	std::string password;
@@ -57,10 +59,18 @@ int	main(int argc, char **argv)
 	try
 	{
 		if (argc < 3)
-			throw std::invalid_argument("Not enough parameters");
-		port_num = getPortNumber(argv[1]);
-		password = getPassword(argv[2]);
-		std::cout << "calling server constructor" << std::endl;
+		{
+			port_num = atoi(std::getenv("FT_PORT"));
+			// FIXME this complains and i don't know why
+//			std::string password(std::getenv("$FT_PASS"));
+			if ((!port_num) )
+				port_num = 6667;
+		}
+		else {
+			port_num = getPortNumber(argv[1]);
+			password = getPassword(argv[2]);
+		}
+		std::cout << "calling server constructor with port: " << port_num << std::endl;
 		Server	ircServer(port_num, password);
 		ircServer.run();
 	}
